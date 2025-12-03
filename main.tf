@@ -694,7 +694,7 @@ module "monitoring_alerts" {
 module "monitoring_diagnostics" {
   source = "./modules/monitoring/diagnostic-settings"
 
-  diagnostic_name_prefix     = "diag-${local.environment}"
+  diagnostic_name_prefix     = "diag-${local.environment}-${random_string.suffix.result}"
   log_analytics_workspace_id = module.management.log_analytics_workspace_id
 
   # Resource IDs for diagnostic settings

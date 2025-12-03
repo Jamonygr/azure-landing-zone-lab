@@ -18,4 +18,11 @@ resource "azurerm_local_network_gateway" "this" {
       bgp_peering_address = var.bgp_peering_address
     }
   }
+
+  timeouts {
+    create = "60m"
+    update = "60m"
+    delete = "60m"
+    read   = "10m"
+  }
 }

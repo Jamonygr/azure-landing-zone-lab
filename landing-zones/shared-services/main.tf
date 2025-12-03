@@ -35,6 +35,8 @@ module "pe_subnet" {
   virtual_network_name                      = module.shared_vnet.name
   address_prefixes                          = [var.pe_subnet_prefix]
   private_endpoint_network_policies_enabled = false
+
+  depends_on = [module.app_subnet]  # Serialize subnet creation
 }
 
 # NSG for Application Subnet
@@ -47,6 +49,8 @@ module "app_nsg" {
   subnet_id             = module.app_subnet.id
   associate_with_subnet = true
   tags                  = var.tags
+
+  depends_on = [module.pe_subnet]  # Wait for subnets to complete before NSG association
 
   security_rules = [
     {

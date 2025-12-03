@@ -33,6 +33,8 @@ module "firewall_subnet" {
   resource_group_name  = var.resource_group_name
   virtual_network_name = module.hub_vnet.name
   address_prefixes     = [var.firewall_subnet_prefix]
+
+  depends_on = [module.gateway_subnet]  # Serialize subnet creation to avoid Azure API conflicts
 }
 
 # Management Subnet (for jump boxes, etc.)
@@ -44,6 +46,8 @@ module "hub_mgmt_subnet" {
   virtual_network_name = module.hub_vnet.name
   address_prefixes     = [var.hub_mgmt_subnet_prefix]
   service_endpoints    = ["Microsoft.KeyVault", "Microsoft.Storage", "Microsoft.Sql"]
+
+  depends_on = [module.firewall_subnet]  # Serialize subnet creation to avoid Azure API conflicts
 }
 
 # Azure Firewall
@@ -58,6 +62,8 @@ module "firewall" {
   sku_tier            = var.firewall_sku_tier
   dns_proxy_enabled   = true
   tags                = var.tags
+
+  depends_on = [module.hub_mgmt_subnet]  # Ensure all subnets created before deploying firewall
 }
 
 # VPN Gateway
@@ -73,6 +79,8 @@ module "vpn_gateway" {
   enable_bgp          = var.enable_bgp
   bgp_asn             = var.hub_bgp_asn
   tags                = var.tags
+
+  depends_on = [module.firewall]  # Deploy VPN Gateway after Firewall to avoid concurrent subnet ops
 }
 
 # NSG for Management Subnet
@@ -85,6 +93,8 @@ module "hub_mgmt_nsg" {
   subnet_id             = module.hub_mgmt_subnet.id
   associate_with_subnet = true
   tags                  = var.tags
+
+  depends_on = [module.vpn_gateway]  # Wait for VPN Gateway to complete before modifying subnets
 
   security_rules = [
     {

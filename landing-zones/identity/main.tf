@@ -37,6 +37,8 @@ module "dc_nsg" {
   associate_with_subnet = true
   tags                  = var.tags
 
+  depends_on = [module.dc_subnet]  # Ensure subnet is fully created before NSG association
+
   security_rules = [
     # Allow AD DS Traffic
     {

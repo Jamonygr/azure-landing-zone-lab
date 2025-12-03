@@ -37,6 +37,8 @@ module "jumpbox_nsg" {
   associate_with_subnet = true
   tags                  = var.tags
 
+  depends_on = [module.jumpbox_subnet]  # Wait for subnet before NSG association
+
   security_rules = [
     {
       name                       = "AllowRDPFromVPN"

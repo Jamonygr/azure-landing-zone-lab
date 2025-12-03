@@ -35,6 +35,8 @@ module "app_subnet" {
   virtual_network_name = module.workload_vnet.name
   address_prefixes     = [var.app_subnet_prefix]
   service_endpoints    = ["Microsoft.KeyVault", "Microsoft.Storage", "Microsoft.Sql"]
+
+  depends_on = [module.web_subnet]  # Serialize subnet creation
 }
 
 # Data Tier Subnet
@@ -46,6 +48,8 @@ module "data_subnet" {
   virtual_network_name = module.workload_vnet.name
   address_prefixes     = [var.data_subnet_prefix]
   service_endpoints    = ["Microsoft.Sql", "Microsoft.Storage"]
+
+  depends_on = [module.app_subnet]  # Serialize subnet creation
 }
 
 # Web Tier NSG
@@ -58,6 +62,8 @@ module "web_nsg" {
   subnet_id             = module.web_subnet.id
   associate_with_subnet = true
   tags                  = var.tags
+
+  depends_on = [module.data_subnet]  # Wait for all subnets before NSG associations
 
   security_rules = [
     {
@@ -114,6 +120,8 @@ module "app_nsg" {
   associate_with_subnet = true
   tags                  = var.tags
 
+  depends_on = [module.web_nsg]  # Serialize NSG associations
+
   security_rules = [
     {
       name                       = "AllowFromWebTier"
@@ -158,6 +166,8 @@ module "data_nsg" {
   subnet_id             = module.data_subnet.id
   associate_with_subnet = true
   tags                  = var.tags
+
+  depends_on = [module.app_nsg]  # Serialize NSG associations
 
   security_rules = [
     {
