@@ -46,10 +46,11 @@ resource "azurerm_virtual_network_gateway" "this" {
   }
 
   timeouts {
-    create = "60m"
-    update = "60m"
-    delete = "60m"
-    read   = "5m"
+    # VPN gateway provisioning can take a while; extend Terraform operation windows to reduce flakiness
+    create = "90m"
+    update = "90m"
+    delete = "90m"
+    read   = "10m"
   }
 
   lifecycle {
