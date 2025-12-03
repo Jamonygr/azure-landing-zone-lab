@@ -107,9 +107,10 @@ module "lng_to_hub" {
   resource_group_name = var.resource_group_name
   location            = var.location
   gateway_address     = var.hub_vpn_gateway_public_ip
-  address_space       = var.hub_address_spaces  # All Azure networks reachable via Hub
+  address_space       = var.enable_bgp ? [] : var.hub_address_spaces # Empty when using BGP (routes learned dynamically)
   enable_bgp          = var.enable_bgp
   bgp_asn             = var.hub_bgp_asn
+  bgp_peering_address = var.hub_bgp_peering_address
   tags                = var.tags
 }
 
@@ -206,14 +207,14 @@ resource "azurerm_network_interface_security_group_association" "onprem_mgmt" {
 
 # On-Prem Management VM (small size with RDP access)
 resource "azurerm_windows_virtual_machine" "onprem_mgmt" {
-  name                = "vmonpremmgmt01"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  size                = "Standard_B2s"  # 4GB RAM for RDP sessions
-  admin_username      = var.admin_username
-  admin_password      = var.admin_password
+  name                  = "vmonpremmgmt01"
+  resource_group_name   = var.resource_group_name
+  location              = var.location
+  size                  = "Standard_B2s" # 4GB RAM for RDP sessions
+  admin_username        = var.admin_username
+  admin_password        = var.admin_password
   network_interface_ids = [azurerm_network_interface.onprem_mgmt.id]
-  tags                = merge(var.tags, { Role = "Management", Location = "OnPremises" })
+  tags                  = merge(var.tags, { Role = "Management", Location = "OnPremises" })
 
   os_disk {
     name                 = "osdisk-vmonpremmgmt01"
@@ -257,11 +258,11 @@ resource "azurerm_route_table" "onprem" {
 
 # Route to Azure networks via VPN Gateway
 resource "azurerm_route" "to_azure" {
-  name                   = "route-to-azure"
-  resource_group_name    = var.resource_group_name
-  route_table_name       = azurerm_route_table.onprem.name
-  address_prefix         = "10.0.0.0/8"
-  next_hop_type          = "VirtualNetworkGateway"
+  name                = "route-to-azure"
+  resource_group_name = var.resource_group_name
+  route_table_name    = azurerm_route_table.onprem.name
+  address_prefix      = "10.0.0.0/8"
+  next_hop_type       = "VirtualNetworkGateway"
 }
 
 # Associate route table with servers subnet

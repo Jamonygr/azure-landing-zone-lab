@@ -344,7 +344,8 @@ module "onprem" {
     var.deploy_workload_prod ? var.workload_prod_address_space : [],
     var.deploy_workload_dev ? var.workload_dev_address_space : []
   )
-  hub_bgp_asn = var.hub_bgp_asn
+  hub_bgp_asn             = var.hub_bgp_asn
+  hub_bgp_peering_address = var.deploy_vpn_gateway && var.enable_bgp ? module.hub.vpn_gateway_bgp_peering_address : null
 
   vm_size              = var.vm_size
   admin_username       = var.admin_username
@@ -366,9 +367,10 @@ module "lng_to_onprem" {
   resource_group_name = azurerm_resource_group.hub.name
   location            = var.location
   gateway_address     = module.onprem[0].vpn_gateway_public_ip
-  address_space       = var.onprem_address_space
+  address_space       = var.enable_bgp ? [] : var.onprem_address_space # Empty when using BGP (routes learned dynamically)
   enable_bgp          = var.enable_bgp
   bgp_asn             = var.onprem_bgp_asn
+  bgp_peering_address = var.enable_bgp ? module.onprem[0].vpn_gateway_bgp_peering_address : null
   tags                = local.common_tags
 
   depends_on = [module.onprem]

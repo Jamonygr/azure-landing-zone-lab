@@ -88,7 +88,7 @@ deploy_firewall    = true # ~$300/month
 firewall_sku_tier  = "Standard"
 deploy_vpn_gateway = true # ENABLED for S2S VPN - ~$140/month
 vpn_gateway_sku    = "VpnGw1"
-enable_bgp         = false
+enable_bgp         = true
 hub_bgp_asn        = 65515
 
 # Identity

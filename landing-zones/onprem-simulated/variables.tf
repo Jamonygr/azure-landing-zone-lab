@@ -88,6 +88,12 @@ variable "hub_bgp_asn" {
   default     = 65515
 }
 
+variable "hub_bgp_peering_address" {
+  description = "Hub VPN Gateway BGP peering address"
+  type        = string
+  default     = null
+}
+
 variable "deploy_vpn_connection" {
   description = "Deploy VPN connection to hub"
   type        = bool

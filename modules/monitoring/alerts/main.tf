@@ -99,15 +99,15 @@ resource "azurerm_monitor_metric_alert" "vm_disk_read" {
 
 # 4. VM Network Alert - High Network Out (single VM - metric doesn't support multi-resource)
 resource "azurerm_monitor_metric_alert" "vm_network" {
-  count                    = var.enable_vm_alerts ? 1 : 0
-  name                     = "${var.alert_name_prefix}-vm-network-high"
-  resource_group_name      = var.resource_group_name
-  scopes                   = local.vm_network_scope # Network Out Total only supports single resource
-  description              = "Alert when VM network outbound traffic is high"
-  severity                 = 3
-  frequency                = "PT5M"
-  window_size              = "PT15M"
-  enabled                  = var.alerts_enabled
+  count               = var.enable_vm_alerts ? 1 : 0
+  name                = "${var.alert_name_prefix}-vm-network-high"
+  resource_group_name = var.resource_group_name
+  scopes              = local.vm_network_scope # Network Out Total only supports single resource
+  description         = "Alert when VM network outbound traffic is high"
+  severity            = 3
+  frequency           = "PT5M"
+  window_size         = "PT15M"
+  enabled             = var.alerts_enabled
 
   criteria {
     metric_namespace = "Microsoft.Compute/virtualMachines"

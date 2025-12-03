@@ -61,3 +61,13 @@ output "vpn_gateway_public_ip" {
   description = "VPN Gateway public IP"
   value       = var.deploy_vpn_gateway ? module.vpn_gateway[0].public_ip_address : null
 }
+
+output "vpn_gateway_bgp_peering_address" {
+  description = "VPN Gateway BGP peering address"
+  value       = var.deploy_vpn_gateway && var.enable_bgp ? module.vpn_gateway[0].bgp_peering_address : null
+}
+
+output "vpn_gateway_bgp_asn" {
+  description = "VPN Gateway BGP ASN"
+  value       = var.deploy_vpn_gateway && var.enable_bgp ? var.hub_bgp_asn : null
+}

@@ -32,6 +32,11 @@ output "vpn_gateway_public_ip" {
   value       = module.onprem_vpn_gateway.public_ip_address
 }
 
+output "vpn_gateway_bgp_peering_address" {
+  description = "On-Prem VPN Gateway BGP peering address"
+  value       = var.enable_bgp ? module.onprem_vpn_gateway.bgp_peering_address : null
+}
+
 output "mgmt_vm_public_ip" {
   description = "On-Prem Management VM public IP (RDP access)"
   value       = azurerm_public_ip.onprem_mgmt.ip_address
