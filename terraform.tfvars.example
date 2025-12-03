@@ -1,0 +1,112 @@
+# =============================================================================
+# TERRAFORM.TFVARS.EXAMPLE
+# Copy this to terraform.tfvars and update with your values
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# General Configuration
+# -----------------------------------------------------------------------------
+project        = "azlab"
+environment    = "lab"
+location       = "West Europe"
+owner          = "Your-Name"
+repository_url = "https://gitlab.com/your-username/azure-landing-zone-lab"
+
+# -----------------------------------------------------------------------------
+# Authentication (MUST CHANGE THESE!)
+# Use strong passwords with 12+ characters including uppercase, lowercase,
+# numbers, and special characters.
+# -----------------------------------------------------------------------------
+admin_username     = "azureadmin"
+admin_password     = "CHANGE-ME-Strong-P@ssw0rd!"
+sql_admin_login    = "sqladmin"
+sql_admin_password = "CHANGE-ME-Sql-P@ssw0rd!"
+vpn_shared_key     = "CHANGE-ME-VpnSharedKey123!"
+
+# -----------------------------------------------------------------------------
+# Network Configuration (Defaults should work for most cases)
+# -----------------------------------------------------------------------------
+
+# Hub
+hub_address_space          = ["10.0.0.0/16"]
+hub_gateway_subnet_prefix  = "10.0.0.0/24"
+hub_firewall_subnet_prefix = "10.0.1.0/24"
+hub_mgmt_subnet_prefix     = "10.0.2.0/24"
+vpn_client_address_pool    = "172.16.0.0/24"
+
+# Identity
+identity_address_space    = ["10.1.0.0/16"]
+identity_dc_subnet_prefix = "10.1.1.0/24"
+dc01_ip_address           = "10.1.1.4"
+dc02_ip_address           = "10.1.1.5"
+
+# Management
+management_address_space         = ["10.2.0.0/16"]
+management_jumpbox_subnet_prefix = "10.2.1.0/24"
+
+# Shared Services
+shared_address_space     = ["10.3.0.0/16"]
+shared_app_subnet_prefix = "10.3.1.0/24"
+shared_pe_subnet_prefix  = "10.3.2.0/24"
+
+# Workload Prod
+workload_prod_address_space      = ["10.10.0.0/16"]
+workload_prod_web_subnet_prefix  = "10.10.1.0/24"
+workload_prod_app_subnet_prefix  = "10.10.2.0/24"
+workload_prod_data_subnet_prefix = "10.10.3.0/24"
+
+# Workload Dev (disabled by default)
+workload_dev_address_space      = ["10.11.0.0/16"]
+workload_dev_web_subnet_prefix  = "10.11.1.0/24"
+workload_dev_app_subnet_prefix  = "10.11.2.0/24"
+workload_dev_data_subnet_prefix = "10.11.3.0/24"
+
+# On-Premises (Simulated)
+onprem_address_space         = ["10.100.0.0/16"]
+onprem_gateway_subnet_prefix = "10.100.0.0/24"
+onprem_servers_subnet_prefix = "10.100.1.0/24"
+onprem_bgp_asn               = 65050
+
+# -----------------------------------------------------------------------------
+# Deployment Flags
+# Toggle features on/off to control costs and complexity
+# -----------------------------------------------------------------------------
+
+# Core Infrastructure (most expensive components)
+deploy_firewall    = true       # ~$300/month - Set false to save
+firewall_sku_tier  = "Standard"
+deploy_vpn_gateway = true       # ~$140/month - Required for P2S access
+vpn_gateway_sku    = "VpnGw1"
+enable_bgp         = false
+hub_bgp_asn        = 65515
+
+# Identity
+deploy_secondary_dc = false     # ~$30/month savings if false
+
+# Management
+enable_jumpbox_public_ip = false  # Use VPN instead (more secure)
+deploy_log_analytics     = true
+log_retention_days       = 30     # 30 days = free tier
+log_daily_quota_gb       = 1      # Limit ingestion
+
+# Shared Services
+deploy_keyvault = true
+deploy_storage  = true
+deploy_sql      = true           # ~$5/month (Basic tier)
+
+# Workloads
+deploy_workload_prod = true
+deploy_workload_dev  = false     # Enable if you need dev environment
+deploy_workload_vms  = true      # Set false for network-only deployment
+
+# On-Premises Simulation
+deploy_onprem_simulation = true  # ~$140/month for VPN Gateway
+deploy_onprem_fileserver = true
+deploy_onprem_legacy_app = false
+
+# -----------------------------------------------------------------------------
+# VM Configuration
+# -----------------------------------------------------------------------------
+vm_size              = "Standard_B2s"  # 2 vCPU, 4 GB RAM
+sql_vm_size          = "Standard_B2s"  # Same for SQL VMs
+enable_auto_shutdown = true            # Auto-shutdown at 7 PM

@@ -1,0 +1,722 @@
+# =============================================================================
+# AZURE LANDING ZONE LAB - ROOT CONFIGURATION
+# =============================================================================
+
+terraform {
+  required_version = ">= 1.9.0"
+
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 4.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6.0"
+    }
+  }
+
+  # Backend configuration - uncomment and configure for remote state
+  # backend "azurerm" {
+  #   resource_group_name  = "rg-terraform-state"
+  #   storage_account_name = "stterraformstate"
+  #   container_name       = "tfstate"
+  #   key                  = "landingzone-lab.tfstate"
+  # }
+}
+
+provider "azurerm" {
+  subscription_id = var.subscription_id
+
+  features {
+    key_vault {
+      purge_soft_delete_on_destroy    = true
+      recover_soft_deleted_key_vaults = true
+    }
+    resource_group {
+      # Allow RG deletion even if Azure created nested resources like ContainerInsights solutions
+      prevent_deletion_if_contains_resources = false
+    }
+    virtual_machine {
+      delete_os_disk_on_deletion     = true
+      skip_shutdown_and_force_delete = false
+    }
+  }
+}
+
+# =============================================================================
+# DATA SOURCES
+# =============================================================================
+
+data "azurerm_client_config" "current" {}
+
+# Random suffix for globally unique names
+resource "random_string" "suffix" {
+  length  = 4
+  special = false
+  upper   = false
+}
+
+# =============================================================================
+# RESOURCE GROUPS
+# =============================================================================
+
+resource "azurerm_resource_group" "hub" {
+  name     = "rg-hub-${local.environment}-${local.location_short}"
+  location = var.location
+  tags     = local.common_tags
+}
+
+resource "azurerm_resource_group" "identity" {
+  name     = "rg-identity-${local.environment}-${local.location_short}"
+  location = var.location
+  tags     = local.common_tags
+}
+
+resource "azurerm_resource_group" "management" {
+  name     = "rg-management-${local.environment}-${local.location_short}"
+  location = var.location
+  tags     = local.common_tags
+}
+
+resource "azurerm_resource_group" "shared" {
+  name     = "rg-shared-${local.environment}-${local.location_short}"
+  location = var.location
+  tags     = local.common_tags
+}
+
+resource "azurerm_resource_group" "workload_prod" {
+  count    = var.deploy_workload_prod ? 1 : 0
+  name     = "rg-workload-prod-${local.environment}-${local.location_short}"
+  location = var.location
+  tags     = local.common_tags
+}
+
+resource "azurerm_resource_group" "workload_dev" {
+  count    = var.deploy_workload_dev ? 1 : 0
+  name     = "rg-workload-dev-${local.environment}-${local.location_short}"
+  location = var.location
+  tags     = local.common_tags
+}
+
+# On-Prem Simulation Resource Group
+resource "azurerm_resource_group" "onprem" {
+  count    = var.deploy_onprem_simulation ? 1 : 0
+  name     = "rg-onprem-${local.environment}-${local.location_short}"
+  location = var.location
+  tags     = local.common_tags
+}
+
+# =============================================================================
+# HUB LANDING ZONE
+# =============================================================================
+
+module "hub" {
+  source = "./landing-zones/hub"
+
+  environment         = local.environment
+  location            = var.location
+  location_short      = local.location_short
+  resource_group_name = azurerm_resource_group.hub.name
+  tags                = local.common_tags
+
+  hub_address_space      = var.hub_address_space
+  gateway_subnet_prefix  = var.hub_gateway_subnet_prefix
+  firewall_subnet_prefix = var.hub_firewall_subnet_prefix
+  hub_mgmt_subnet_prefix = var.hub_mgmt_subnet_prefix
+
+  deploy_firewall         = var.deploy_firewall
+  firewall_sku_tier       = var.firewall_sku_tier
+  deploy_vpn_gateway      = var.deploy_vpn_gateway
+  vpn_gateway_sku         = var.vpn_gateway_sku
+  enable_bgp              = var.enable_bgp
+  hub_bgp_asn             = var.hub_bgp_asn
+  vpn_client_address_pool = var.vpn_client_address_pool
+
+  # Spoke address spaces for gateway routing
+  identity_address_space        = var.identity_address_space[0]
+  management_address_space      = var.management_address_space[0]
+  shared_services_address_space = var.shared_address_space[0]
+  workload_address_space        = var.workload_prod_address_space[0]
+}
+
+# =============================================================================
+# IDENTITY LANDING ZONE
+# =============================================================================
+
+module "identity" {
+  source = "./landing-zones/identity"
+
+  environment         = local.environment
+  location            = var.location
+  location_short      = local.location_short
+  resource_group_name = azurerm_resource_group.identity.name
+  tags                = local.common_tags
+
+  identity_address_space = var.identity_address_space
+  dc_subnet_prefix       = var.identity_dc_subnet_prefix
+  dns_servers            = []
+  hub_address_prefix     = var.hub_address_space[0]
+  onprem_address_prefix  = var.onprem_address_space[0]
+
+  vm_size              = var.vm_size
+  admin_username       = var.admin_username
+  admin_password       = var.admin_password
+  dc01_ip_address      = var.dc01_ip_address
+  dc02_ip_address      = var.dc02_ip_address
+  deploy_secondary_dc  = var.deploy_secondary_dc
+  enable_auto_shutdown = var.enable_auto_shutdown
+  firewall_private_ip  = var.deploy_firewall ? module.hub.firewall_private_ip : null
+  deploy_route_table   = var.deploy_firewall
+}
+
+# =============================================================================
+# MANAGEMENT LANDING ZONE
+# =============================================================================
+
+module "management" {
+  source = "./landing-zones/management"
+
+  environment         = local.environment
+  location            = var.location
+  location_short      = local.location_short
+  resource_group_name = azurerm_resource_group.management.name
+  tags                = local.common_tags
+
+  mgmt_address_space      = var.management_address_space
+  jumpbox_subnet_prefix   = var.management_jumpbox_subnet_prefix
+  dns_servers             = var.deploy_secondary_dc ? module.identity.dns_servers : []
+  hub_address_prefix      = var.hub_address_space[0]
+  vpn_client_address_pool = var.vpn_client_address_pool
+  onprem_address_prefix   = var.onprem_address_space[0]
+
+  vm_size                  = var.vm_size
+  admin_username           = var.admin_username
+  admin_password           = var.admin_password
+  enable_jumpbox_public_ip = var.enable_jumpbox_public_ip
+  enable_auto_shutdown     = var.enable_auto_shutdown
+  deploy_log_analytics     = var.deploy_log_analytics
+  log_retention_days       = var.log_retention_days
+  log_daily_quota_gb       = var.log_daily_quota_gb
+  firewall_private_ip      = var.deploy_firewall ? module.hub.firewall_private_ip : null
+  deploy_route_table       = var.deploy_firewall
+
+  # Monitoring - disabled initially, will be enabled after all resources are created
+  deploy_monitoring = false
+  alert_email_receivers = [
+    {
+      name          = "admin"
+      email_address = "admin@example.com"
+    }
+  ]
+  monitored_vm_ids         = []
+  monitored_firewall_id    = ""
+  monitored_aks_cluster_id = ""
+}
+
+# =============================================================================
+# SHARED SERVICES LANDING ZONE
+# =============================================================================
+
+module "shared_services" {
+  source = "./landing-zones/shared-services"
+
+  environment         = local.environment
+  location            = var.location
+  location_short      = local.location_short
+  project             = var.project
+  resource_group_name = azurerm_resource_group.shared.name
+  tags                = local.common_tags
+  tenant_id           = data.azurerm_client_config.current.tenant_id
+
+  shared_address_space = var.shared_address_space
+  app_subnet_prefix    = var.shared_app_subnet_prefix
+  pe_subnet_prefix     = var.shared_pe_subnet_prefix
+  dns_servers          = var.deploy_secondary_dc ? module.identity.dns_servers : []
+  hub_address_prefix   = var.hub_address_space[0]
+
+  admin_password       = var.admin_password
+  deploy_keyvault      = var.deploy_keyvault
+  deploy_storage       = var.deploy_storage
+  storage_account_name = "st${var.project}${local.environment}${random_string.suffix.result}"
+  deploy_sql           = var.deploy_sql
+  sql_admin_login      = var.sql_admin_login
+  sql_admin_password   = var.sql_admin_password
+  firewall_private_ip  = var.deploy_firewall ? module.hub.firewall_private_ip : null
+  deploy_route_table   = var.deploy_firewall
+  random_suffix        = random_string.suffix.result
+}
+
+# =============================================================================
+# WORKLOAD PROD LANDING ZONE
+# =============================================================================
+
+module "workload_prod" {
+  source = "./landing-zones/workload"
+  count  = var.deploy_workload_prod ? 1 : 0
+
+  workload_name       = "prod"
+  workload_short      = "prd"
+  environment         = local.environment
+  location            = var.location
+  location_short      = local.location_short
+  resource_group_name = azurerm_resource_group.workload_prod[0].name
+  tags                = merge(local.common_tags, { Workload = "Production" })
+
+  workload_address_space = var.workload_prod_address_space
+  web_subnet_prefix      = var.workload_prod_web_subnet_prefix
+  app_subnet_prefix      = var.workload_prod_app_subnet_prefix
+  data_subnet_prefix     = var.workload_prod_data_subnet_prefix
+  dns_servers            = var.deploy_secondary_dc ? module.identity.dns_servers : []
+  hub_address_prefix     = var.hub_address_space[0]
+
+  firewall_private_ip = var.deploy_firewall ? module.hub.firewall_private_ip : null
+  deploy_route_table  = var.deploy_firewall
+
+  # AKS Cluster
+  deploy_aks                 = var.deploy_aks
+  aks_subnet_prefix          = var.aks_subnet_prefix
+  aks_node_count             = var.aks_node_count
+  aks_vm_size                = var.aks_vm_size
+  log_analytics_workspace_id = var.deploy_log_analytics ? module.management.log_analytics_workspace_id : null
+}
+
+# =============================================================================
+# WORKLOAD DEV LANDING ZONE
+# =============================================================================
+
+module "workload_dev" {
+  source = "./landing-zones/workload"
+  count  = var.deploy_workload_dev ? 1 : 0
+
+  workload_name       = "dev"
+  workload_short      = "dev"
+  environment         = local.environment
+  location            = var.location
+  location_short      = local.location_short
+  resource_group_name = azurerm_resource_group.workload_dev[0].name
+  tags                = merge(local.common_tags, { Workload = "Development" })
+
+  workload_address_space = var.workload_dev_address_space
+  web_subnet_prefix      = var.workload_dev_web_subnet_prefix
+  app_subnet_prefix      = var.workload_dev_app_subnet_prefix
+  data_subnet_prefix     = var.workload_dev_data_subnet_prefix
+  dns_servers            = var.deploy_secondary_dc ? module.identity.dns_servers : []
+  hub_address_prefix     = var.hub_address_space[0]
+
+  firewall_private_ip = var.deploy_firewall ? module.hub.firewall_private_ip : null
+  deploy_route_table  = var.deploy_firewall
+}
+
+# =============================================================================
+# SIMULATED ON-PREMISES ENVIRONMENT
+# Site-to-Site IPsec VPN with Local Network Gateways (realistic simulation)
+# =============================================================================
+
+module "onprem" {
+  source = "./landing-zones/onprem-simulated"
+  count  = var.deploy_onprem_simulation ? 1 : 0
+
+  environment         = local.environment
+  location            = var.location
+  location_short      = local.location_short
+  resource_group_name = azurerm_resource_group.onprem[0].name
+  tags                = merge(local.common_tags, { Location = "OnPremises-Simulated" })
+
+  onprem_address_space  = var.onprem_address_space
+  gateway_subnet_prefix = var.onprem_gateway_subnet_prefix
+  servers_subnet_prefix = var.onprem_servers_subnet_prefix
+
+  vpn_gateway_sku       = var.vpn_gateway_sku
+  enable_bgp            = var.enable_bgp
+  onprem_bgp_asn        = var.onprem_bgp_asn
+  hub_vpn_gateway_id    = var.deploy_vpn_gateway ? module.hub.vpn_gateway_id : null
+  deploy_vpn_connection = var.deploy_vpn_gateway
+  vpn_shared_key        = var.vpn_shared_key
+
+  # Site-to-Site VPN parameters
+  hub_vpn_gateway_public_ip = var.deploy_vpn_gateway ? module.hub.vpn_gateway_public_ip : null
+  hub_address_spaces = concat(
+    var.hub_address_space,
+    var.identity_address_space,
+    var.management_address_space,
+    var.shared_address_space,
+    var.deploy_workload_prod ? var.workload_prod_address_space : [],
+    var.deploy_workload_dev ? var.workload_dev_address_space : []
+  )
+  hub_bgp_asn = var.hub_bgp_asn
+
+  vm_size              = var.vm_size
+  admin_username       = var.admin_username
+  admin_password       = var.admin_password
+  enable_auto_shutdown = var.enable_auto_shutdown
+
+  depends_on = [module.hub]
+}
+
+# =============================================================================
+# LOCAL NETWORK GATEWAY IN HUB - Represents On-Prem from Azure's perspective
+# =============================================================================
+
+module "lng_to_onprem" {
+  source = "./modules/networking/local-network-gateway"
+  count  = var.deploy_onprem_simulation && var.deploy_vpn_gateway ? 1 : 0
+
+  name                = "lng-to-onprem-${local.environment}"
+  resource_group_name = azurerm_resource_group.hub.name
+  location            = var.location
+  gateway_address     = module.onprem[0].vpn_gateway_public_ip
+  address_space       = var.onprem_address_space
+  enable_bgp          = var.enable_bgp
+  bgp_asn             = var.onprem_bgp_asn
+  tags                = local.common_tags
+
+  depends_on = [module.onprem]
+}
+
+# Site-to-Site IPsec VPN Connection from Hub to On-Prem
+module "vpn_connection_hub_to_onprem" {
+  source = "./modules/networking/vpn-connection"
+  count  = var.deploy_onprem_simulation && var.deploy_vpn_gateway ? 1 : 0
+
+  name                       = "con-hub-to-onprem-${local.environment}"
+  resource_group_name        = azurerm_resource_group.hub.name
+  location                   = var.location
+  type                       = "IPsec"
+  virtual_network_gateway_id = module.hub.vpn_gateway_id
+  local_network_gateway_id   = module.lng_to_onprem[0].id
+  shared_key                 = var.vpn_shared_key
+  enable_bgp                 = var.enable_bgp
+  tags                       = local.common_tags
+
+  depends_on = [module.hub, module.onprem, module.lng_to_onprem]
+}
+
+# =============================================================================
+# VNET PEERING (Hub to Spokes)
+# =============================================================================
+
+module "peering_hub_to_identity" {
+  source = "./modules/networking/peering"
+
+  name_prefix                 = "peer"
+  resource_group_name         = azurerm_resource_group.hub.name
+  vnet_1_id                   = module.hub.vnet_id
+  vnet_1_name                 = module.hub.vnet_name
+  vnet_2_id                   = module.identity.vnet_id
+  vnet_2_name                 = module.identity.vnet_name
+  vnet_2_resource_group_name  = azurerm_resource_group.identity.name
+  allow_gateway_transit_vnet1 = var.deploy_vpn_gateway
+  use_remote_gateways_vnet2   = var.deploy_vpn_gateway
+
+  depends_on = [module.hub]
+}
+
+module "peering_hub_to_management" {
+  source = "./modules/networking/peering"
+
+  name_prefix                 = "peer"
+  resource_group_name         = azurerm_resource_group.hub.name
+  vnet_1_id                   = module.hub.vnet_id
+  vnet_1_name                 = module.hub.vnet_name
+  vnet_2_id                   = module.management.vnet_id
+  vnet_2_name                 = module.management.vnet_name
+  vnet_2_resource_group_name  = azurerm_resource_group.management.name
+  allow_gateway_transit_vnet1 = var.deploy_vpn_gateway
+  use_remote_gateways_vnet2   = var.deploy_vpn_gateway
+
+  depends_on = [module.hub]
+}
+
+module "peering_hub_to_shared" {
+  source = "./modules/networking/peering"
+
+  name_prefix                 = "peer"
+  resource_group_name         = azurerm_resource_group.hub.name
+  vnet_1_id                   = module.hub.vnet_id
+  vnet_1_name                 = module.hub.vnet_name
+  vnet_2_id                   = module.shared_services.vnet_id
+  vnet_2_name                 = module.shared_services.vnet_name
+  vnet_2_resource_group_name  = azurerm_resource_group.shared.name
+  allow_gateway_transit_vnet1 = var.deploy_vpn_gateway
+  use_remote_gateways_vnet2   = var.deploy_vpn_gateway
+
+  depends_on = [module.hub]
+}
+
+module "peering_hub_to_workload_prod" {
+  source = "./modules/networking/peering"
+  count  = var.deploy_workload_prod ? 1 : 0
+
+  name_prefix                 = "peer"
+  resource_group_name         = azurerm_resource_group.hub.name
+  vnet_1_id                   = module.hub.vnet_id
+  vnet_1_name                 = module.hub.vnet_name
+  vnet_2_id                   = module.workload_prod[0].vnet_id
+  vnet_2_name                 = module.workload_prod[0].vnet_name
+  vnet_2_resource_group_name  = azurerm_resource_group.workload_prod[0].name
+  allow_gateway_transit_vnet1 = var.deploy_vpn_gateway
+  use_remote_gateways_vnet2   = var.deploy_vpn_gateway
+
+  depends_on = [module.hub]
+}
+
+module "peering_hub_to_workload_dev" {
+  source = "./modules/networking/peering"
+  count  = var.deploy_workload_dev ? 1 : 0
+
+  name_prefix                 = "peer"
+  resource_group_name         = azurerm_resource_group.hub.name
+  vnet_1_id                   = module.hub.vnet_id
+  vnet_1_name                 = module.hub.vnet_name
+  vnet_2_id                   = module.workload_dev[0].vnet_id
+  vnet_2_name                 = module.workload_dev[0].vnet_name
+  vnet_2_resource_group_name  = azurerm_resource_group.workload_dev[0].name
+  allow_gateway_transit_vnet1 = var.deploy_vpn_gateway
+  use_remote_gateways_vnet2   = var.deploy_vpn_gateway
+
+  depends_on = [module.hub]
+}
+
+# =============================================================================
+# FIREWALL RULES
+# =============================================================================
+
+module "firewall_rules_base" {
+  source = "./modules/firewall-rules"
+  count  = var.deploy_firewall ? 1 : 0
+
+  name               = "rcg-base-rules"
+  firewall_policy_id = module.hub.firewall_policy_id
+  priority           = 100
+
+  network_rule_collections = [
+    {
+      name     = "allow-dns"
+      priority = 100
+      action   = "Allow"
+      rules = [
+        {
+          name                  = "allow-dns-to-dc"
+          protocols             = ["UDP", "TCP"]
+          source_addresses      = ["10.0.0.0/8"]
+          destination_addresses = [var.dc01_ip_address, var.dc02_ip_address]
+          destination_ports     = ["53"]
+        }
+      ]
+    },
+    {
+      name     = "allow-rdp"
+      priority = 200
+      action   = "Allow"
+      rules = [
+        {
+          name                  = "allow-rdp-from-hub"
+          protocols             = ["TCP"]
+          source_addresses      = var.hub_address_space
+          destination_addresses = ["10.0.0.0/8"]
+          destination_ports     = ["3389"]
+        },
+        {
+          name                  = "allow-rdp-from-vpn"
+          protocols             = ["TCP"]
+          source_addresses      = [var.vpn_client_address_pool]
+          destination_addresses = ["10.0.0.0/8"]
+          destination_ports     = ["3389"]
+        }
+      ]
+    },
+    {
+      name     = "allow-inter-spoke"
+      priority = 300
+      action   = "Allow"
+      rules = [
+        {
+          name                  = "allow-spoke-to-spoke"
+          protocols             = ["Any"]
+          source_addresses      = ["10.0.0.0/8"]
+          destination_addresses = ["10.0.0.0/8"]
+          destination_ports     = ["*"]
+        }
+      ]
+    },
+    {
+      name     = "allow-onprem"
+      priority = 400
+      action   = "Allow"
+      rules = [
+        {
+          name                  = "allow-onprem-to-azure"
+          protocols             = ["Any"]
+          source_addresses      = var.onprem_address_space
+          destination_addresses = ["10.0.0.0/8"]
+          destination_ports     = ["*"]
+        },
+        {
+          name                  = "allow-azure-to-onprem"
+          protocols             = ["Any"]
+          source_addresses      = ["10.0.0.0/8"]
+          destination_addresses = var.onprem_address_space
+          destination_ports     = ["*"]
+        }
+      ]
+    }
+  ]
+
+  application_rule_collections = [
+    {
+      name     = "allow-internet"
+      priority = 500
+      action   = "Allow"
+      rules = [
+        {
+          name              = "allow-windows-update"
+          source_addresses  = ["10.0.0.0/8"]
+          destination_fqdns = ["*.windowsupdate.microsoft.com", "*.update.microsoft.com", "*.windowsupdate.com"]
+          protocols = [
+            { type = "Https", port = 443 }
+          ]
+        },
+        {
+          name              = "allow-azure-services"
+          source_addresses  = ["10.0.0.0/8"]
+          destination_fqdns = ["*.azure.com", "*.microsoft.com", "*.windows.net", "*.azure-automation.net"]
+          protocols = [
+            { type = "Https", port = 443 }
+          ]
+        }
+      ]
+    }
+  ]
+
+  depends_on = [module.hub]
+}
+
+# =============================================================================
+# VPN CONNECTION (Hub to On-Prem) - COMMENTED OUT TO SAVE DEPLOYMENT TIME
+# =============================================================================
+
+# module "vpn_connection_hub_to_onprem" {
+#   source = "./modules/networking/vpn-connection"
+#   count  = var.deploy_onprem_simulation && var.deploy_vpn_gateway ? 1 : 0
+#
+#   name                            = "con-hub-to-onprem-${local.environment}"
+#   resource_group_name             = azurerm_resource_group.hub.name
+#   location                        = var.location
+#   type                            = "Vnet2Vnet"
+#   virtual_network_gateway_id      = module.hub.vpn_gateway_id
+#   peer_virtual_network_gateway_id = module.onprem[0].vpn_gateway_id
+#   shared_key                      = var.vpn_shared_key
+#   enable_bgp                      = var.enable_bgp
+#   tags                            = local.common_tags
+#
+#   depends_on = [module.hub, module.onprem]
+# }
+
+# =============================================================================
+# MONITORING - PROVISIONED LAST AFTER ALL RESOURCES ARE CREATED
+# =============================================================================
+
+# Action Group for alerts
+module "monitoring_action_group" {
+  source = "./modules/monitoring/action-group"
+
+  action_group_name   = "ag-${local.environment}-${local.location_short}"
+  resource_group_name = azurerm_resource_group.management.name
+  short_name          = "alerts"
+  tags                = local.common_tags
+
+  email_receivers = [
+    {
+      name          = "admin"
+      email_address = "admin@example.com"
+    }
+  ]
+
+  depends_on = [
+    module.hub,
+    module.identity,
+    module.management,
+    module.shared_services
+  ]
+}
+
+# Monitoring Alerts
+module "monitoring_alerts" {
+  source = "./modules/monitoring/alerts"
+
+  resource_group_name = azurerm_resource_group.management.name
+  location            = var.location
+  alert_name_prefix   = "alert-${local.environment}"
+  action_group_id     = module.monitoring_action_group.action_group_id
+  alerts_enabled      = true
+  tags                = local.common_tags
+
+  # VM monitoring
+  vm_ids = compact([
+    module.identity.dc01_id,
+  ])
+  enable_vm_alerts = true
+  vm_cpu_threshold = 85
+
+  # AKS monitoring
+  aks_cluster_id       = var.deploy_workload_prod && var.deploy_aks ? module.workload_prod[0].aks_id : ""
+  aks_cpu_threshold    = 80
+  aks_memory_threshold = 80
+  aks_min_node_count   = 1
+  enable_aks_alerts    = var.deploy_workload_prod && var.deploy_aks
+
+  # Firewall monitoring
+  firewall_id               = var.deploy_firewall ? module.hub.firewall_id : ""
+  firewall_health_threshold = 90
+  enable_firewall_alerts    = var.deploy_firewall
+
+  # VPN monitoring (disabled)
+  vpn_gateway_id    = ""
+  enable_vpn_alerts = false
+
+  # SQL monitoring (disabled by default)
+  sql_database_id   = ""
+  enable_sql_alerts = false
+
+  depends_on = [
+    module.monitoring_action_group,
+    module.hub,
+    module.identity,
+    module.management,
+    module.shared_services
+  ]
+}
+
+# Diagnostic Settings
+module "monitoring_diagnostics" {
+  source = "./modules/monitoring/diagnostic-settings"
+
+  diagnostic_name_prefix     = "diag-${local.environment}"
+  log_analytics_workspace_id = module.management.log_analytics_workspace_id
+
+  # Resource IDs for diagnostic settings
+  firewall_id                 = var.deploy_firewall ? module.hub.firewall_id : ""
+  enable_firewall_diagnostics = var.deploy_firewall
+  vpn_gateway_id              = ""
+  enable_vpn_diagnostics      = false
+  aks_cluster_id              = var.deploy_workload_prod && var.deploy_aks ? module.workload_prod[0].aks_id : ""
+  enable_aks_diagnostics      = var.deploy_workload_prod && var.deploy_aks
+  sql_server_id               = ""
+  sql_database_id             = ""
+  enable_sql_diagnostics      = false
+  keyvault_id                 = ""
+  enable_keyvault_diagnostics = false
+  storage_account_id          = ""
+  enable_storage_diagnostics  = false
+  nsg_ids                     = []
+  enable_nsg_diagnostics      = false
+
+  depends_on = [
+    module.monitoring_alerts,
+    module.hub,
+    module.identity,
+    module.management,
+    module.shared_services
+  ]
+}
