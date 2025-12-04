@@ -20,9 +20,9 @@ resource "azurerm_local_network_gateway" "this" {
   }
 
   timeouts {
-    create = "60m"
-    update = "60m"
-    delete = "60m"
+    create = "90m"
+    update = "90m"
+    delete = "90m"
     read   = "10m"
   }
 }

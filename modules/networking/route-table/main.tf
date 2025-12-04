@@ -26,6 +26,8 @@ resource "azurerm_subnet_route_table_association" "this" {
   route_table_id = azurerm_route_table.this.id
 
   timeouts {
-    create = "30m"
+    create = "60m"
+    read   = "5m"
+    delete = "60m"
   }
 }

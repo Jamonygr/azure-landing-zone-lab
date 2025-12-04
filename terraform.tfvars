@@ -86,9 +86,9 @@ onprem_bgp_asn               = 65050
 # Core Infrastructure
 deploy_firewall    = true # ~$300/month
 firewall_sku_tier  = "Standard"
-deploy_vpn_gateway = true # ENABLED for S2S VPN - ~$140/month
+deploy_vpn_gateway = false # DISABLED - takes too long to provision (~$140/month)
 vpn_gateway_sku    = "VpnGw1"
-enable_bgp         = true
+enable_bgp         = false # Disabled with VPN
 hub_bgp_asn        = 65515
 
 # Identity
@@ -109,11 +109,11 @@ deploy_sql      = false # Disabled - East US has provisioning restrictions
 deploy_workload_prod = true  # Re-enabled for AKS
 deploy_workload_dev  = false # Enable if needed
 
-# On-Premises Simulation - ENABLED for Site-to-Site VPN lab
-deploy_onprem_simulation = true # VPN Gateway + S2S VPN
+# On-Premises Simulation - DISABLED - VPN takes too long
+deploy_onprem_simulation = false # Disabled with VPN
 
 # AKS Cluster
-deploy_aks        = true            # Re-enabled
+deploy_aks        = false           # DISABLED - takes too long to provision
 aks_subnet_prefix = "10.10.16.0/20" # /20 = 4094 IPs for pods
 aks_node_count    = 1               # Minimum nodes
 aks_vm_size       = "Standard_B2s"  # Smallest practical size

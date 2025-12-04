@@ -6,6 +6,8 @@
 
 A **production-ready** Azure Landing Zone lab environment built with Terraform, following Microsoft's Cloud Adoption Framework (CAF) best practices. This project deploys a complete enterprise-grade hub-spoke network topology with identity services, security controls, and application workloads.
 
+> 💡 **Modular Design**: Core infrastructure deploys in ~10-15 minutes. Optional components (VPN Gateway, AKS) can be enabled when needed, with VPN/OnPrem adding ~30-45 minutes to deployment time.
+
 ---
 
 ## 📋 Table of Contents
@@ -13,6 +15,7 @@ A **production-ready** Azure Landing Zone lab environment built with Terraform, 
 - [Overview](#-overview)
 - [Architecture Diagram](#-architecture-diagram)
 - [What Gets Deployed](#-what-gets-deployed)
+- [Optional Components](#-optional-components)
 - [Network Topology](#-network-topology)
 - [Quick Start](#-quick-start)
 - [Project Structure](#-project-structure)
@@ -31,12 +34,17 @@ A **production-ready** Azure Landing Zone lab environment built with Terraform, 
 
 This Terraform project creates a complete Azure Landing Zone lab environment that simulates an enterprise hybrid cloud setup. It includes:
 
-- **Hub-Spoke Network Topology** - Centralized connectivity with Azure Firewall and VPN Gateway
+### Core Components (Always Deployed)
+- **Hub-Spoke Network Topology** - Centralized connectivity with Azure Firewall
 - **Identity Services** - Windows Server Domain Controllers for Active Directory
 - **Management Zone** - Jumpbox for secure access and Log Analytics for monitoring
 - **Shared Services** - Azure Key Vault for secrets, Storage Account for file shares
-- **Workload Environment** - Azure Kubernetes Service (AKS) and Windows VMs for applications
-- **Simulated On-Premises** - VPN-connected network to practice hybrid scenarios
+
+### Optional Components (Configurable)
+- **🔗 VPN Gateway & Simulated On-Premises** - Site-to-site VPN connectivity for hybrid scenarios *(adds ~30-45 min deployment time)*
+- **☸️ Azure Kubernetes Service (AKS)** - Managed Kubernetes cluster for container workloads
+- **🖥️ Workload VMs** - Web/App/SQL tier Windows VMs for traditional workloads
+- **🗄️ Azure SQL Database** - Managed relational database with private endpoint
 
 ### Use Cases
 
@@ -44,6 +52,18 @@ This Terraform project creates a complete Azure Landing Zone lab environment tha
 - 🧪 **Testing** - Validate architectures before production deployment
 - 📚 **Training** - Teach teams about Azure Landing Zones and CAF
 - 🔬 **PoC** - Quickly spin up proof-of-concept environments
+
+---
+
+## ⚡ Deployment Profiles
+
+| Profile | Components | Deployment Time | Monthly Cost |
+|---------|------------|-----------------|--------------|
+| **Minimal** | Core networking + VMs only | ~10 min | ~$150 |
+| **Standard** | Core + Firewall (no VPN/AKS) | ~15 min | ~$450 |
+| **Full Hybrid** | Everything including VPN + AKS | ~45-60 min | ~$850 |
+
+> 🚀 **Quick Start Tip**: Start with the Standard profile (VPN and AKS disabled) for faster iteration, then enable hybrid components when ready to test VPN scenarios.
 
 ---
 
@@ -56,16 +76,17 @@ This Terraform project creates a complete Azure Landing Zone lab environment tha
 ┌─────────────────┐           │  ┌───────────────────────────────────────────────────────────────────┐ │
 │   ON-PREMISES   │           │  │                      HUB VNET (10.0.0.0/16)                       │ │
 │   (Simulated)   │           │  │                                                                   │ │
-│                 │           │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐   │ │
-│  ┌───────────┐  │   VPN     │  │  │   Gateway   │  │   Firewall  │  │     Management Subnet   │   │ │
-│  │ File      │  │  Tunnel   │  │  │   Subnet    │  │    Subnet   │  │      (10.0.2.0/24)      │   │ │
-│  │ Server    │◄─┼───────────┼──┼──┤ 10.0.0.0/24 │  │ 10.0.1.0/24 │  └─────────────────────────┘   │ │
-│  │10.100.1.4 │  │           │  │  │             │  │             │                                │ │
-│  └───────────┘  │           │  │  │ ┌─────────┐ │  │ ┌─────────┐ │                                │ │
-│                 │           │  │  │ │VPN GW   │ │  │ │Azure FW │ │                                │ │
-│  VNet:          │           │  │  │ │(VpnGw1) │ │  │ │(Std)    │ │                                │ │
-│  10.100.0.0/16  │           │  │  │ └─────────┘ │  │ └─────────┘ │                                │ │
-└─────────────────┘           │  │  └─────────────┘  └─────────────┘                                │ │
+│   [OPTIONAL]    │           │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐   │ │
+│                 │           │  │  │   Gateway   │  │   Firewall  │  │     Management Subnet   │   │ │
+│  ┌───────────┐  │   VPN     │  │  │   Subnet    │  │    Subnet   │  │      (10.0.2.0/24)      │   │ │
+│  │ File      │  │  Tunnel   │  │  │ 10.0.0.0/24 │  │ 10.0.1.0/24 │  └─────────────────────────┘   │ │
+│  │ Server    │◄─┼───────────┼──┼──┤ [OPTIONAL]  │  │             │                                │ │
+│  │10.100.1.4 │  │           │  │  │             │  │ ┌─────────┐ │                                │ │
+│  └───────────┘  │           │  │  │ ┌─────────┐ │  │ │Azure FW │ │                                │ │
+│                 │           │  │  │ │VPN GW   │ │  │ │(Std)    │ │                                │ │
+│  VNet:          │           │  │  │ │(VpnGw1) │ │  │ └─────────┘ │                                │ │
+│  10.100.0.0/16  │           │  │  │ └─────────┘ │  └─────────────┘                                │ │
+└─────────────────┘           │  │  └─────────────┘                                                  │ │
                               │  └───────────────────────────────────────────────────────────────────┘ │
                               │              │                    │                                     │
                               │              │    VNet Peerings   │                                     │
@@ -84,7 +105,7 @@ This Terraform project creates a complete Azure Landing Zone lab environment tha
                               │  │ └──────────┘ │  │ └──────────┘ │  │ ┌──────────┐ │                  │
                               │  │ ┌──────────┐ │  │ ┌──────────┐ │  │ │ Storage  │ │                  │
                               │  │ │  DC02    │ │  │ │   Log    │ │  │ │ Account  │ │                  │
-                              │  │ │(Optional)│ │  │ │Analytics │ │  │ │          │ │                  │
+                              │  │ │[Optional]│ │  │ │Analytics │ │  │ │          │ │                  │
                               │  │ │10.1.1.5  │ │  │ └──────────┘ │  │ └──────────┘ │                  │
                               │  │ └──────────┘ │  └──────────────┘  └──────────────┘                  │
                               │  └──────────────┘                                                       │
@@ -97,7 +118,7 @@ This Terraform project creates a complete Azure Landing Zone lab environment tha
                               │  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐   │ │
                               │  │  │   Web Subnet    │  │   App Subnet    │  │  Data Subnet    │   │ │
                               │  │  │  10.10.1.0/24   │  │  10.10.2.0/24   │  │  10.10.3.0/24   │   │ │
-                              │  │  │                 │  │                 │  │                 │   │ │
+                              │  │  │   [OPTIONAL]    │  │   [OPTIONAL]    │  │   [OPTIONAL]    │   │ │
                               │  │  │  ┌───────────┐  │  │  ┌───────────┐  │  │  ┌───────────┐  │   │ │
                               │  │  │  │  Web VM   │  │  │  │  App VM   │  │  │  │  SQL VM   │  │   │ │
                               │  │  │  │ (Win22)   │  │  │  │ (Win22)   │  │  │  │ (Win22)   │  │   │ │
@@ -106,7 +127,7 @@ This Terraform project creates a complete Azure Landing Zone lab environment tha
                               │  │  └─────────────────┘  └─────────────────┘  └─────────────────┘   │ │
                               │  │                                                                   │ │
                               │  │  ┌─────────────────────────────────────────────────────────────┐ │ │
-                              │  │  │                    AKS Subnet (10.10.64.0/18)                │ │ │
+                              │  │  │              AKS Subnet (10.10.64.0/18) [OPTIONAL]           │ │ │
                               │  │  │                                                              │ │ │
                               │  │  │   ┌──────────────────────────────────────────────────────┐  │ │ │
                               │  │  │   │      Azure Kubernetes Service (AKS)                  │  │ │ │
@@ -117,7 +138,7 @@ This Terraform project creates a complete Azure Landing Zone lab environment tha
                               │  │  └─────────────────────────────────────────────────────────────┘ │ │
                               │  │                                                                   │ │
                               │  │  ┌─────────────────────────────────────────────────────────────┐ │ │
-                              │  │  │                Azure SQL Database                            │ │ │
+                              │  │  │                Azure SQL Database [OPTIONAL]                 │ │ │
                               │  │  │   - Basic SKU (2GB)                                          │ │ │
                               │  │  │   - Private Endpoint                                         │ │ │
                               │  │  └─────────────────────────────────────────────────────────────┘ │ │
@@ -127,18 +148,74 @@ This Terraform project creates a complete Azure Landing Zone lab environment tha
 
 ---
 
+## 🔄 Optional Components
+
+### VPN Gateway & Simulated On-Premises
+
+The VPN components simulate a hybrid cloud scenario with site-to-site connectivity:
+
+| Component | Purpose | Deployment Time |
+|-----------|---------|-----------------|
+| VPN Gateway (Hub) | Azure-side VPN endpoint | ~25-30 min |
+| VPN Gateway (OnPrem) | Simulated on-prem endpoint | ~25-30 min |
+| Local Network Gateway | On-prem network definition | ~1 min |
+| VPN Connection | Encrypted IPsec tunnel | ~2 min |
+| File Server VM | Simulated on-prem workload | ~2 min |
+
+**Enable with:**
+```hcl
+deploy_vpn_gateway       = true   # Hub VPN Gateway
+deploy_onprem_simulation = true   # On-prem VNet, VPN GW, and VMs
+enable_bgp               = false  # Optional BGP routing
+```
+
+> ⚠️ **Note**: VPN Gateways take 25-45 minutes to provision. Disable for faster development cycles.
+
+### Azure Kubernetes Service (AKS)
+
+Deploy a managed Kubernetes cluster for container workloads:
+
+| Feature | Configuration |
+|---------|--------------|
+| Node Pool | 1x Standard_B2ms (scalable) |
+| Networking | Azure CNI with custom VNet integration |
+| Subnet | 10.10.64.0/18 (16,382 IPs for pods) |
+| Version | Kubernetes 1.29+ |
+
+**Enable with:**
+```hcl
+deploy_aks = true
+```
+
+### Workload VMs
+
+Traditional 3-tier Windows VM architecture:
+
+| VM | Subnet | IP | Purpose |
+|----|--------|-------|---------|
+| Web VM | 10.10.1.0/24 | 10.10.1.4 | Web tier (IIS) |
+| App VM | 10.10.2.0/24 | 10.10.2.4 | Application tier |
+| SQL VM | 10.10.3.0/24 | 10.10.3.4 | Database tier |
+
+**Enable with:**
+```hcl
+deploy_workload_vms = true
+```
+
+---
+
 ## 📦 What Gets Deployed
 
-### Resource Groups (6 total)
+### Resource Groups (5-6 total)
 
-| Resource Group | Purpose |
-|----------------|---------|
-| `rg-hub-{env}-{location}` | Hub networking resources |
-| `rg-identity-{env}-{location}` | Domain Controllers |
-| `rg-management-{env}-{location}` | Jumpbox & Monitoring |
-| `rg-shared-{env}-{location}` | Key Vault & Storage |
-| `rg-workload-prod-{env}-{location}` | Production workloads |
-| `rg-onprem-{env}-{location}` | Simulated on-premises |
+| Resource Group | Purpose | Optional |
+|----------------|---------|----------|
+| `rg-hub-{env}-{location}` | Hub networking resources | No |
+| `rg-identity-{env}-{location}` | Domain Controllers | No |
+| `rg-management-{env}-{location}` | Jumpbox & Monitoring | No |
+| `rg-shared-{env}-{location}` | Key Vault & Storage | No |
+| `rg-workload-prod-{env}-{location}` | Production workloads | No |
+| `rg-onprem-{env}-{location}` | Simulated on-premises | **Yes** |
 
 ### Complete Resource Inventory
 
@@ -148,42 +225,42 @@ This Terraform project creates a complete Azure Landing Zone lab environment tha
 |----------|-------|-------------|
 | Virtual Networks | 6 | Hub, Identity, Management, Shared, Workload, OnPrem |
 | Subnets | 12+ | Gateway, Firewall, Management, DC, Jumpbox, AKS, Web, App, Data, etc. |
-| VNet Peerings | 10 | Hub-to-spoke connectivity (bidirectional) |
+| VNet Peerings | 8-10 | Hub-to-spoke connectivity (bidirectional) |
 | Network Security Groups | 6+ | Subnet-level firewall rules |
-| Route Tables | 2+ | Custom routing through Azure Firewall |
-| Public IP Addresses | 3 | VPN Gateway (2), Azure Firewall (1) |
+| Route Tables | 5 | Custom routing through Azure Firewall |
+| Public IP Addresses | 1-3 | Azure Firewall (1), VPN Gateway (2 if enabled) |
 
 #### 🔥 Security Resources
 
-| Resource | Description |
-|----------|-------------|
-| Azure Firewall | Centralized egress filtering with policy rules |
-| Firewall Policy | Network and application rule collections |
-| VPN Gateway (Hub) | Site-to-site VPN to simulated on-premises |
-| VPN Gateway (OnPrem) | Simulated on-premises VPN endpoint |
-| VPN Connection | Encrypted tunnel between Hub and OnPrem |
-| Key Vault | Secure storage for secrets and certificates |
+| Resource | Description | Optional |
+|----------|-------------|----------|
+| Azure Firewall | Centralized egress filtering with policy rules | No |
+| Firewall Policy | Network and application rule collections | No |
+| VPN Gateway (Hub) | Site-to-site VPN to simulated on-premises | **Yes** |
+| VPN Gateway (OnPrem) | Simulated on-premises VPN endpoint | **Yes** |
+| VPN Connection | Encrypted tunnel between Hub and OnPrem | **Yes** |
+| Key Vault | Secure storage for secrets and certificates | No |
 
 #### 💻 Compute Resources
 
-| Resource | Subnet | IP Address | Purpose |
-|----------|--------|------------|---------|
-| DC01 (Windows Server 2022) | Identity | 10.1.1.4 | Primary Domain Controller |
-| DC02 (Windows Server 2022) | Identity | 10.1.1.5 | Secondary DC (optional) |
-| Jumpbox (Windows Server 2022) | Management | 10.2.1.4 | Secure access point |
-| Web VM (Windows Server 2022) | Workload-Web | 10.10.1.4 | Web tier |
-| App VM (Windows Server 2022) | Workload-App | 10.10.2.4 | Application tier |
-| SQL VM (Windows Server 2022) | Workload-Data | 10.10.3.4 | Database tier |
-| FileServer (Windows Server 2022) | OnPrem | 10.100.1.4 | Simulated on-prem file server |
+| Resource | Subnet | IP Address | Purpose | Optional |
+|----------|--------|------------|---------|----------|
+| DC01 (Windows Server 2022) | Identity | 10.1.1.4 | Primary Domain Controller | No |
+| DC02 (Windows Server 2022) | Identity | 10.1.1.5 | Secondary DC | **Yes** |
+| Jumpbox (Windows Server 2022) | Management | 10.2.1.4 | Secure access point | No |
+| Web VM (Windows Server 2022) | Workload-Web | 10.10.1.4 | Web tier | **Yes** |
+| App VM (Windows Server 2022) | Workload-App | 10.10.2.4 | Application tier | **Yes** |
+| SQL VM (Windows Server 2022) | Workload-Data | 10.10.3.4 | Database tier | **Yes** |
+| FileServer (Windows Server 2022) | OnPrem | 10.100.1.4 | Simulated on-prem file server | **Yes** |
 
 #### ☸️ Platform Services
 
-| Resource | SKU | Description |
-|----------|-----|-------------|
-| Azure Kubernetes Service | Standard_B2ms (1 node) | Managed Kubernetes cluster |
-| Azure SQL Database | Basic (2GB) | Managed relational database |
-| Log Analytics Workspace | PerGB2018 | Centralized logging |
-| Storage Account | Standard_LRS | Blob containers and file shares |
+| Resource | SKU | Description | Optional |
+|----------|-----|-------------|----------|
+| Azure Kubernetes Service | Standard_B2ms (1 node) | Managed Kubernetes cluster | **Yes** |
+| Azure SQL Database | Basic (2GB) | Managed relational database | **Yes** |
+| Log Analytics Workspace | PerGB2018 | Centralized logging | No |
+| Storage Account | Standard_LRS | Blob containers and file shares | No |
 
 ---
 
@@ -279,9 +356,14 @@ terraform init
 # Preview changes
 terraform plan
 
-# Deploy (takes 45-60 minutes for full deployment)
+# Deploy STANDARD profile (recommended - ~15 min, no VPN/AKS)
 terraform apply
+
+# OR Deploy FULL profile with VPN and AKS (~45-60 min)
+terraform apply -var="deploy_vpn_gateway=true" -var="deploy_aks=true" -var="deploy_onprem_simulation=true"
 ```
+
+> ⏱️ **Deployment Times**: Standard ~15 min | With AKS ~20 min | Full Hybrid ~45-60 min
 
 ### Step 4: Access Your Environment
 
@@ -393,28 +475,36 @@ terraform destroy
 
 ### Feature Toggles
 
-Toggle features on/off to control costs and complexity:
+Toggle features on/off to control costs and deployment time:
 
-| Feature | Variable | Default | Description |
-|---------|----------|---------|-------------|
-| Azure Firewall | `deploy_firewall` | `true` | Central egress filtering |
-| VPN Gateway | `deploy_vpn_gateway` | `true` | Hybrid connectivity |
-| AKS Cluster | `deploy_aks` | `true` | Managed Kubernetes |
-| On-Prem Simulation | `deploy_onprem_simulation` | `true` | VPN-connected on-prem |
-| Secondary DC | `deploy_secondary_dc` | `false` | High availability DC |
-| Workload VMs | `deploy_workload_vms` | `true` | Web/App/SQL VMs |
-| Key Vault | `deploy_keyvault` | `true` | Secrets management |
-| Storage Account | `deploy_storage` | `true` | Blob & file storage |
-| SQL Database | `deploy_sql` | `true` | Managed SQL database |
+| Feature | Variable | Default | Description | Deploy Time Impact |
+|---------|----------|---------|-------------|-------------------|
+| Azure Firewall | `deploy_firewall` | `true` | Central egress filtering | +4-5 min |
+| **VPN Gateway** | `deploy_vpn_gateway` | `false` | Hybrid connectivity | **+25-30 min** |
+| **AKS Cluster** | `deploy_aks` | `false` | Managed Kubernetes | +5-10 min |
+| **On-Prem Simulation** | `deploy_onprem_simulation` | `false` | VPN-connected on-prem | **+30-40 min** |
+| Secondary DC | `deploy_secondary_dc` | `false` | High availability DC | +2 min |
+| Workload VMs | `deploy_workload_vms` | `true` | Web/App/SQL VMs | +3-5 min |
+| Key Vault | `deploy_keyvault` | `true` | Secrets management | +1 min |
+| Storage Account | `deploy_storage` | `true` | Blob & file storage | +1 min |
+| SQL Database | `deploy_sql` | `true` | Managed SQL database | +2 min |
+
+> 💡 **Recommended for Development**: Keep `deploy_vpn_gateway`, `deploy_aks`, and `deploy_onprem_simulation` as `false` for faster iteration (~15 min deploy). Enable when testing hybrid scenarios.
 
 ### Using Different Environments
 
 ```bash
-# Deploy development environment
+# Deploy development environment (fast iteration, no VPN/AKS)
 terraform apply -var-file="environments/dev.tfvars"
 
-# Deploy production environment
+# Deploy production environment (full deployment)
 terraform apply -var-file="environments/prod.tfvars"
+
+# Quick deploy with VPN/AKS disabled
+terraform apply -var="deploy_vpn_gateway=false" -var="deploy_aks=false" -var="deploy_onprem_simulation=false"
+
+# Enable hybrid scenario (VPN + OnPrem simulation)
+terraform apply -var="deploy_vpn_gateway=true" -var="deploy_onprem_simulation=true"
 ```
 
 ---
@@ -423,35 +513,37 @@ terraform apply -var-file="environments/prod.tfvars"
 
 ### Monthly Cost Breakdown (USD)
 
-| Resource | Configuration | Est. Monthly Cost |
-|----------|--------------|-------------------|
-| Azure Firewall | Standard SKU | ~$912 |
-| VPN Gateway (Hub) | VpnGw1 | ~$140 |
-| VPN Gateway (OnPrem) | VpnGw1 | ~$140 |
-| AKS Cluster | 1x Standard_B2ms | ~$70 |
-| Windows VMs (6x) | Standard_B2ms | ~$180 |
-| Azure SQL Database | Basic 2GB | ~$5 |
-| Key Vault | Standard | ~$0.03/10K ops |
-| Storage Account | LRS | ~$2 |
-| Log Analytics | Per GB | ~$2.50/GB |
-| Public IPs | 3x Standard | ~$10 |
+| Resource | Configuration | Est. Monthly Cost | Optional |
+|----------|--------------|-------------------|----------|
+| Azure Firewall | Standard SKU | ~$912 | No |
+| VPN Gateway (Hub) | VpnGw1 | ~$140 | **Yes** |
+| VPN Gateway (OnPrem) | VpnGw1 | ~$140 | **Yes** |
+| AKS Cluster | 1x Standard_B2ms | ~$70 | **Yes** |
+| Windows VMs (2-6x) | Standard_B2ms | ~$60-180 | Partial |
+| Azure SQL Database | Basic 2GB | ~$5 | **Yes** |
+| Key Vault | Standard | ~$0.03/10K ops | No |
+| Storage Account | LRS | ~$2 | No |
+| Log Analytics | Per GB | ~$2.50/GB | No |
+| Public IPs | 1-3x Standard | ~$3-10 | Partial |
 
 ### Cost Profiles
 
-| Profile | Resources | Est. Monthly Cost |
-|---------|-----------|-------------------|
-| **Minimal** | VNets + 1 VM | ~$50 |
-| **Learning** | No Firewall/VPN | ~$250 |
-| **Standard** | All except 2nd DC | ~$700 |
-| **Full** | Everything enabled | ~$850 |
+| Profile | Resources | Est. Monthly Cost | Deploy Time |
+|---------|-----------|-------------------|-------------|
+| **Minimal** | Core VNets + DC + Jumpbox (no FW) | ~$100 | ~5 min |
+| **Standard** | Core + Firewall (no VPN/AKS) | ~$450 | ~15 min |
+| **With AKS** | Standard + AKS Cluster | ~$520 | ~20 min |
+| **Full Hybrid** | Everything (VPN + AKS + OnPrem) | ~$850 | ~45-60 min |
 
 ### Cost Saving Tips
 
 1. **Use auto-shutdown** - VMs shut down at 7 PM (configurable)
-2. **Disable VPN Gateways** - Save ~$280/month if not testing hybrid
-3. **Disable Azure Firewall** - Save ~$300/month (use NSGs instead)
-4. **Scale down AKS** - Use 1 node for learning
-5. **Destroy when not using** - `terraform destroy`
+2. **Disable VPN Gateways** - Save ~$280/month by setting `deploy_vpn_gateway = false` and `deploy_onprem_simulation = false`
+3. **Disable AKS** - Save ~$70/month by setting `deploy_aks = false`
+4. **Disable Azure Firewall** - Save ~$300/month (use NSGs instead) - not recommended for production learning
+5. **Scale down AKS** - Use 1 node for learning
+6. **Destroy when not using** - `terraform destroy`
+7. **Start minimal** - Deploy core components first, enable VPN/AKS when needed
 
 ---
 
