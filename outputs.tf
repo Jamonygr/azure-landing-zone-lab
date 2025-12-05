@@ -117,6 +117,20 @@ output "aks_cluster_fqdn" {
 }
 
 # -----------------------------------------------------------------------------
+# Load Balancer Outputs
+# -----------------------------------------------------------------------------
+
+output "lb_frontend_ip" {
+  description = "Load Balancer public IP address (access web servers here)"
+  value       = var.deploy_workload_prod && var.deploy_load_balancer ? module.workload_prod[0].lb_frontend_ip : null
+}
+
+output "lb_web_server_ips" {
+  description = "Private IP addresses of web servers behind load balancer"
+  value       = var.deploy_workload_prod && var.deploy_load_balancer ? module.workload_prod[0].web_server_ips : []
+}
+
+# -----------------------------------------------------------------------------
 # On-Premises Outputs
 # -----------------------------------------------------------------------------
 

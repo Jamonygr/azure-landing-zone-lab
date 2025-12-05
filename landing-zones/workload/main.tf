@@ -204,6 +204,7 @@ module "data_nsg" {
 }
 
 # Route Table (via Firewall)
+# Note: Web subnet excluded when public LB deployed (to avoid asymmetric routing)
 module "workload_route_table" {
   source = "../../modules/networking/route-table"
   count  = var.deploy_route_table ? 1 : 0
@@ -211,7 +212,8 @@ module "workload_route_table" {
   name                = "rt-${var.workload_name}-${var.environment}-${var.location_short}"
   resource_group_name = var.resource_group_name
   location            = var.location
-  subnet_ids          = [module.web_subnet.id, module.app_subnet.id, module.data_subnet.id]
+  # Exclude web subnet when public LB is deployed to avoid asymmetric routing
+  subnet_ids          = var.deploy_load_balancer && var.lb_type == "public" ? [module.app_subnet.id, module.data_subnet.id] : [module.web_subnet.id, module.app_subnet.id, module.data_subnet.id]
   tags                = var.tags
   depends_on          = [module.web_nsg, module.app_nsg, module.data_nsg] # Serialize subnet updates
 
@@ -274,4 +276,90 @@ module "aks" {
   log_analytics_workspace_id = var.log_analytics_workspace_id
 
   tags = var.tags
+}
+
+# =============================================================================
+# LOAD BALANCER AND WEB SERVERS (Optional)
+# =============================================================================
+
+# Load Balancer
+module "load_balancer" {
+  source = "../../modules/networking/load-balancer"
+  count  = var.deploy_load_balancer ? 1 : 0
+
+  name                = "lb-${var.workload_name}-${var.environment}-${var.location_short}"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  sku                 = "Standard"
+  type                = var.lb_type
+  subnet_id           = var.lb_type == "internal" ? module.web_subnet.id : null
+  private_ip_address  = var.lb_type == "internal" ? var.lb_private_ip : null
+  backend_pool_name   = "web-backend-pool"
+  tags                = var.tags
+
+  health_probes = {
+    http = {
+      protocol     = "Http"
+      port         = 80
+      request_path = "/"
+    }
+    rdp = {
+      protocol = "Tcp"
+      port     = 3389
+    }
+  }
+
+  lb_rules = {
+    http = {
+      protocol      = "Tcp"
+      frontend_port = 80
+      backend_port  = 80
+      probe_name    = "http"
+    }
+    https = {
+      protocol      = "Tcp"
+      frontend_port = 443
+      backend_port  = 443
+      probe_name    = "http"
+    }
+  }
+
+  # NAT rules for RDP access to each web server
+  nat_rules = {
+    for i in range(var.lb_web_server_count) :
+    "rdp-web${format("%02d", i + 1)}" => {
+      protocol      = "Tcp"
+      frontend_port = 3389 + i
+      backend_port  = 3389
+    }
+  }
+
+  enable_outbound_rule = var.lb_type == "public"
+}
+
+# Web Servers
+module "web_servers" {
+  source = "../../modules/compute/web-server"
+  count  = var.deploy_load_balancer ? var.lb_web_server_count : 0
+
+  name                = "web${format("%02d", count.index + 1)}-${var.workload_short}"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  subnet_id           = module.web_subnet.id
+  vm_size             = var.lb_web_server_size
+  admin_username      = var.admin_username
+  admin_password      = var.admin_password
+
+  # Load Balancer association
+  associate_with_lb  = true
+  lb_backend_pool_id = module.load_balancer[0].backend_pool_id
+  lb_nat_rule_ids    = [module.load_balancer[0].nat_rule_ids["rdp-web${format("%02d", count.index + 1)}"]]
+
+  # IIS with custom content showing hostname
+  install_iis        = true
+  custom_iis_content = "<html><head><title>Azure Load Balancer Lab</title><style>body{font-family:Arial,sans-serif;background-color:#0078D4;color:white;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}.container{text-align:center;background:rgba(0,0,0,0.3);padding:40px;border-radius:10px}h1{font-size:48px}p{font-size:24px}</style></head><body><div class='container'><h1>{hostname}</h1><p>Azure Landing Zone - ${var.workload_name} Workload</p><p>Load Balanced Web Server</p></div></body></html>"
+
+  tags = merge(var.tags, { Role = "WebServer" })
+
+  depends_on = [module.load_balancer, module.web_nsg]
 }

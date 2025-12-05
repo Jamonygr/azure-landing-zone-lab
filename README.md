@@ -4,9 +4,9 @@
 [![Azure](https://img.shields.io/badge/Azure-AzureRM%204.x-0078D4?logo=microsoftazure)](https://azure.microsoft.com)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-A **production-ready** Azure Landing Zone lab environment built with Terraform, following Microsoft's Cloud Adoption Framework (CAF) best practices. This project deploys a complete enterprise-grade hub-spoke network topology with identity services, security controls, and application workloads.
+A **production-ready** Azure Landing Zone lab environment built with Terraform, following Microsoft's Cloud Adoption Framework (CAF) best practices. This project deploys a complete enterprise-grade hub-spoke network topology with identity services, security controls, load-balanced web workloads, and optional hybrid connectivity.
 
-> 💡 **Modular Design**: Core infrastructure deploys in ~10-15 minutes. Optional components (VPN Gateway, AKS) can be enabled when needed, with VPN/OnPrem adding ~30-45 minutes to deployment time.
+> 💡 **Modular Design**: Core infrastructure deploys in ~10-15 minutes. Optional components (VPN Gateway, AKS, Load Balancer) can be enabled when needed.
 
 ---
 
@@ -17,15 +17,13 @@ A **production-ready** Azure Landing Zone lab environment built with Terraform, 
 - [What Gets Deployed](#-what-gets-deployed)
 - [Optional Components](#-optional-components)
 - [Network Topology](#-network-topology)
+- [Traffic Flow](#-traffic-flow)
 - [Quick Start](#-quick-start)
-- [Project Structure](#-project-structure)
 - [Configuration Options](#-configuration-options)
-- [Resource Details](#-resource-details)
+- [Testing the Load Balancer](#-testing-the-load-balancer)
 - [Security Features](#-security-features)
 - [Cost Estimation](#-cost-estimation)
-- [Learning Objectives](#-learning-objectives)
 - [Troubleshooting](#-troubleshooting)
-- [Contributing](#-contributing)
 - [License](#-license)
 
 ---
@@ -41,14 +39,14 @@ This Terraform project creates a complete Azure Landing Zone lab environment tha
 - **Shared Services** - Azure Key Vault for secrets, Storage Account for file shares
 
 ### Optional Components (Configurable)
-- **🔗 VPN Gateway & Simulated On-Premises** - Site-to-site VPN connectivity for hybrid scenarios *(adds ~30-45 min deployment time)*
+- **⚖️ Public Load Balancer with IIS Web Servers** - Load-balanced web tier with automatic IIS installation
+- **🔗 VPN Gateway & Simulated On-Premises** - Site-to-site VPN connectivity for hybrid scenarios
 - **☸️ Azure Kubernetes Service (AKS)** - Managed Kubernetes cluster for container workloads
-- **🖥️ Workload VMs** - Web/App/SQL tier Windows VMs for traditional workloads
 - **🗄️ Azure SQL Database** - Managed relational database with private endpoint
 
 ### Use Cases
 
-- 🎓 **Learning** - Practice Azure networking, security, and infrastructure as code
+- 🎓 **Learning** - Practice Azure networking, security, load balancing, and infrastructure as code
 - 🧪 **Testing** - Validate architectures before production deployment
 - 📚 **Training** - Teach teams about Azure Landing Zones and CAF
 - 🔬 **PoC** - Quickly spin up proof-of-concept environments
@@ -60,207 +58,184 @@ This Terraform project creates a complete Azure Landing Zone lab environment tha
 | Profile | Components | Deployment Time | Monthly Cost |
 |---------|------------|-----------------|--------------|
 | **Minimal** | Core networking + VMs only | ~10 min | ~$150 |
-| **Standard** | Core + Firewall (no VPN/AKS) | ~15 min | ~$450 |
+| **Standard** | Core + Firewall + Load Balancer | ~15 min | ~$500 |
 | **Full Hybrid** | Everything including VPN + AKS | ~45-60 min | ~$850 |
-
-> 🚀 **Quick Start Tip**: Start with the Standard profile (VPN and AKS disabled) for faster iteration, then enable hybrid components when ready to test VPN scenarios.
 
 ---
 
 ## 🏛️ Architecture Diagram
 
 ```
-                              ┌─────────────────────────────────────────────────────────────────────────┐
-                              │                        AZURE CLOUD                                      │
-                              │                                                                         │
-┌─────────────────┐           │  ┌───────────────────────────────────────────────────────────────────┐ │
-│   ON-PREMISES   │           │  │                      HUB VNET (10.0.0.0/16)                       │ │
-│   (Simulated)   │           │  │                                                                   │ │
-│   [OPTIONAL]    │           │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐   │ │
-│                 │           │  │  │   Gateway   │  │   Firewall  │  │     Management Subnet   │   │ │
-│  ┌───────────┐  │   VPN     │  │  │   Subnet    │  │    Subnet   │  │      (10.0.2.0/24)      │   │ │
-│  │ File      │  │  Tunnel   │  │  │ 10.0.0.0/24 │  │ 10.0.1.0/24 │  └─────────────────────────┘   │ │
-│  │ Server    │◄─┼───────────┼──┼──┤ [OPTIONAL]  │  │             │                                │ │
-│  │10.100.1.4 │  │           │  │  │             │  │ ┌─────────┐ │                                │ │
-│  └───────────┘  │           │  │  │ ┌─────────┐ │  │ │Azure FW │ │                                │ │
-│                 │           │  │  │ │VPN GW   │ │  │ │(Std)    │ │                                │ │
-│  VNet:          │           │  │  │ │(VpnGw1) │ │  │ └─────────┘ │                                │ │
-│  10.100.0.0/16  │           │  │  │ └─────────┘ │  └─────────────┘                                │ │
-└─────────────────┘           │  │  └─────────────┘                                                  │ │
-                              │  └───────────────────────────────────────────────────────────────────┘ │
-                              │              │                    │                                     │
-                              │              │    VNet Peerings   │                                     │
-                              │    ┌─────────┴────────────────────┴───────────┐                        │
-                              │    │                      │                    │                        │
-                              │    ▼                      ▼                    ▼                        │
-                              │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                  │
-                              │  │  IDENTITY    │  │  MANAGEMENT  │  │   SHARED     │                  │
-                              │  │   VNET       │  │    VNET      │  │  SERVICES    │                  │
-                              │  │10.1.0.0/16   │  │10.2.0.0/16   │  │10.3.0.0/16   │                  │
-                              │  │              │  │              │  │              │                  │
-                              │  │ ┌──────────┐ │  │ ┌──────────┐ │  │ ┌──────────┐ │                  │
-                              │  │ │  DC01    │ │  │ │ Jumpbox  │ │  │ │Key Vault │ │                  │
-                              │  │ │ (Win22)  │ │  │ │ (Win22)  │ │  │ │          │ │                  │
-                              │  │ │10.1.1.4  │ │  │ │10.2.1.4  │ │  │ └──────────┘ │                  │
-                              │  │ └──────────┘ │  │ └──────────┘ │  │ ┌──────────┐ │                  │
-                              │  │ ┌──────────┐ │  │ ┌──────────┐ │  │ │ Storage  │ │                  │
-                              │  │ │  DC02    │ │  │ │   Log    │ │  │ │ Account  │ │                  │
-                              │  │ │[Optional]│ │  │ │Analytics │ │  │ │          │ │                  │
-                              │  │ │10.1.1.5  │ │  │ └──────────┘ │  │ └──────────┘ │                  │
-                              │  │ └──────────┘ │  └──────────────┘  └──────────────┘                  │
-                              │  └──────────────┘                                                       │
-                              │                                                                         │
-                              │              │                                                          │
-                              │              ▼                                                          │
-                              │  ┌───────────────────────────────────────────────────────────────────┐ │
-                              │  │                 WORKLOAD PROD VNET (10.10.0.0/16)                 │ │
-                              │  │                                                                   │ │
-                              │  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐   │ │
-                              │  │  │   Web Subnet    │  │   App Subnet    │  │  Data Subnet    │   │ │
-                              │  │  │  10.10.1.0/24   │  │  10.10.2.0/24   │  │  10.10.3.0/24   │   │ │
-                              │  │  │   [OPTIONAL]    │  │   [OPTIONAL]    │  │   [OPTIONAL]    │   │ │
-                              │  │  │  ┌───────────┐  │  │  ┌───────────┐  │  │  ┌───────────┐  │   │ │
-                              │  │  │  │  Web VM   │  │  │  │  App VM   │  │  │  │  SQL VM   │  │   │ │
-                              │  │  │  │ (Win22)   │  │  │  │ (Win22)   │  │  │  │ (Win22)   │  │   │ │
-                              │  │  │  │10.10.1.4  │  │  │  │10.10.2.4  │  │  │  │10.10.3.4  │  │   │ │
-                              │  │  │  └───────────┘  │  │  └───────────┘  │  │  └───────────┘  │   │ │
-                              │  │  └─────────────────┘  └─────────────────┘  └─────────────────┘   │ │
-                              │  │                                                                   │ │
-                              │  │  ┌─────────────────────────────────────────────────────────────┐ │ │
-                              │  │  │              AKS Subnet (10.10.64.0/18) [OPTIONAL]           │ │ │
-                              │  │  │                                                              │ │ │
-                              │  │  │   ┌──────────────────────────────────────────────────────┐  │ │ │
-                              │  │  │   │      Azure Kubernetes Service (AKS)                  │  │ │ │
-                              │  │  │   │      - 1 Node (Standard_B2ms)                        │  │ │ │
-                              │  │  │   │      - Kubernetes 1.29+                              │  │ │ │
-                              │  │  │   │      - Azure CNI Networking                          │  │ │ │
-                              │  │  │   └──────────────────────────────────────────────────────┘  │ │ │
-                              │  │  └─────────────────────────────────────────────────────────────┘ │ │
-                              │  │                                                                   │ │
-                              │  │  ┌─────────────────────────────────────────────────────────────┐ │ │
-                              │  │  │                Azure SQL Database [OPTIONAL]                 │ │ │
-                              │  │  │   - Basic SKU (2GB)                                          │ │ │
-                              │  │  │   - Private Endpoint                                         │ │ │
-                              │  │  └─────────────────────────────────────────────────────────────┘ │ │
-                              │  └───────────────────────────────────────────────────────────────────┘ │
-                              └─────────────────────────────────────────────────────────────────────────┘
+                                    ┌─────────────────────────────────────────────────────────────────────────────────┐
+                                    │                              AZURE CLOUD                                        │
+                                    │                                                                                 │
+                                    │                                  INTERNET                                       │
+                                    │                                     │                                           │
+                                    │                    ┌────────────────┼────────────────┐                          │
+                                    │                    │                │                │                          │
+                                    │                    ▼                ▼                ▼                          │
+┌─────────────────┐                 │  ┌─────────────────────┐  ┌─────────────────┐  ┌─────────────────┐             │
+│   ON-PREMISES   │                 │  │   Azure Firewall    │  │  Public Load    │  │   VPN Gateway   │             │
+│   (Simulated)   │                 │  │   172.191.x.x       │  │    Balancer     │  │   [OPTIONAL]    │             │
+│   [OPTIONAL]    │                 │  │   (DNAT/SNAT)       │  │  52.170.x.x     │  │                 │             │
+│                 │     VPN         │  └─────────┬───────────┘  └────────┬────────┘  └────────┬────────┘             │
+│  ┌───────────┐  │    Tunnel       │            │                       │                    │                      │
+│  │ File      │◄─┼─────────────────┼────────────┼───────────────────────┼────────────────────┘                      │
+│  │ Server    │  │                 │            │                       │                                           │
+│  │10.100.1.4 │  │                 │            │                       │                                           │
+│  └───────────┘  │                 │  ┌─────────┴───────────────────────┴───────────────────────────────────────┐   │
+│                 │                 │  │                        HUB VNET (10.0.0.0/16)                           │   │
+│  VNet:          │                 │  │                                                                         │   │
+│  10.100.0.0/16  │                 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐          │   │
+└─────────────────┘                 │  │  │  Gateway    │  │  Firewall   │  │    Management Subnet    │          │   │
+                                    │  │  │   Subnet    │  │   Subnet    │  │      (10.0.2.0/24)      │          │   │
+                                    │  │  │ 10.0.0.0/24 │  │ 10.0.1.0/24 │  └─────────────────────────┘          │   │
+                                    │  │  └─────────────┘  └─────────────┘                                       │   │
+                                    │  └─────────────────────────────────────────────────────────────────────────┘   │
+                                    │                │                │                │                              │
+                                    │                │    VNet Peerings (Hub-Spoke)    │                              │
+                                    │    ┌───────────┴────────────────┬────────────────┴───────────┐                  │
+                                    │    │                            │                            │                  │
+                                    │    ▼                            ▼                            ▼                  │
+                                    │  ┌──────────────┐        ┌──────────────┐        ┌──────────────┐              │
+                                    │  │  IDENTITY    │        │  MANAGEMENT  │        │   SHARED     │              │
+                                    │  │   VNET       │        │    VNET      │        │  SERVICES    │              │
+                                    │  │ 10.1.0.0/16  │        │ 10.2.0.0/16  │        │ 10.3.0.0/16  │              │
+                                    │  │              │        │              │        │              │              │
+                                    │  │ ┌──────────┐ │        │ ┌──────────┐ │        │ ┌──────────┐ │              │
+                                    │  │ │  DC01    │ │        │ │ Jumpbox  │ │        │ │Key Vault │ │              │
+                                    │  │ │ (Win22)  │ │        │ │ (Win22)  │ │        │ │          │ │              │
+                                    │  │ │10.1.1.4  │ │        │ │10.2.1.4  │ │        │ └──────────┘ │              │
+                                    │  │ └──────────┘ │        │ └──────────┘ │        │ ┌──────────┐ │              │
+                                    │  │ ┌──────────┐ │        │ ┌──────────┐ │        │ │ Storage  │ │              │
+                                    │  │ │  DC02    │ │        │ │   Log    │ │        │ │ Account  │ │              │
+                                    │  │ │[Optional]│ │        │ │Analytics │ │        │ │          │ │              │
+                                    │  │ │10.1.1.5  │ │        │ └──────────┘ │        │ └──────────┘ │              │
+                                    │  │ └──────────┘ │        └──────────────┘        └──────────────┘              │
+                                    │  └──────────────┘                                                               │
+                                    │                                                                                 │
+                                    │                                    │                                            │
+                                    │                                    ▼                                            │
+                                    │  ┌──────────────────────────────────────────────────────────────────────────┐  │
+                                    │  │                    WORKLOAD PROD VNET (10.10.0.0/16)                     │  │
+                                    │  │                                                                          │  │
+                                    │  │   ┌────────────────────────────────────────────────────────────────┐    │  │
+                                    │  │   │                 WEB SUBNET (10.10.1.0/24)                       │    │  │
+                                    │  │   │                                                                 │    │  │
+                                    │  │   │                    PUBLIC LOAD BALANCER                         │    │  │
+                                    │  │   │                      52.170.128.134                             │    │  │
+                                    │  │   │                           │                                     │    │  │
+                                    │  │   │              ┌────────────┴────────────┐                        │    │  │
+                                    │  │   │              │                         │                        │    │  │
+                                    │  │   │              ▼                         ▼                        │    │  │
+                                    │  │   │   ┌───────────────────┐     ┌───────────────────┐               │    │  │
+                                    │  │   │   │    web01-prd      │     │    web02-prd      │               │    │  │
+                                    │  │   │   │   Windows IIS     │     │   Windows IIS     │               │    │  │
+                                    │  │   │   │   10.10.1.5       │     │   10.10.1.4       │               │    │  │
+                                    │  │   │   │   Standard_B1ms   │     │   Standard_B1ms   │               │    │  │
+                                    │  │   │   └───────────────────┘     └───────────────────┘               │    │  │
+                                    │  │   │                                                                 │    │  │
+                                    │  │   │   Health Probe: HTTP/80    LB Rule: TCP/80 → Backend Pool       │    │  │
+                                    │  │   │   NAT Rules: 3389→web01, 3390→web02                             │    │  │
+                                    │  │   └─────────────────────────────────────────────────────────────────┘    │  │
+                                    │  │                                                                          │  │
+                                    │  │   ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐       │  │
+                                    │  │   │   App Subnet    │   │  Data Subnet    │   │   AKS Subnet    │       │  │
+                                    │  │   │  10.10.2.0/24   │   │  10.10.3.0/24   │   │  10.10.64.0/18  │       │  │
+                                    │  │   │   [OPTIONAL]    │   │   [OPTIONAL]    │   │   [OPTIONAL]    │       │  │
+                                    │  │   └─────────────────┘   └─────────────────┘   └─────────────────┘       │  │
+                                    │  │                                                                          │  │
+                                    │  └──────────────────────────────────────────────────────────────────────────┘  │
+                                    └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🔄 Optional Components
+## 🔄 Traffic Flow
 
-### VPN Gateway & Simulated On-Premises
+### Load Balancer Traffic (Separate from Firewall)
 
-The VPN components simulate a hybrid cloud scenario with site-to-site connectivity:
-
-| Component | Purpose | Deployment Time |
-|-----------|---------|-----------------|
-| VPN Gateway (Hub) | Azure-side VPN endpoint | ~25-30 min |
-| VPN Gateway (OnPrem) | Simulated on-prem endpoint | ~25-30 min |
-| Local Network Gateway | On-prem network definition | ~1 min |
-| VPN Connection | Encrypted IPsec tunnel | ~2 min |
-| File Server VM | Simulated on-prem workload | ~2 min |
-
-**Enable with:**
-```hcl
-deploy_vpn_gateway       = true   # Hub VPN Gateway
-deploy_onprem_simulation = true   # On-prem VNet, VPN GW, and VMs
-enable_bgp               = false  # Optional BGP routing
+```
+                                    INTERNET
+                                        │
+                    ┌───────────────────┴───────────────────┐
+                    │                                       │
+                    ▼                                       ▼
+        ┌───────────────────────┐               ┌───────────────────────┐
+        │   Azure Firewall      │               │   Public Load         │
+        │   172.191.184.142     │               │   Balancer            │
+        │                       │               │   52.170.128.134      │
+        │   • Outbound SNAT     │               │                       │
+        │   • Spoke traffic     │               │   • HTTP/80 → VMs     │
+        │   • App-to-App        │               │   • Health probes     │
+        └───────────┬───────────┘               │   • 5-tuple hash LB   │
+                    │                           └───────────┬───────────┘
+                    │                                       │
+                    │         ┌─────────────────────────────┘
+                    │         │
+                    ▼         ▼
+        ┌─────────────────────────────────────────────────────────────┐
+        │                    WEB SUBNET (10.10.1.0/24)                 │
+        │                                                              │
+        │   ┌──────────────────┐          ┌──────────────────┐        │
+        │   │   web01-prd      │          │   web02-prd      │        │
+        │   │   10.10.1.5      │          │   10.10.1.4      │        │
+        │   │   IIS Web Server │          │   IIS Web Server │        │
+        │   └──────────────────┘          └──────────────────┘        │
+        │                                                              │
+        │   Route Table: Default (Internet) - NO firewall routing     │
+        │   This enables symmetric routing for Load Balancer          │
+        └─────────────────────────────────────────────────────────────┘
 ```
 
-> ⚠️ **Note**: VPN Gateways take 25-45 minutes to provision. Disable for faster development cycles.
+### Why Web Subnet Bypasses Firewall
 
-### Azure Kubernetes Service (AKS)
+When using a **Public Load Balancer**, the web subnet must have direct internet routing to avoid **asymmetric routing**:
 
-Deploy a managed Kubernetes cluster for container workloads:
+| Scenario | Inbound Path | Outbound Path | Result |
+|----------|--------------|---------------|--------|
+| ❌ Web subnet with FW route | LB → VM | VM → Firewall → Internet | **Broken** (TCP fails) |
+| ✅ Web subnet direct | LB → VM | VM → Internet | **Works** (symmetric) |
 
-| Feature | Configuration |
-|---------|--------------|
-| Node Pool | 1x Standard_B2ms (scalable) |
-| Networking | Azure CNI with custom VNet integration |
-| Subnet | 10.10.64.0/18 (16,382 IPs for pods) |
-| Version | Kubernetes 1.29+ |
-
-**Enable with:**
-```hcl
-deploy_aks = true
-```
-
-### Workload VMs
-
-Traditional 3-tier Windows VM architecture:
-
-| VM | Subnet | IP | Purpose |
-|----|--------|-------|---------|
-| Web VM | 10.10.1.0/24 | 10.10.1.4 | Web tier (IIS) |
-| App VM | 10.10.2.0/24 | 10.10.2.4 | Application tier |
-| SQL VM | 10.10.3.0/24 | 10.10.3.4 | Database tier |
-
-**Enable with:**
-```hcl
-deploy_workload_vms = true
-```
+The configuration automatically excludes the web subnet from firewall routing when the public load balancer is enabled.
 
 ---
 
 ## 📦 What Gets Deployed
 
-### Resource Groups (5-6 total)
+### Resource Groups
 
 | Resource Group | Purpose | Optional |
 |----------------|---------|----------|
-| `rg-hub-{env}-{location}` | Hub networking resources | No |
+| `rg-hub-{env}-{location}` | Hub networking, Firewall | No |
 | `rg-identity-{env}-{location}` | Domain Controllers | No |
-| `rg-management-{env}-{location}` | Jumpbox & Monitoring | No |
-| `rg-shared-{env}-{location}` | Key Vault & Storage | No |
-| `rg-workload-prod-{env}-{location}` | Production workloads | No |
+| `rg-management-{env}-{location}` | Jumpbox, Log Analytics | No |
+| `rg-shared-{env}-{location}` | Key Vault, Storage | No |
+| `rg-workload-prod-{env}-{location}` | Load Balancer, Web Servers | No |
 | `rg-onprem-{env}-{location}` | Simulated on-premises | **Yes** |
 
-### Complete Resource Inventory
+### Load Balancer Resources
 
-#### 🌐 Networking Resources
+| Resource | Configuration | Purpose |
+|----------|---------------|---------|
+| **Public Load Balancer** | Standard SKU | Distributes HTTP traffic |
+| **Frontend IP** | Static public IP | Internet entry point |
+| **Backend Pool** | 2 Web Servers | Target VMs |
+| **Health Probe** | HTTP/80, 5s interval | VM health monitoring |
+| **LB Rule (HTTP)** | TCP/80 → 80 | Web traffic distribution |
+| **LB Rule (HTTPS)** | TCP/443 → 443 | Secure web traffic |
+| **NAT Rule (RDP web01)** | TCP/3389 → 3389 | Direct RDP to web01 |
+| **NAT Rule (RDP web02)** | TCP/3390 → 3389 | Direct RDP to web02 |
+| **Outbound Rule** | SNAT via LB PIP | Outbound internet access |
 
-| Resource | Count | Description |
-|----------|-------|-------------|
-| Virtual Networks | 6 | Hub, Identity, Management, Shared, Workload, OnPrem |
-| Subnets | 12+ | Gateway, Firewall, Management, DC, Jumpbox, AKS, Web, App, Data, etc. |
-| VNet Peerings | 8-10 | Hub-to-spoke connectivity (bidirectional) |
-| Network Security Groups | 6+ | Subnet-level firewall rules |
-| Route Tables | 5 | Custom routing through Azure Firewall |
-| Public IP Addresses | 1-3 | Azure Firewall (1), VPN Gateway (2 if enabled) |
+### Web Server Resources
 
-#### 🔥 Security Resources
-
-| Resource | Description | Optional |
-|----------|-------------|----------|
-| Azure Firewall | Centralized egress filtering with policy rules | No |
-| Firewall Policy | Network and application rule collections | No |
-| VPN Gateway (Hub) | Site-to-site VPN to simulated on-premises | **Yes** |
-| VPN Gateway (OnPrem) | Simulated on-premises VPN endpoint | **Yes** |
-| VPN Connection | Encrypted tunnel between Hub and OnPrem | **Yes** |
-| Key Vault | Secure storage for secrets and certificates | No |
-
-#### 💻 Compute Resources
-
-| Resource | Subnet | IP Address | Purpose | Optional |
-|----------|--------|------------|---------|----------|
-| DC01 (Windows Server 2022) | Identity | 10.1.1.4 | Primary Domain Controller | No |
-| DC02 (Windows Server 2022) | Identity | 10.1.1.5 | Secondary DC | **Yes** |
-| Jumpbox (Windows Server 2022) | Management | 10.2.1.4 | Secure access point | No |
-| Web VM (Windows Server 2022) | Workload-Web | 10.10.1.4 | Web tier | **Yes** |
-| App VM (Windows Server 2022) | Workload-App | 10.10.2.4 | Application tier | **Yes** |
-| SQL VM (Windows Server 2022) | Workload-Data | 10.10.3.4 | Database tier | **Yes** |
-| FileServer (Windows Server 2022) | OnPrem | 10.100.1.4 | Simulated on-prem file server | **Yes** |
-
-#### ☸️ Platform Services
-
-| Resource | SKU | Description | Optional |
-|----------|-----|-------------|----------|
-| Azure Kubernetes Service | Standard_B2ms (1 node) | Managed Kubernetes cluster | **Yes** |
-| Azure SQL Database | Basic (2GB) | Managed relational database | **Yes** |
-| Log Analytics Workspace | PerGB2018 | Centralized logging | No |
-| Storage Account | Standard_LRS | Blob containers and file shares | No |
+| Resource | Configuration | Purpose |
+|----------|---------------|---------|
+| **web01-prd** | Windows Server 2022 Core, Standard_B1ms | IIS Web Server |
+| **web02-prd** | Windows Server 2022 Core, Standard_B1ms | IIS Web Server |
+| **NIC (each)** | Backend pool + NAT association | Network connectivity |
+| **IIS Extension** | CustomScriptExtension | Auto-install IIS + custom page |
 
 ---
 
@@ -268,34 +243,24 @@ deploy_workload_vms = true
 
 ### Address Space Allocation
 
-| Network | CIDR | Usable IPs | Purpose |
-|---------|------|------------|---------|
-| **Hub** | 10.0.0.0/16 | 65,534 | Central connectivity hub |
-| ├─ GatewaySubnet | 10.0.0.0/24 | 251 | VPN Gateway |
-| ├─ AzureFirewallSubnet | 10.0.1.0/24 | 251 | Azure Firewall |
-| └─ ManagementSubnet | 10.0.2.0/24 | 251 | Hub management |
-| **Identity** | 10.1.0.0/16 | 65,534 | Domain Controllers |
-| └─ DCSubnet | 10.1.1.0/24 | 251 | DC01, DC02 |
-| **Management** | 10.2.0.0/16 | 65,534 | Operations |
-| └─ JumpboxSubnet | 10.2.1.0/24 | 251 | Jumpbox VM |
-| **Shared** | 10.3.0.0/16 | 65,534 | Shared services |
-| └─ PrivateEndpointSubnet | 10.3.1.0/24 | 251 | Private endpoints |
-| **Workload Prod** | 10.10.0.0/16 | 65,534 | Production apps |
-| ├─ WebSubnet | 10.10.1.0/24 | 251 | Web tier VMs |
-| ├─ AppSubnet | 10.10.2.0/24 | 251 | App tier VMs |
-| ├─ DataSubnet | 10.10.3.0/24 | 251 | Database VMs |
-| └─ AKSSubnet | 10.10.64.0/18 | 16,382 | AKS node pool |
-| **On-Premises** | 10.100.0.0/16 | 65,534 | Simulated on-prem |
-| └─ ServerSubnet | 10.100.1.0/24 | 251 | File server |
-| **VPN Clients** | 172.16.0.0/24 | 251 | Point-to-Site VPN |
-
-### Network Flow
-
-```
-Internet → Azure Firewall (10.0.1.4) → Spoke VNets → Workloads
-                    ↓
-On-Premises ← VPN Gateway (Hub) ←→ VPN Gateway (OnPrem)
-```
+| Network | CIDR | Purpose |
+|---------|------|---------|
+| **Hub** | 10.0.0.0/16 | Central connectivity hub |
+| ├─ GatewaySubnet | 10.0.0.0/24 | VPN Gateway |
+| ├─ AzureFirewallSubnet | 10.0.1.0/24 | Azure Firewall |
+| └─ ManagementSubnet | 10.0.2.0/24 | Hub management |
+| **Identity** | 10.1.0.0/16 | Domain Controllers |
+| └─ DCSubnet | 10.1.1.0/24 | DC01 (10.1.1.4), DC02 (10.1.1.5) |
+| **Management** | 10.2.0.0/16 | Operations |
+| └─ JumpboxSubnet | 10.2.1.0/24 | Jumpbox (10.2.1.4) |
+| **Shared** | 10.3.0.0/16 | Shared services |
+| └─ PrivateEndpointSubnet | 10.3.1.0/24 | Private endpoints |
+| **Workload Prod** | 10.10.0.0/16 | Production apps |
+| ├─ WebSubnet | 10.10.1.0/24 | **Load Balanced Web Tier** |
+| ├─ AppSubnet | 10.10.2.0/24 | App tier VMs |
+| ├─ DataSubnet | 10.10.3.0/24 | Database VMs |
+| └─ AKSSubnet | 10.10.64.0/18 | AKS node pool |
+| **On-Premises** | 10.100.0.0/16 | Simulated on-prem |
 
 ---
 
@@ -305,245 +270,135 @@ On-Premises ← VPN Gateway (Hub) ←→ VPN Gateway (OnPrem)
 
 - [Terraform](https://terraform.io/downloads) >= 1.9.0
 - [Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli) >= 2.50.0
-- Azure Subscription with **Owner** or **Contributor** access
-- At least **40 vCPU quota** in your target region
+- Azure subscription with Owner or Contributor access
 
-### Step 1: Clone & Configure
+### Step 1: Clone and Configure
 
 ```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/azure-landing-zone-lab.git
+git clone https://github.com/Jamonygr/azure-landing-zone-lab.git
 cd azure-landing-zone-lab
 
-# Copy the example configuration
+# Copy example config
 cp terraform.tfvars.example terraform.tfvars
 
-# Edit with your values
+# Edit configuration
 code terraform.tfvars
 ```
 
-**Required variables in `terraform.tfvars`:**
-
-```hcl
-# Azure Configuration
-subscription_id = "your-subscription-id-here"
-location        = "westus"           # or your preferred region
-
-# Authentication (use strong passwords!)
-admin_password     = "YourSecurePassword123!"
-sql_admin_password = "SqlSecurePassword456!"
-```
-
-### Step 2: Authenticate to Azure
+### Step 2: Deploy
 
 ```bash
 # Login to Azure
 az login
 
-# Set your subscription
-az account set --subscription "YOUR_SUBSCRIPTION_ID"
-
-# Verify
-az account show
-```
-
-### Step 3: Deploy
-
-```bash
 # Initialize Terraform
 terraform init
 
-# Preview changes
-terraform plan
+# Plan deployment
+terraform plan -out=tfplan
 
-# Deploy STANDARD profile (recommended - ~15 min, no VPN/AKS)
-terraform apply
-
-# OR Deploy FULL profile with VPN and AKS (~45-60 min)
-terraform apply -var="deploy_vpn_gateway=true" -var="deploy_aks=true" -var="deploy_onprem_simulation=true"
+# Apply
+terraform apply tfplan
 ```
 
-> ⏱️ **Deployment Times**: Standard ~15 min | With AKS ~20 min | Full Hybrid ~45-60 min
-
-### Step 4: Access Your Environment
-
-After deployment, use the outputs to access resources:
+### Step 3: Verify Load Balancer
 
 ```bash
-# View all outputs
-terraform output
+# Get the Load Balancer IP
+terraform output lb_frontend_ip
 
-# Get specific values
-terraform output jumpbox_private_ip
-terraform output hub_vpn_gateway_public_ip
-```
-
-### Step 5: Clean Up
-
-```bash
-# Destroy all resources
-terraform destroy
-
-# Confirm with "yes"
-```
-
----
-
-## 📁 Project Structure
-
-```
-├── main.tf                          # Root module - orchestrates all resources
-├── variables.tf                     # Input variable definitions
-├── outputs.tf                       # Output value definitions
-├── locals.tf                        # Local values, naming, common tags
-├── terraform.tfvars                 # Your configuration (git-ignored)
-├── terraform.tfvars.example         # Example configuration template
-│
-├── landing-zones/                   # Landing zone modules
-│   ├── hub/                         # Hub network with firewall & VPN
-│   │   ├── main.tf                  #   VNet, Subnets, Firewall, VPN Gateway
-│   │   ├── variables.tf             #   Input variables
-│   │   └── outputs.tf               #   Output values
-│   │
-│   ├── identity/                    # Identity services
-│   │   ├── main.tf                  #   DC01, DC02 Windows VMs
-│   │   ├── variables.tf
-│   │   └── outputs.tf
-│   │
-│   ├── management/                  # Management zone
-│   │   ├── main.tf                  #   Jumpbox VM, Log Analytics
-│   │   ├── variables.tf
-│   │   └── outputs.tf
-│   │
-│   ├── shared-services/             # Shared services
-│   │   ├── main.tf                  #   Key Vault, Storage Account
-│   │   ├── variables.tf
-│   │   └── outputs.tf
-│   │
-│   ├── workload/                    # Application workloads
-│   │   ├── main.tf                  #   AKS, VMs, SQL Database
-│   │   ├── variables.tf
-│   │   └── outputs.tf
-│   │
-│   └── onprem-simulated/            # Simulated on-premises
-│       ├── main.tf                  #   VPN Gateway, File Server
-│       ├── variables.tf
-│       └── outputs.tf
-│
-├── modules/                         # Reusable infrastructure modules
-│   ├── aks/                         # Azure Kubernetes Service
-│   ├── compute/windows-vm/          # Windows Virtual Machine
-│   ├── firewall/                    # Azure Firewall + Policy
-│   ├── firewall-rules/              # Firewall rule collections
-│   ├── keyvault/                    # Azure Key Vault
-│   ├── monitoring/log-analytics/    # Log Analytics Workspace
-│   ├── naming/                      # CAF naming convention
-│   ├── networking/
-│   │   ├── vnet/                    # Virtual Network
-│   │   ├── subnet/                  # Subnet
-│   │   ├── nsg/                     # Network Security Group
-│   │   ├── peering/                 # VNet Peering
-│   │   ├── route-table/             # Route Table
-│   │   ├── vpn-gateway/             # VPN Gateway
-│   │   └── vpn-connection/          # VPN Connection
-│   ├── private-endpoint/            # Private Endpoint
-│   ├── resource-group/              # Resource Group
-│   ├── sql/                         # Azure SQL Database
-│   └── storage/                     # Storage Account
-│
-├── environments/                    # Environment-specific configs
-│   ├── dev.tfvars                   # Development settings
-│   └── prod.tfvars                  # Production settings
-│
-└── pipelines/                       # Azure DevOps CI/CD
-    ├── azure-pipelines-main.yml     # Main deployment pipeline
-    ├── azure-pipelines-destroy.yml  # Destroy pipeline
-    ├── azure-pipelines-drift.yml    # Drift detection
-    └── templates/                   # Pipeline templates
-        ├── terraform-init.yml
-        ├── terraform-plan.yml
-        ├── terraform-apply.yml
-        ├── terraform-validate.yml
-        ├── security-scan.yml
-        ├── cost-estimation.yml
-        └── notifications.yml
+# Test with curl (should alternate between web01-prd and web02-prd)
+curl http://$(terraform output -raw lb_frontend_ip)
 ```
 
 ---
 
 ## ⚙️ Configuration Options
 
-### Feature Toggles
+### terraform.tfvars
 
-Toggle features on/off to control costs and deployment time:
+```hcl
+# =============================================================================
+# CORE SETTINGS
+# =============================================================================
+project     = "azlab"
+environment = "lab"
+location    = "eastus"
 
-| Feature | Variable | Default | Description | Deploy Time Impact |
-|---------|----------|---------|-------------|-------------------|
-| Azure Firewall | `deploy_firewall` | `true` | Central egress filtering | +4-5 min |
-| **VPN Gateway** | `deploy_vpn_gateway` | `false` | Hybrid connectivity | **+25-30 min** |
-| **AKS Cluster** | `deploy_aks` | `false` | Managed Kubernetes | +5-10 min |
-| **On-Prem Simulation** | `deploy_onprem_simulation` | `false` | VPN-connected on-prem | **+30-40 min** |
-| Secondary DC | `deploy_secondary_dc` | `false` | High availability DC | +2 min |
-| Workload VMs | `deploy_workload_vms` | `true` | Web/App/SQL VMs | +3-5 min |
-| Key Vault | `deploy_keyvault` | `true` | Secrets management | +1 min |
-| Storage Account | `deploy_storage` | `true` | Blob & file storage | +1 min |
-| SQL Database | `deploy_sql` | `true` | Managed SQL database | +2 min |
+# =============================================================================
+# LOAD BALANCER CONFIGURATION
+# =============================================================================
+deploy_load_balancer = true              # Enable Load Balancer with IIS
+lb_type              = "public"          # public or internal
+lb_web_server_count  = 2                 # Number of web servers (1-10)
+lb_web_server_size   = "Standard_B1ms"   # VM size (2GB RAM min for IIS)
 
-> 💡 **Recommended for Development**: Keep `deploy_vpn_gateway`, `deploy_aks`, and `deploy_onprem_simulation` as `false` for faster iteration (~15 min deploy). Enable when testing hybrid scenarios.
+# =============================================================================
+# OPTIONAL COMPONENTS
+# =============================================================================
+deploy_vpn_gateway       = false         # VPN Gateway (~30 min deploy)
+deploy_onprem_simulation = false         # Simulated on-premises
+deploy_aks               = false         # Azure Kubernetes Service
+deploy_sql               = false         # Azure SQL Database
 
-### Using Different Environments
+# =============================================================================
+# SECURITY
+# =============================================================================
+admin_username = "azureadmin"
+admin_password = "YourSecurePassword123!"  # Change this!
 
-```bash
-# Deploy development environment (fast iteration, no VPN/AKS)
-terraform apply -var-file="environments/dev.tfvars"
-
-# Deploy production environment (full deployment)
-terraform apply -var-file="environments/prod.tfvars"
-
-# Quick deploy with VPN/AKS disabled
-terraform apply -var="deploy_vpn_gateway=false" -var="deploy_aks=false" -var="deploy_onprem_simulation=false"
-
-# Enable hybrid scenario (VPN + OnPrem simulation)
-terraform apply -var="deploy_vpn_gateway=true" -var="deploy_onprem_simulation=true"
+# =============================================================================
+# COST OPTIMIZATION
+# =============================================================================
+enable_auto_shutdown = true              # VMs shutdown at 7 PM
+vm_size              = "Standard_B2s"    # Default VM size
 ```
 
 ---
 
-## 💰 Cost Estimation
+## 🧪 Testing the Load Balancer
 
-### Monthly Cost Breakdown (USD)
+### Access URLs
 
-| Resource | Configuration | Est. Monthly Cost | Optional |
-|----------|--------------|-------------------|----------|
-| Azure Firewall | Standard SKU | ~$912 | No |
-| VPN Gateway (Hub) | VpnGw1 | ~$140 | **Yes** |
-| VPN Gateway (OnPrem) | VpnGw1 | ~$140 | **Yes** |
-| AKS Cluster | 1x Standard_B2ms | ~$70 | **Yes** |
-| Windows VMs (2-6x) | Standard_B2ms | ~$60-180 | Partial |
-| Azure SQL Database | Basic 2GB | ~$5 | **Yes** |
-| Key Vault | Standard | ~$0.03/10K ops | No |
-| Storage Account | LRS | ~$2 | No |
-| Log Analytics | Per GB | ~$2.50/GB | No |
-| Public IPs | 1-3x Standard | ~$3-10 | Partial |
+| Service | URL | Notes |
+|---------|-----|-------|
+| **HTTP (Load Balanced)** | `http://<lb_frontend_ip>` | Distributes to both VMs |
+| **RDP to web01** | `<lb_frontend_ip>:3389` | NAT rule direct access |
+| **RDP to web02** | `<lb_frontend_ip>:3390` | NAT rule direct access |
 
-### Cost Profiles
+### Verify Load Balancing
 
-| Profile | Resources | Est. Monthly Cost | Deploy Time |
-|---------|-----------|-------------------|-------------|
-| **Minimal** | Core VNets + DC + Jumpbox (no FW) | ~$100 | ~5 min |
-| **Standard** | Core + Firewall (no VPN/AKS) | ~$450 | ~15 min |
-| **With AKS** | Standard + AKS Cluster | ~$520 | ~20 min |
-| **Full Hybrid** | Everything (VPN + AKS + OnPrem) | ~$850 | ~45-60 min |
+```powershell
+# From your local machine - run multiple times
+# You should see responses from both web01-prd and web02-prd
+curl http://52.170.128.134
 
-### Cost Saving Tips
+# From different source IPs (different connections)
+# Azure LB uses 5-tuple hash: Source IP, Source Port, Dest IP, Dest Port, Protocol
+```
 
-1. **Use auto-shutdown** - VMs shut down at 7 PM (configurable)
-2. **Disable VPN Gateways** - Save ~$280/month by setting `deploy_vpn_gateway = false` and `deploy_onprem_simulation = false`
-3. **Disable AKS** - Save ~$70/month by setting `deploy_aks = false`
-4. **Disable Azure Firewall** - Save ~$300/month (use NSGs instead) - not recommended for production learning
-5. **Scale down AKS** - Use 1 node for learning
-6. **Destroy when not using** - `terraform destroy`
-7. **Start minimal** - Deploy core components first, enable VPN/AKS when needed
+### Expected Response
+
+```html
+<h1>web01-prd</h1>
+<p>Azure Landing Zone - prod Workload</p>
+<p>Load Balanced Web Server</p>
+```
+
+### Health Check
+
+```bash
+# Check backend pool health
+az network lb show \
+  --resource-group rg-workload-prod-lab-east \
+  --name lb-prod-lab-east \
+  --query "loadBalancingRules[].backendAddressPool.id" -o table
+
+# Check probe status
+az network lb probe list \
+  --resource-group rg-workload-prod-lab-east \
+  --lb-name lb-prod-lab-east -o table
+```
 
 ---
 
@@ -551,410 +406,204 @@ terraform apply -var="deploy_vpn_gateway=true" -var="deploy_onprem_simulation=tr
 
 ### Network Security
 
-- ✅ **NSGs on all subnets** - Deny-by-default with explicit allow rules
-- ✅ **Azure Firewall** - Centralized egress filtering
-- ✅ **Route Tables** - Force traffic through firewall
-- ✅ **VNet Peering** - Isolated spoke networks
-- ✅ **Private Endpoints** - No public exposure for PaaS
+| Feature | Implementation |
+|---------|----------------|
+| **Azure Firewall** | Centralized egress control with DNAT/SNAT |
+| **NSG Rules** | Subnet-level traffic filtering |
+| **Route Tables** | Forced tunneling through firewall (except web subnet for LB) |
+| **Private Endpoints** | Private access to PaaS services |
 
-### Identity & Access
+### Load Balancer Security
 
-- ✅ **Key Vault with RBAC** - Secrets stored securely
-- ✅ **Managed Identities** - No credentials in code
-- ✅ **Strong passwords required** - Minimum complexity enforced
+| Feature | Configuration |
+|---------|---------------|
+| **Standard SKU** | Secure by default (no public access without rules) |
+| **Health Probes** | Only healthy VMs receive traffic |
+| **NSG Integration** | NSG rules required to allow traffic |
+| **Outbound Rules** | Controlled SNAT for internet access |
 
-### Compute Security
+### Web Subnet NSG Rules
 
-- ✅ **No public IPs on VMs** - Access via Jumpbox/VPN only
-- ✅ **Auto-shutdown** - VMs stop at 7 PM to reduce exposure
-- ✅ **Windows Server 2022** - Latest security patches
-- ✅ **TLS 1.2 minimum** - Modern encryption
-
-### Monitoring
-
-- ✅ **Log Analytics** - Centralized logging
-- ✅ **Diagnostic settings** - Firewall logs, NSG flow logs
-- ✅ **Activity Log** - Audit trail
-
----
-
-## 📚 Learning Objectives
-
-This lab helps you master:
-
-### Networking
-- 🌐 **Hub-Spoke Topology** - Enterprise network design pattern
-- 🔀 **VNet Peering** - Connect virtual networks
-- 🛣️ **User-Defined Routes** - Custom traffic routing
-- 🔒 **NSG Rules** - Subnet-level firewalls
-
-### Security
-- 🔥 **Azure Firewall** - Centralized egress control
-- 🔐 **VPN Gateway** - Site-to-site connectivity
-- 🔑 **Key Vault** - Secrets and certificate management
-- 🔗 **Private Endpoints** - Secure PaaS connectivity
-
-### Compute
-- 🖥️ **Windows VMs** - IaaS workloads
-- ☸️ **AKS** - Managed Kubernetes
-- 🗄️ **Azure SQL** - Managed databases
-
-### DevOps
-- 📜 **Terraform Modules** - Reusable infrastructure
-- 🏗️ **CAF Naming** - Enterprise naming conventions
-- 🚀 **Azure Pipelines** - CI/CD automation
+| Priority | Name | Direction | Access | Port | Source |
+|----------|------|-----------|--------|------|--------|
+| 100 | AllowHTTP | Inbound | Allow | 80 | * |
+| 110 | AllowHTTPS | Inbound | Allow | 443 | * |
+| 200 | AllowRDPFromHub | Inbound | Allow | 3389 | Hub VNet |
 
 ---
 
-## 🔑 Lab Credentials
-
-> ⚠️ **For lab use only!** Change these immediately in production environments.
-
-| Resource | Username | Password |
-|----------|----------|----------|
-| All Windows VMs | `azureadmin` | `P@ssw0rd123!Lab` |
-| Azure SQL Database | `sqladmin` | `P@ssw0rd123!Lab` |
-
----
-
-## 🧪 Lab Exercises
-
-### Exercise 1: Verify Site-to-Site VPN Connectivity
-
-**Objective:** Confirm the VPN tunnel between Hub and simulated On-Premises is working.
-
-**Steps:**
-
-1. **Check VPN Gateway Status in Azure Portal:**
-   ```
-   Portal → Virtual Network Gateways → vpng-hub-lab-east → Connections
-   Status should show "Connected"
-   ```
-
-2. **RDP to On-Prem VM (has public IP):**
-   ```powershell
-   # Get the on-prem VM public IP from Terraform output
-   terraform output onprem_vm_public_ip
-   
-   # RDP to on-prem management VM
-   mstsc /v:<onprem_public_ip>
-   # Login: azureadmin / P@ssw0rd123!Lab
-   ```
-
-3. **From On-Prem VM, ping resources across the VPN:**
-   ```powershell
-   # Ping the Domain Controller in Identity VNet
-   ping 10.1.1.4
-   
-   # Ping the Jumpbox in Management VNet
-   ping 10.2.1.4
-   
-   # Ping a workload VM
-   ping 10.10.1.4
-   ```
-
-4. **Trace the route to verify VPN path:**
-   ```powershell
-   tracert 10.1.1.4
-   # Should show traffic going through VPN gateway
-   ```
-
-**Expected Result:** All pings succeed, proving the S2S VPN is routing traffic correctly.
-
----
-
-### Exercise 2: Test Azure Firewall Traffic Filtering
-
-**Objective:** Understand how Azure Firewall controls egress traffic from spoke VNets.
-
-**Steps:**
-
-1. **RDP to On-Prem VM, then RDP to Jumpbox:**
-   ```powershell
-   # From On-Prem VM, connect to Jumpbox
-   mstsc /v:10.2.1.4
-   # Login: azureadmin / P@ssw0rd123!Lab
-   ```
-
-2. **From Jumpbox, test internet access:**
-   ```powershell
-   # Test allowed domains (should work based on firewall rules)
-   Invoke-WebRequest -Uri "https://www.microsoft.com" -UseBasicParsing
-   
-   # Check your outbound public IP (should be the Firewall's public IP)
-   Invoke-RestMethod -Uri "https://ifconfig.me/ip"
-   ```
-
-3. **View Firewall Logs in Log Analytics:**
-   ```kusto
-   // In Log Analytics, run this query:
-   AzureDiagnostics
-   | where Category == "AzureFirewallNetworkRule" or Category == "AzureFirewallApplicationRule"
-   | project TimeGenerated, msg_s
-   | order by TimeGenerated desc
-   | take 50
-   ```
-
-4. **Check Route Tables:**
-   ```
-   Portal → Route Tables → rt-spoke-to-hub
-   Verify 0.0.0.0/0 routes to Azure Firewall private IP (10.0.1.4)
-   ```
-
-**Expected Result:** Outbound traffic shows Firewall's public IP, logs show traffic flow.
-
----
-
-### Exercise 3: Explore Hub-Spoke Connectivity
-
-**Objective:** Verify VNet peering and understand traffic flow between spokes.
-
-**Steps:**
-
-1. **From Jumpbox (10.2.1.4), test connectivity to all spokes:**
-   ```powershell
-   # Identity VNet - Domain Controller
-   Test-NetConnection -ComputerName 10.1.1.4 -Port 3389
-   
-   # Workload VNet - Web VM
-   Test-NetConnection -ComputerName 10.10.1.4 -Port 3389
-   
-   # Workload VNet - App VM
-   Test-NetConnection -ComputerName 10.10.2.4 -Port 3389
-   
-   # Workload VNet - Data VM
-   Test-NetConnection -ComputerName 10.10.3.4 -Port 3389
-   ```
-
-2. **Verify peering status:**
-   ```
-   Portal → Virtual Networks → vnet-hub-lab-east → Peerings
-   All peerings should show "Connected" status
-   ```
-
-3. **Test DNS resolution (if configured):**
-   ```powershell
-   nslookup dc01.lab.local 10.1.1.4
-   ```
-
-**Expected Result:** All spoke VMs reachable from Jumpbox through Hub peering.
-
----
-
-### Exercise 4: Access AKS Cluster
-
-**Objective:** Connect to the AKS cluster and deploy a sample application.
-
-**Steps:**
-
-1. **Get AKS credentials (from your local machine with az cli):**
-   ```powershell
-   # Get credentials
-   az aks get-credentials --resource-group rg-workload-prod-lab-east --name aks-prod-lab-east
-   
-   # Verify connection
-   kubectl get nodes
-   kubectl get pods --all-namespaces
-   ```
-
-2. **Deploy a sample nginx application:**
-   ```powershell
-   kubectl create deployment nginx --image=nginx
-   kubectl expose deployment nginx --port=80 --type=ClusterIP
-   kubectl get services
-   ```
-
-3. **Check AKS networking:**
-   ```powershell
-   # View pod IPs (should be in 10.10.64.0/18 range)
-   kubectl get pods -o wide
-   ```
-
-**Expected Result:** AKS cluster accessible, pods running with IPs from the AKS subnet.
-
----
-
-### Exercise 5: Key Vault Secret Management
-
-**Objective:** Store and retrieve secrets from Azure Key Vault.
-
-**Steps:**
-
-1. **Add a secret to Key Vault:**
-   ```powershell
-   # Get Key Vault name from Terraform output
-   $kvName = terraform output -raw keyvault_name
-   
-   # Add a secret
-   az keyvault secret set --vault-name $kvName --name "DatabasePassword" --value "SuperSecret123!"
-   ```
-
-2. **Retrieve the secret:**
-   ```powershell
-   az keyvault secret show --vault-name $kvName --name "DatabasePassword" --query value -o tsv
-   ```
-
-3. **View in Portal:**
-   ```
-   Portal → Key Vaults → kv-shared-lab-* → Secrets
-   ```
-
-**Expected Result:** Secret stored and retrievable via CLI and Portal.
-
----
-
-### Exercise 6: Test Private Endpoints
-
-**Objective:** Verify that PaaS services are only accessible via private endpoints.
-
-**Steps:**
-
-1. **Check Private Endpoint DNS:**
-   ```powershell
-   # From Jumpbox, resolve the SQL server FQDN
-   nslookup sql-workload-prod-lab-*.database.windows.net
-   # Should resolve to private IP (10.3.1.x range)
-   ```
-
-2. **Verify Private DNS Zone:**
-   ```
-   Portal → Private DNS Zones → privatelink.database.windows.net
-   Check A record points to private IP
-   ```
-
-3. **Test SQL connectivity from Jumpbox:**
-   ```powershell
-   # Install SQL Server Management Studio or use sqlcmd
-   Test-NetConnection -ComputerName sql-workload-prod-lab-east.database.windows.net -Port 1433
-   ```
-
-**Expected Result:** PaaS services resolve to private IPs, no public exposure.
-
----
-
-### Exercise 7: Simulate Failover Scenarios
-
-**Objective:** Test network resilience by simulating failures.
-
-**Steps:**
-
-1. **Test VPN Gateway failover:**
-   ```powershell
-   # From Azure Portal, reset the VPN Gateway
-   Portal → Virtual Network Gateways → vpng-hub-lab-east → Reset
-   
-   # Monitor connectivity during reset (from On-Prem VM)
-   ping 10.1.1.4 -t
-   ```
-
-2. **Test spoke isolation:**
-   ```powershell
-   # Temporarily disable a peering
-   Portal → Virtual Networks → vnet-hub-lab-east → Peerings → Disable
-   
-   # Test connectivity (should fail)
-   # Re-enable peering
-   ```
-
-3. **Test Azure Firewall rule changes:**
-   ```powershell
-   # Add a deny rule and test impact
-   # Remove/modify and verify restoration
-   ```
-
-**Expected Result:** Understand recovery times and failure behaviors.
-
----
-
-### Exercise 8: Monitor and Alerting
-
-**Objective:** Set up monitoring dashboards and alerts.
-
-**Steps:**
-
-1. **Query Log Analytics:**
-   ```kusto
-   // Heartbeat from VMs
-   Heartbeat
-   | summarize LastHeartbeat = max(TimeGenerated) by Computer
-   | order by LastHeartbeat desc
-   
-   // Performance data
-   Perf
-   | where ObjectName == "Processor" and CounterName == "% Processor Time"
-   | summarize avg(CounterValue) by Computer, bin(TimeGenerated, 5m)
-   ```
-
-2. **Create a Dashboard:**
-   ```
-   Portal → Dashboard → New Dashboard
-   Add tiles for: VM Status, Network Traffic, Firewall Logs
-   ```
-
-3. **Set up an Alert:**
-   ```
-   Portal → Monitor → Alerts → Create Alert Rule
-   Signal: Virtual Machine Unavailable
-   Action: Email notification
-   ```
-
-**Expected Result:** Visibility into environment health and proactive alerting.
+## 💰 Cost Estimation
+
+### Monthly Cost Breakdown (Standard Profile)
+
+| Resource | SKU | Monthly Cost |
+|----------|-----|--------------|
+| Azure Firewall | Standard | ~$350 |
+| Public Load Balancer | Standard | ~$25 |
+| Web Servers (2x) | Standard_B1ms | ~$30 |
+| Domain Controllers (1-2x) | Standard_B2s | ~$60 |
+| Jumpbox | Standard_B2s | ~$30 |
+| Storage Account | Standard_LRS | ~$5 |
+| Log Analytics | PerGB2018 | ~$10 |
+| **Total** | | **~$510/month** |
+
+> 💡 **Cost Saving Tips:**
+> - Enable `auto_shutdown` for VMs (saves ~50% on VM costs)
+> - Use `Standard_B1ms` for web servers (sufficient for IIS)
+> - Disable VPN Gateway when not testing hybrid scenarios
 
 ---
 
 ## 🔧 Troubleshooting
 
-### Common Issues
+### Load Balancer Not Responding
 
-**1. Quota exceeded error**
-```
-Error: creating Virtual Machine: compute.VirtualMachinesClient#CreateOrUpdate: Failure
-```
-**Solution:** Request quota increase in Azure Portal → Subscriptions → Usage + quotas
-
-**2. VPN Gateway takes too long**
-```
-Still creating... [45m elapsed]
-```
-**Solution:** VPN Gateways take 30-45 minutes. This is normal.
-
-**3. Firewall subnet error**
-```
-Error: AzureFirewallSubnet must be /26 or larger
-```
-**Solution:** Ensure `hub_firewall_subnet_prefix` is at least /26
-
-**4. State lock error**
-```
-Error: Error locking state
-```
-**Solution:** Wait for other operations to complete, or force unlock:
 ```bash
-terraform force-unlock LOCK_ID
+# Check if VMs are in backend pool
+az network nic show \
+  --resource-group rg-workload-prod-lab-east \
+  --name nic-web01-prd \
+  --query "ipConfigurations[0].loadBalancerBackendAddressPools" -o table
+
+# Check health probe status
+az network lb probe list \
+  --resource-group rg-workload-prod-lab-east \
+  --lb-name lb-prod-lab-east -o table
+
+# Verify NSG allows HTTP
+az network nsg rule list \
+  --resource-group rg-workload-prod-lab-east \
+  --nsg-name nsg-web-prod-lab-east -o table
 ```
 
-**5. Authentication error**
-```
-Error: Error building AzureRM Client
-```
-**Solution:** Re-authenticate:
-```bash
-az logout
-az login
-az account set --subscription "YOUR_SUBSCRIPTION_ID"
+### Asymmetric Routing Issues
+
+If you see the load balancer timing out:
+
+1. **Check route table association** - Web subnet should NOT have firewall route when using public LB
+2. **Verify** `lb_type = "public"` in terraform.tfvars
+3. **Confirm** web subnet is excluded from route table in `landing-zones/workload/main.tf`
+
+### IIS Not Installed
+
+```powershell
+# RDP to the VM via NAT rule
+mstsc /v:<lb_frontend_ip>:3389  # web01
+mstsc /v:<lb_frontend_ip>:3390  # web02
+
+# Check IIS status
+Get-WindowsFeature -Name Web-Server
+
+# Manually install if needed
+Install-WindowsFeature -Name Web-Server -IncludeManagementTools
 ```
 
 ---
 
-## 🤝 Contributing
+## 📁 Project Structure
 
-Contributions are welcome! Please:
+```
+azure-landing-zone-lab/
+├── main.tf                    # Root module - orchestrates all resources
+├── variables.tf               # Input variables
+├── outputs.tf                 # Output values
+├── terraform.tfvars           # Configuration values
+├── locals.tf                  # Local variables
+│
+├── landing-zones/
+│   ├── hub/                   # Hub VNet, Firewall, VPN Gateway
+│   ├── identity/              # Domain Controllers
+│   ├── management/            # Jumpbox, Log Analytics
+│   ├── shared-services/       # Key Vault, Storage
+│   ├── workload/              # Load Balancer, Web Servers, AKS
+│   └── onprem-simulated/      # Simulated on-premises
+│
+└── modules/
+    ├── networking/
+    │   ├── load-balancer/     # ⭐ Azure Load Balancer module
+    │   ├── vnet/
+    │   ├── subnet/
+    │   ├── nsg/
+    │   ├── peering/
+    │   ├── route-table/
+    │   ├── vpn-gateway/
+    │   └── ...
+    ├── compute/
+    │   ├── web-server/        # ⭐ IIS Web Server module
+    │   └── windows-vm/
+    ├── firewall/
+    ├── firewall-rules/
+    ├── keyvault/
+    ├── storage/
+    └── monitoring/
+```
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+---
+
+## 📚 Modules Reference
+
+### Load Balancer Module (`modules/networking/load-balancer/`)
+
+```hcl
+module "load_balancer" {
+  source = "./modules/networking/load-balancer"
+
+  name                = "lb-prod-lab-east"
+  resource_group_name = "rg-workload-prod-lab-east"
+  location            = "eastus"
+  sku                 = "Standard"
+  type                = "public"        # or "internal"
+  subnet_id           = null            # Required if type = "internal"
+  private_ip_address  = null            # Optional static IP for internal
+
+  health_probes = {
+    http = {
+      protocol     = "Http"
+      port         = 80
+      request_path = "/"
+    }
+  }
+
+  lb_rules = {
+    http = {
+      protocol      = "Tcp"
+      frontend_port = 80
+      backend_port  = 80
+      probe_name    = "http"
+    }
+  }
+
+  nat_rules = {
+    rdp-web01 = { protocol = "Tcp", frontend_port = 3389, backend_port = 3389 }
+    rdp-web02 = { protocol = "Tcp", frontend_port = 3390, backend_port = 3389 }
+  }
+}
+```
+
+### Web Server Module (`modules/compute/web-server/`)
+
+```hcl
+module "web_server" {
+  source = "./modules/compute/web-server"
+
+  name                = "web01-prd"
+  resource_group_name = "rg-workload-prod-lab-east"
+  location            = "eastus"
+  subnet_id           = module.web_subnet.id
+  vm_size             = "Standard_B1ms"
+  admin_username      = "azureadmin"
+  admin_password      = "SecurePassword123!"
+
+  # Load Balancer association
+  associate_with_lb  = true
+  lb_backend_pool_id = module.load_balancer.backend_pool_id
+  lb_nat_rule_ids    = [module.load_balancer.nat_rule_ids["rdp-web01"]]
+
+  # IIS configuration
+  install_iis        = true
+  custom_iis_content = "<h1>{hostname}</h1><p>Custom content</p>"
+}
+```
 
 ---
 
@@ -964,23 +613,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## ⚠️ Disclaimer
+## 🙏 Acknowledgments
 
-This is a **lab environment** designed for learning and testing purposes. Before using any components in production:
-
-- Review and harden security configurations
-- Implement proper backup strategies
-- Configure high availability where needed
-- Follow your organization's compliance requirements
+- [Microsoft Cloud Adoption Framework](https://docs.microsoft.com/azure/cloud-adoption-framework/)
+- [Azure Landing Zones](https://docs.microsoft.com/azure/cloud-adoption-framework/ready/landing-zone/)
+- [Terraform Azure Provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest)
 
 ---
 
-## 📞 Support
-
-- 📖 [Azure Documentation](https://docs.microsoft.com/azure/)
-- 📘 [Terraform AzureRM Provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
-- 🏛️ [Cloud Adoption Framework](https://docs.microsoft.com/azure/cloud-adoption-framework/)
-
----
-
-**Made with ❤️ for Azure learners**
+**Built with ❤️ for learning Azure infrastructure**

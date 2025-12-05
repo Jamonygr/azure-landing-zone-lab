@@ -118,6 +118,13 @@ aks_subnet_prefix = "10.10.16.0/20" # /20 = 4094 IPs for pods
 aks_node_count    = 1               # Minimum nodes
 aks_vm_size       = "Standard_B2s"  # Smallest practical size
 
+# Load Balancer with IIS Web Servers
+deploy_load_balancer = true             # Enable for LB lab
+lb_type              = "public"         # Public LB (separate from firewall)
+lb_private_ip        = null              # Not used for public LB
+lb_web_server_count  = 2                # Number of IIS web servers
+lb_web_server_size   = "Standard_B1ms"  # 2GB RAM for IIS
+
 # -----------------------------------------------------------------------------
 # VM Configuration
 # -----------------------------------------------------------------------------

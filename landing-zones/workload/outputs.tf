@@ -49,4 +49,28 @@ output "aks_kube_config" {
   sensitive   = true
 }
 
+# =============================================================================
+# LOAD BALANCER OUTPUTS
+# =============================================================================
+
+output "lb_id" {
+  description = "Load Balancer ID"
+  value       = var.deploy_load_balancer ? module.load_balancer[0].id : null
+}
+
+output "lb_frontend_ip" {
+  description = "Load Balancer frontend IP address"
+  value       = var.deploy_load_balancer ? module.load_balancer[0].frontend_ip_address : null
+}
+
+output "lb_backend_pool_id" {
+  description = "Load Balancer backend pool ID"
+  value       = var.deploy_load_balancer ? module.load_balancer[0].backend_pool_id : null
+}
+
+output "web_server_ips" {
+  description = "Private IP addresses of web servers"
+  value       = var.deploy_load_balancer ? [for ws in module.web_servers : ws.private_ip_address] : []
+}
+
 

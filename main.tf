@@ -279,6 +279,15 @@ module "workload_prod" {
   aks_node_count             = var.aks_node_count
   aks_vm_size                = var.aks_vm_size
   log_analytics_workspace_id = var.deploy_log_analytics ? module.management.log_analytics_workspace_id : null
+
+  # Load Balancer with IIS Web Servers
+  deploy_load_balancer = var.deploy_load_balancer
+  lb_type              = var.lb_type
+  lb_private_ip        = var.lb_private_ip
+  lb_web_server_count  = var.lb_web_server_count
+  lb_web_server_size   = var.lb_web_server_size
+  admin_username       = var.admin_username
+  admin_password       = var.admin_password
 }
 
 # =============================================================================
@@ -591,7 +600,10 @@ module "firewall_rules_base" {
     }
   ]
 
-  depends_on = [module.hub]
+  # No DNAT rules for web - public LB is separate from firewall
+  nat_rule_collections = []
+
+  depends_on = [module.hub, module.workload_prod]
 }
 
 # =============================================================================

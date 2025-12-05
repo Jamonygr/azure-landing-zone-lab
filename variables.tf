@@ -415,3 +415,37 @@ variable "aks_vm_size" {
   type        = string
   default     = "Standard_B2s"
 }
+
+# -----------------------------------------------------------------------------
+# Load Balancer Configuration
+# -----------------------------------------------------------------------------
+
+variable "deploy_load_balancer" {
+  description = "Deploy load balancer with IIS web servers in workload prod"
+  type        = bool
+  default     = false
+}
+
+variable "lb_type" {
+  description = "Type of load balancer: 'public' or 'internal'"
+  type        = string
+  default     = "public"
+}
+
+variable "lb_private_ip" {
+  description = "Private IP address for internal load balancer"
+  type        = string
+  default     = null
+}
+
+variable "lb_web_server_count" {
+  description = "Number of web servers behind the load balancer"
+  type        = number
+  default     = 2
+}
+
+variable "lb_web_server_size" {
+  description = "VM size for web servers (2GB RAM minimum for IIS)"
+  type        = string
+  default     = "Standard_B1ms"
+}
