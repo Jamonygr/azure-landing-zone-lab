@@ -37,9 +37,9 @@ This Terraform project creates a complete Azure Landing Zone lab environment tha
 - **Identity Services** - Windows Server Domain Controllers for Active Directory
 - **Management Zone** - Jumpbox for secure access and Log Analytics for monitoring
 - **Shared Services** - Azure Key Vault for secrets, Storage Account for file shares
+- **⚖️ Public Load Balancer with IIS Web Servers** - Load-balanced web tier with automatic IIS installation
 
 ### Optional Components (Configurable)
-- **⚖️ Public Load Balancer with IIS Web Servers** - Load-balanced web tier with automatic IIS installation
 - **🔗 VPN Gateway & Simulated On-Premises** - Site-to-site VPN connectivity for hybrid scenarios
 - **☸️ Azure Kubernetes Service (AKS)** - Managed Kubernetes cluster for container workloads
 - **🗄️ Azure SQL Database** - Managed relational database with private endpoint
@@ -57,9 +57,8 @@ This Terraform project creates a complete Azure Landing Zone lab environment tha
 
 | Profile | Components | Deployment Time | Monthly Cost |
 |---------|------------|-----------------|--------------|
-| **Minimal** | Core networking + VMs only | ~10 min | ~$150 |
-| **Standard** | Core + Firewall + Load Balancer | ~15 min | ~$500 |
-| **Full Hybrid** | Everything including VPN + AKS | ~45-60 min | ~$850 |
+| **Standard** | Core + Firewall + Load Balancer + IIS | ~15 min | ~$500 |
+| **Full Hybrid** | Standard + VPN + AKS | ~45-60 min | ~$850 |
 
 ---
 
@@ -211,7 +210,7 @@ The configuration automatically excludes the web subnet from firewall routing wh
 | `rg-identity-{env}-{location}` | Domain Controllers | No |
 | `rg-management-{env}-{location}` | Jumpbox, Log Analytics | No |
 | `rg-shared-{env}-{location}` | Key Vault, Storage | No |
-| `rg-workload-prod-{env}-{location}` | Load Balancer, Web Servers | No |
+| `rg-workload-prod-{env}-{location}` | Load Balancer, Web Servers | No (Core) |
 | `rg-onprem-{env}-{location}` | Simulated on-premises | **Yes** |
 
 ### Load Balancer Resources
@@ -326,9 +325,8 @@ environment = "lab"
 location    = "eastus"
 
 # =============================================================================
-# LOAD BALANCER CONFIGURATION
+# LOAD BALANCER CONFIGURATION (Always Deployed)
 # =============================================================================
-deploy_load_balancer = true              # Enable Load Balancer with IIS
 lb_type              = "public"          # public or internal
 lb_web_server_count  = 2                 # Number of web servers (1-10)
 lb_web_server_size   = "Standard_B1ms"   # VM size (2GB RAM min for IIS)
