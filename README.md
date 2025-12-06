@@ -6,7 +6,7 @@
 
 A **production-ready** Azure Landing Zone lab environment built with Terraform, following Microsoft's Cloud Adoption Framework (CAF) best practices. This project deploys a complete enterprise-grade hub-spoke network topology with identity services, security controls, load-balanced web workloads, and optional hybrid connectivity.
 
-> 💡 **Modular Design**: Core infrastructure deploys in ~10-15 minutes. Optional components (VPN Gateway, AKS, Load Balancer) can be enabled when needed.
+> 💡 **Modular Design**: Core infrastructure with Load Balancer deploys in ~15 minutes. Optional components (VPN Gateway, AKS) can be enabled when needed.
 
 ---
 
