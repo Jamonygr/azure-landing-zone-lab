@@ -1,12 +1,12 @@
-# 🏗️ Azure Landing Zone Lab - Terraform
+# 🏗️ Azure Landing Zone Lab
 
 [![Terraform](https://img.shields.io/badge/Terraform->=1.9.0-623CE4?logo=terraform)](https://terraform.io)
 [![Azure](https://img.shields.io/badge/Azure-AzureRM%204.x-0078D4?logo=microsoftazure)](https://azure.microsoft.com)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-A **production-ready** Azure Landing Zone lab environment built with Terraform, following Microsoft's Cloud Adoption Framework (CAF) best practices. This project deploys a complete enterprise-grade hub-spoke network topology with identity services, security controls, load-balanced web workloads, and optional hybrid connectivity.
+Learn Azure the right way—by building it. This Terraform project deploys a complete enterprise cloud environment you can explore, break, and rebuild. Covers networking, security, hybrid connectivity, containers, and Windows workloads following Microsoft Cloud Adoption Framework (CAF) best practices.
 
-> 💡 **Modular Design**: Core infrastructure deploys in ~15-30 minutes. Optional components (VPN Gateway, AKS, PaaS services) can be enabled as needed.
+> 💡 **Hands-on Learning**: Deploy real enterprise infrastructure in minutes. Perfect for Azure certifications (AZ-104, AZ-305, AZ-700), team training, or validating architectures before production.
 
 ---
 
