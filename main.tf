@@ -138,6 +138,17 @@ module "hub" {
   management_address_space      = var.management_address_space[0]
   shared_services_address_space = var.shared_address_space[0]
   workload_address_space        = var.workload_prod_address_space[0]
+
+  # Application Gateway
+  deploy_application_gateway = var.deploy_application_gateway
+  appgw_subnet_prefix        = var.hub_appgw_subnet_prefix
+  appgw_waf_mode             = var.appgw_waf_mode
+  # Note: log_analytics_workspace_id and lb_backend_ips are passed as null/empty
+  # to avoid circular dependencies. Diagnostics configured via monitoring_diagnostics module.
+  # Backend pool IPs must be configured after initial deployment if needed.
+  log_analytics_workspace_id = null
+  enable_diagnostics         = false
+  lb_backend_ips             = []
 }
 
 # =============================================================================
@@ -155,7 +166,7 @@ module "identity" {
 
   identity_address_space = var.identity_address_space
   dc_subnet_prefix       = var.identity_dc_subnet_prefix
-  dns_servers            = []
+  dns_servers            = [var.dc01_ip_address]
   hub_address_prefix     = var.hub_address_space[0]
   onprem_address_prefix  = var.onprem_address_space[0]
 
@@ -185,7 +196,7 @@ module "management" {
 
   mgmt_address_space      = var.management_address_space
   jumpbox_subnet_prefix   = var.management_jumpbox_subnet_prefix
-  dns_servers             = var.deploy_secondary_dc ? module.identity.dns_servers : []
+  dns_servers             = module.identity.dns_servers
   hub_address_prefix      = var.hub_address_space[0]
   vpn_client_address_pool = var.vpn_client_address_pool
   onprem_address_prefix   = var.onprem_address_space[0]
@@ -232,7 +243,7 @@ module "shared_services" {
   shared_address_space = var.shared_address_space
   app_subnet_prefix    = var.shared_app_subnet_prefix
   pe_subnet_prefix     = var.shared_pe_subnet_prefix
-  dns_servers          = var.deploy_secondary_dc ? module.identity.dns_servers : []
+  dns_servers          = module.identity.dns_servers
   hub_address_prefix   = var.hub_address_space[0]
 
   admin_password       = var.admin_password
@@ -267,7 +278,7 @@ module "workload_prod" {
   web_subnet_prefix      = var.workload_prod_web_subnet_prefix
   app_subnet_prefix      = var.workload_prod_app_subnet_prefix
   data_subnet_prefix     = var.workload_prod_data_subnet_prefix
-  dns_servers            = var.deploy_secondary_dc ? module.identity.dns_servers : []
+  dns_servers            = module.identity.dns_servers
   hub_address_prefix     = var.hub_address_space[0]
 
   firewall_private_ip = var.deploy_firewall ? module.hub.firewall_private_ip : null
@@ -279,6 +290,7 @@ module "workload_prod" {
   aks_node_count             = var.aks_node_count
   aks_vm_size                = var.aks_vm_size
   log_analytics_workspace_id = var.deploy_log_analytics ? module.management.log_analytics_workspace_id : null
+  enable_diagnostics         = var.deploy_log_analytics
 
   # Load Balancer with IIS Web Servers
   deploy_load_balancer = var.deploy_load_balancer
@@ -288,6 +300,22 @@ module "workload_prod" {
   lb_web_server_size   = var.lb_web_server_size
   admin_username       = var.admin_username
   admin_password       = var.admin_password
+
+  # PaaS Services - Tier 1 (Free)
+  deploy_functions      = var.deploy_functions
+  deploy_static_web_app = var.deploy_static_web_app
+  deploy_logic_apps     = var.deploy_logic_apps
+  deploy_event_grid     = var.deploy_event_grid
+
+  # PaaS Services - Tier 2 (Low Cost)
+  deploy_service_bus           = var.deploy_service_bus
+  deploy_app_service           = var.deploy_app_service
+
+  # PaaS Services - Tier 3 (Data)
+  deploy_cosmos_db = var.deploy_cosmos_db
+
+  # Alternative location for services with quota issues
+  paas_alternative_location = var.paas_alternative_location
 }
 
 # =============================================================================
@@ -310,11 +338,13 @@ module "workload_dev" {
   web_subnet_prefix      = var.workload_dev_web_subnet_prefix
   app_subnet_prefix      = var.workload_dev_app_subnet_prefix
   data_subnet_prefix     = var.workload_dev_data_subnet_prefix
-  dns_servers            = var.deploy_secondary_dc ? module.identity.dns_servers : []
+  dns_servers            = module.identity.dns_servers
   hub_address_prefix     = var.hub_address_space[0]
 
   firewall_private_ip = var.deploy_firewall ? module.hub.firewall_private_ip : null
   deploy_route_table  = var.deploy_firewall
+
+  enable_diagnostics = var.deploy_log_analytics
 }
 
 # =============================================================================
@@ -360,6 +390,7 @@ module "onprem" {
   admin_username       = var.admin_username
   admin_password       = var.admin_password
   enable_auto_shutdown = var.enable_auto_shutdown
+  allowed_rdp_source_ips = var.allowed_rdp_source_ips
 
   depends_on = [module.hub]
 }
@@ -607,6 +638,91 @@ module "firewall_rules_base" {
 }
 
 # =============================================================================
+# FIREWALL RULES - PAAS SERVICES
+# =============================================================================
+
+module "firewall_rules_paas" {
+  source = "./modules/firewall-rules"
+  count  = var.deploy_firewall ? 1 : 0
+
+  name               = "rcg-paas-rules"
+  firewall_policy_id = module.hub.firewall_policy_id
+  priority           = 200
+
+  network_rule_collections = []
+
+  application_rule_collections = [
+    {
+      name     = "allow-paas-services"
+      priority = 100
+      action   = "Allow"
+      rules = [
+        {
+          name              = "allow-azure-functions"
+          source_addresses  = ["10.0.0.0/8"]
+          destination_fqdns = ["*.azurewebsites.net", "*.scm.azurewebsites.net"]
+          protocols = [
+            { type = "Https", port = 443 }
+          ]
+        },
+        {
+          name              = "allow-static-web-apps"
+          source_addresses  = ["10.0.0.0/8"]
+          destination_fqdns = ["*.azurestaticapps.net", "*.swa.microsoft.com"]
+          protocols = [
+            { type = "Https", port = 443 }
+          ]
+        },
+        {
+          name              = "allow-logic-apps"
+          source_addresses  = ["10.0.0.0/8"]
+          destination_fqdns = ["*.logic.azure.com", "*.azure-api.net"]
+          protocols = [
+            { type = "Https", port = 443 }
+          ]
+        },
+        {
+          name              = "allow-event-grid"
+          source_addresses  = ["10.0.0.0/8"]
+          destination_fqdns = ["*.eventgrid.azure.net"]
+          protocols = [
+            { type = "Https", port = 443 }
+          ]
+        },
+        {
+          name              = "allow-service-bus"
+          source_addresses  = ["10.0.0.0/8"]
+          destination_fqdns = ["*.servicebus.windows.net"]
+          protocols = [
+            { type = "Https", port = 443 }
+          ]
+        },
+        {
+          name              = "allow-cosmos-db"
+          source_addresses  = ["10.0.0.0/8"]
+          destination_fqdns = ["*.documents.azure.com", "*.cosmos.azure.com"]
+          protocols = [
+            { type = "Https", port = 443 }
+          ]
+        },
+        {
+          name              = "allow-app-insights"
+          source_addresses  = ["10.0.0.0/8"]
+          destination_fqdns = ["*.applicationinsights.azure.com", "*.in.applicationinsights.azure.com", "*.live.applicationinsights.azure.com"]
+          protocols = [
+            { type = "Https", port = 443 }
+          ]
+        }
+      ]
+    }
+  ]
+
+  nat_rule_collections = []
+
+  depends_on = [module.firewall_rules_base]
+}
+
+# =============================================================================
 # VPN CONNECTION (Hub to On-Prem) - COMMENTED OUT TO SAVE DEPLOYMENT TIME
 # =============================================================================
 
@@ -705,6 +821,7 @@ module "monitoring_alerts" {
 # Diagnostic Settings
 module "monitoring_diagnostics" {
   source = "./modules/monitoring/diagnostic-settings"
+  count  = var.deploy_log_analytics ? 1 : 0
 
   diagnostic_name_prefix     = "diag-${local.environment}-${random_string.suffix.result}"
   log_analytics_workspace_id = module.management.log_analytics_workspace_id
@@ -732,5 +849,69 @@ module "monitoring_diagnostics" {
     module.identity,
     module.management,
     module.shared_services
+  ]
+}
+
+# =============================================================================
+# APPLICATION GATEWAY BACKEND POOL UPDATE
+# This updates the App Gateway backend pool with workload web server IPs
+# after the workload module is deployed (breaks the dependency cycle)
+# =============================================================================
+
+resource "null_resource" "appgw_backend_update" {
+  count = var.deploy_application_gateway && var.deploy_load_balancer && var.deploy_workload_prod ? 1 : 0
+
+  triggers = {
+    web_server_ips = join(",", module.workload_prod[0].web_server_ips)
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      az network application-gateway address-pool update `
+        --gateway-name "agw-hub-${local.environment}-${local.location_short}" `
+        --resource-group "${azurerm_resource_group.hub.name}" `
+        --name "workload-web-servers" `
+        --servers ${join(" ", module.workload_prod[0].web_server_ips)}
+    EOT
+    interpreter = ["pwsh", "-Command"]
+  }
+
+  depends_on = [
+    module.hub,
+    module.workload_prod
+  ]
+}
+
+# =============================================================================
+# APPLICATION GATEWAY DIAGNOSTICS
+# Enables diagnostics after Log Analytics workspace exists (breaks dependency cycle)
+# =============================================================================
+
+resource "azurerm_monitor_diagnostic_setting" "appgw" {
+  count = var.deploy_application_gateway && var.deploy_log_analytics ? 1 : 0
+
+  name                       = "diag-agw-hub-${local.environment}-${local.location_short}"
+  target_resource_id         = module.hub.application_gateway_id
+  log_analytics_workspace_id = module.management.log_analytics_workspace_id
+
+  enabled_log {
+    category = "ApplicationGatewayAccessLog"
+  }
+
+  enabled_log {
+    category = "ApplicationGatewayPerformanceLog"
+  }
+
+  enabled_log {
+    category = "ApplicationGatewayFirewallLog"
+  }
+
+  enabled_metric {
+    category = "AllMetrics"
+  }
+
+  depends_on = [
+    module.hub,
+    module.management
   ]
 }

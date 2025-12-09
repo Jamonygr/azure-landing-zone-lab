@@ -129,3 +129,15 @@ variable "enable_auto_shutdown" {
   type        = bool
   default     = true
 }
+
+variable "allowed_rdp_source_ips" {
+  description = "List of IP addresses/CIDR ranges allowed to RDP to management VM. Use your public IP for security."
+  type        = list(string)
+  default     = []  # Empty means no RDP from internet - must be explicitly set
+}
+
+variable "deploy_vpn_gateway" {
+  description = "Deploy the on-prem VPN gateway"
+  type        = bool
+  default     = true
+}

@@ -24,17 +24,17 @@ output "servers_subnet_id" {
 
 output "vpn_gateway_id" {
   description = "On-Prem VPN Gateway ID"
-  value       = module.onprem_vpn_gateway.id
+  value       = var.deploy_vpn_gateway ? module.onprem_vpn_gateway[0].id : null
 }
 
 output "vpn_gateway_public_ip" {
   description = "On-Prem VPN Gateway public IP"
-  value       = module.onprem_vpn_gateway.public_ip_address
+  value       = var.deploy_vpn_gateway ? module.onprem_vpn_gateway[0].public_ip_address : null
 }
 
 output "vpn_gateway_bgp_peering_address" {
   description = "On-Prem VPN Gateway BGP peering address"
-  value       = var.enable_bgp ? module.onprem_vpn_gateway.bgp_peering_address : null
+  value       = var.deploy_vpn_gateway && var.enable_bgp ? module.onprem_vpn_gateway[0].bgp_peering_address : null
 }
 
 output "mgmt_vm_public_ip" {

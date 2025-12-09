@@ -97,10 +97,10 @@ module "web_nsg" {
       destination_address_prefix = "*"
     },
     {
-      name                       = "AllowAllInbound"
+      name                       = "DenyAllInbound"
       priority                   = 4096
       direction                  = "Inbound"
-      access                     = "Allow"
+      access                     = "Deny"
       protocol                   = "*"
       destination_port_range     = "*"
       source_address_prefix      = "*"
@@ -144,10 +144,10 @@ module "app_nsg" {
       destination_address_prefix = "*"
     },
     {
-      name                       = "AllowAllInbound"
+      name                       = "DenyAllInbound"
       priority                   = 4096
       direction                  = "Inbound"
-      access                     = "Allow"
+      access                     = "Deny"
       protocol                   = "*"
       destination_port_range     = "*"
       source_address_prefix      = "*"
@@ -191,10 +191,10 @@ module "data_nsg" {
       destination_address_prefix = "*"
     },
     {
-      name                       = "AllowAllInbound"
+      name                       = "DenyAllInbound"
       priority                   = 4096
       direction                  = "Inbound"
-      access                     = "Allow"
+      access                     = "Deny"
       protocol                   = "*"
       destination_port_range     = "*"
       source_address_prefix      = "*"
@@ -362,4 +362,139 @@ module "web_servers" {
   tags = merge(var.tags, { Role = "WebServer" })
 
   depends_on = [module.load_balancer, module.web_nsg]
+}
+
+# =============================================================================
+# PAAS SERVICES - TIER 1 (FREE)
+# =============================================================================
+
+# Azure Functions (Consumption - FREE)
+# Note: Using alternative location due to quota restrictions in primary region
+module "functions" {
+  source = "../../modules/functions"
+  count  = var.deploy_functions ? 1 : 0
+
+  name_suffix         = "${var.workload_name}-${var.environment}-${var.location_short}"
+  resource_group_name = var.resource_group_name
+  location            = "ukwest"
+  os_type             = "Windows"
+  runtime             = "dotnet"
+  runtime_version     = "8.0"
+  enable_app_insights = true
+  log_analytics_workspace_id = var.log_analytics_workspace_id
+  tags                = var.tags
+}
+
+# Static Web App (Free tier - FREE)
+# Note: Static Web Apps are only available in: westus2, centralus, eastus2, westeurope, eastasia
+module "static_web_app" {
+  source = "../../modules/static-web-app"
+  count  = var.deploy_static_web_app ? 1 : 0
+
+  name_suffix         = "${var.workload_name}-${var.environment}-${var.location_short}"
+  resource_group_name = var.resource_group_name
+  location            = "eastus2" # Static Web Apps not available in eastus
+  sku_tier            = "Free"
+  sku_size            = "Free"
+  tags                = var.tags
+}
+
+# Logic Apps (Consumption - Pay per execution)
+module "logic_apps" {
+  source = "../../modules/logic-apps"
+  count  = var.deploy_logic_apps ? 1 : 0
+
+  name_suffix                = "${var.workload_name}-${var.environment}-${var.location_short}"
+  resource_group_name        = var.resource_group_name
+  location                   = var.location
+  enable_http_trigger        = true
+  log_analytics_workspace_id = var.log_analytics_workspace_id
+  enable_diagnostics         = var.enable_diagnostics
+  tags                       = var.tags
+}
+
+# Event Grid (FREE for first 100k ops)
+module "event_grid" {
+  source = "../../modules/event-grid"
+  count  = var.deploy_event_grid ? 1 : 0
+
+  name_suffix                = "${var.workload_name}-${var.environment}-${var.location_short}"
+  resource_group_name        = var.resource_group_name
+  location                   = var.location
+  create_custom_topic        = true
+  create_system_topic        = false
+  log_analytics_workspace_id = var.log_analytics_workspace_id
+  enable_diagnostics         = var.enable_diagnostics
+  tags                       = var.tags
+}
+
+# =============================================================================
+# PAAS SERVICES - TIER 2 (LOW COST)
+# =============================================================================
+
+# Service Bus (Basic ~$0.05/month)
+module "service_bus" {
+  source = "../../modules/service-bus"
+  count  = var.deploy_service_bus ? 1 : 0
+
+  name_suffix                = "${var.workload_name}-${var.environment}-${var.location_short}"
+  resource_group_name        = var.resource_group_name
+  location                   = var.location
+  sku                        = "Basic"
+  queues = {
+    "workload-queue" = {}
+  }
+  log_analytics_workspace_id = var.log_analytics_workspace_id
+  enable_diagnostics         = var.enable_diagnostics
+  tags                       = var.tags
+}
+
+# App Service (F1 - Free tier)
+# Note: Using alternative location due to quota restrictions in primary region
+module "app_service" {
+  source = "../../modules/app-service"
+  count  = var.deploy_app_service ? 1 : 0
+
+  name_suffix                = "${var.workload_name}-${var.environment}-${var.location_short}"
+  resource_group_name        = var.resource_group_name
+  location                   = "ukwest"
+  os_type                    = "Linux"
+  sku_name                   = "F1"
+  runtime                    = "dotnet"
+  runtime_version            = "8.0"
+  enable_app_insights        = true
+  log_analytics_workspace_id = var.log_analytics_workspace_id
+  enable_diagnostics         = var.enable_diagnostics
+  tags                       = var.tags
+}
+
+# =============================================================================
+# PAAS SERVICES - TIER 3 (DATA)
+# =============================================================================
+
+# Cosmos DB (Serverless ~$0-5/month)
+# Note: Using alternative location due to capacity issues in primary region
+module "cosmos_db" {
+  source = "../../modules/cosmos-db"
+  count  = var.deploy_cosmos_db ? 1 : 0
+
+  name_suffix                = "${var.workload_name}-${var.environment}-${var.location_short}"
+  resource_group_name        = var.resource_group_name
+  location                   = var.paas_alternative_location
+  kind                       = "GlobalDocumentDB"
+  enable_serverless          = true
+  consistency_level          = "Session"
+  sql_databases = [
+    { name = "workload-db" }
+  ]
+  sql_containers = [
+    {
+      name                = "items"
+      database_name       = "workload-db"
+      partition_key_paths = ["/id"]
+    }
+  ]
+  log_analytics_workspace_id = var.log_analytics_workspace_id
+  enable_diagnostics         = var.enable_diagnostics
+  tags                       = var.tags
 }

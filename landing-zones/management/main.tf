@@ -71,10 +71,10 @@ module "jumpbox_nsg" {
       destination_address_prefix = "*"
     },
     {
-      name                       = "AllowAllInbound"
+      name                       = "DenyAllInbound"
       priority                   = 4096
       direction                  = "Inbound"
-      access                     = "Allow"
+      access                     = "Deny"
       protocol                   = "*"
       destination_port_range     = "*"
       source_address_prefix      = "*"

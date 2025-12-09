@@ -126,6 +126,46 @@ lb_web_server_count  = 2                # Number of IIS web servers
 lb_web_server_size   = "Standard_B1ms"  # 2GB RAM for IIS
 
 # -----------------------------------------------------------------------------
+# PaaS Services - Tier 1 (FREE)
+# These services cost nothing or almost nothing
+# -----------------------------------------------------------------------------
+deploy_functions      = true  # Azure Functions - Y1 (Consumption) - FREE
+deploy_static_web_app = true  # Static Web Apps Free tier - FREE
+deploy_logic_apps     = true  # Logic Apps Consumption - ~$0 (pay per execution)
+deploy_event_grid     = true  # Event Grid - FREE (first 100k ops/month)
+
+# -----------------------------------------------------------------------------
+# PaaS Services - Tier 2 (Low Cost)
+# ~$15-20/month combined
+# -----------------------------------------------------------------------------
+deploy_service_bus    = true  # Service Bus Basic - ~$0.05/month
+deploy_app_service    = true  # App Service F1 (Free) - FREE
+deploy_container_apps = false # DELETED - Module removed from codebase
+
+# -----------------------------------------------------------------------------
+# PaaS Services - Tier 3 (Data)
+# Pay-per-use, typically ~$0-5/month for lab usage
+# -----------------------------------------------------------------------------
+deploy_cosmos_db = true  # Cosmos DB Serverless - ~$0-5/month
+
+# -----------------------------------------------------------------------------
+# Alternative Location for PaaS Services with quota issues
+# eastus has quota/availability issues for some services
+# -----------------------------------------------------------------------------
+paas_alternative_location = "westus2"
+
+# -----------------------------------------------------------------------------
+# PaaS Services - Tier 4 (Gateway)
+# Higher fixed cost but provides enterprise features
+# -----------------------------------------------------------------------------
+deploy_application_gateway = true  # App Gateway WAF_v2 - ~$36/month
+hub_appgw_subnet_prefix    = "10.0.3.0/24"
+appgw_waf_mode             = "Detection"  # Use Prevention in production
+
+# Container Apps Subnet
+workload_prod_container_apps_subnet_prefix = "10.10.8.0/23"  # /23 for Container Apps
+
+# -----------------------------------------------------------------------------
 # VM Configuration
 # -----------------------------------------------------------------------------
 vm_size              = "Standard_B2s" # 2 vCPU, 4 GB RAM, ~$30/month

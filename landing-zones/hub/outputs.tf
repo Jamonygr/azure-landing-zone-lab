@@ -71,3 +71,27 @@ output "vpn_gateway_bgp_asn" {
   description = "VPN Gateway BGP ASN"
   value       = var.deploy_vpn_gateway && var.enable_bgp ? var.hub_bgp_asn : null
 }
+
+# =============================================================================
+# APPLICATION GATEWAY OUTPUTS
+# =============================================================================
+
+output "appgw_subnet_id" {
+  description = "Application Gateway subnet ID"
+  value       = var.deploy_application_gateway ? module.appgw_subnet[0].id : null
+}
+
+output "application_gateway_id" {
+  description = "Application Gateway ID"
+  value       = var.deploy_application_gateway ? module.application_gateway[0].application_gateway_id : null
+}
+
+output "application_gateway_name" {
+  description = "Application Gateway name"
+  value       = var.deploy_application_gateway ? module.application_gateway[0].application_gateway_name : null
+}
+
+output "application_gateway_public_ip" {
+  description = "Application Gateway public IP address"
+  value       = var.deploy_application_gateway ? module.application_gateway[0].public_ip_address : null
+}

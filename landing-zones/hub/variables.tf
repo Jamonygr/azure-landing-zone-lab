@@ -123,3 +123,44 @@ variable "workload_address_space" {
   type        = string
   default     = "10.10.0.0/16"
 }
+
+# -----------------------------------------------------------------------------
+# Application Gateway Configuration
+# -----------------------------------------------------------------------------
+
+variable "deploy_application_gateway" {
+  description = "Deploy Application Gateway"
+  type        = bool
+  default     = false
+}
+
+variable "appgw_subnet_prefix" {
+  description = "Application Gateway subnet prefix"
+  type        = string
+  default     = "10.0.3.0/24"
+}
+
+variable "appgw_waf_mode" {
+  description = "WAF mode (Detection or Prevention)"
+  type        = string
+  default     = "Detection"
+}
+
+variable "log_analytics_workspace_id" {
+  description = "Log Analytics Workspace ID for diagnostics"
+  type        = string
+  default     = null
+}
+
+variable "enable_diagnostics" {
+  description = "Enable diagnostic settings (must be known at plan time)"
+  type        = bool
+  default     = false
+}
+
+variable "lb_backend_ips" {
+  description = "Backend IP addresses for Application Gateway (LB web servers)"
+  type        = list(string)
+  default     = []
+}
+

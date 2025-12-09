@@ -113,6 +113,12 @@ variable "log_analytics_workspace_id" {
   default     = null
 }
 
+variable "enable_diagnostics" {
+  description = "Enable diagnostic settings (must be known at plan time)"
+  type        = bool
+  default     = false
+}
+
 # =============================================================================
 # LOAD BALANCER VARIABLES
 # =============================================================================
@@ -158,4 +164,64 @@ variable "admin_password" {
   type        = string
   sensitive   = true
   default     = null
+}
+
+# =============================================================================
+# PAAS SERVICES - TIER 1 (FREE)
+# =============================================================================
+
+variable "deploy_functions" {
+  description = "Deploy Azure Functions (Consumption - FREE)"
+  type        = bool
+  default     = false
+}
+
+variable "deploy_static_web_app" {
+  description = "Deploy Static Web App (Free tier)"
+  type        = bool
+  default     = false
+}
+
+variable "deploy_logic_apps" {
+  description = "Deploy Logic Apps (Consumption)"
+  type        = bool
+  default     = false
+}
+
+variable "deploy_event_grid" {
+  description = "Deploy Event Grid custom topic"
+  type        = bool
+  default     = false
+}
+
+# =============================================================================
+# PAAS SERVICES - TIER 2 (LOW COST)
+# =============================================================================
+
+variable "deploy_service_bus" {
+  description = "Deploy Service Bus (Basic tier)"
+  type        = bool
+  default     = false
+}
+
+variable "deploy_app_service" {
+  description = "Deploy App Service (B1)"
+  type        = bool
+  default     = false
+}
+
+# =============================================================================
+# PAAS SERVICES - TIER 3 (DATA)
+# =============================================================================
+
+variable "deploy_cosmos_db" {
+  description = "Deploy Cosmos DB (Serverless)"
+  type        = bool
+  default     = false
+}
+
+variable "paas_alternative_location" {
+  description = "Alternative Azure region for PaaS services with quota/availability issues"
+  type        = string
+  default     = "westus2"
 }

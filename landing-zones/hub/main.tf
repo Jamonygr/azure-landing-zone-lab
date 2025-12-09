@@ -118,10 +118,10 @@ module "hub_mgmt_nsg" {
       destination_address_prefix = "*"
     },
     {
-      name                       = "AllowAllInbound"
+      name                       = "DenyAllInbound"
       priority                   = 4096
       direction                  = "Inbound"
-      access                     = "Allow"
+      access                     = "Deny"
       protocol                   = "*"
       destination_port_range     = "*"
       source_address_prefix      = "*"
@@ -190,4 +190,89 @@ module "gateway_route_table" {
       next_hop_in_ip_address = module.firewall[0].private_ip_address
     }
   ]
+}
+
+# =============================================================================
+# APPLICATION GATEWAY
+# =============================================================================
+
+# Application Gateway Subnet
+module "appgw_subnet" {
+  source = "../../modules/networking/subnet"
+  count  = var.deploy_application_gateway ? 1 : 0
+
+  name                 = "snet-hub-appgw-${var.environment}-${var.location_short}"
+  resource_group_name  = var.resource_group_name
+  virtual_network_name = module.hub_vnet.name
+  address_prefixes     = [var.appgw_subnet_prefix]
+
+  depends_on = [module.hub_mgmt_subnet]
+}
+
+# Application Gateway
+module "application_gateway" {
+  source = "../../modules/application-gateway"
+  count  = var.deploy_application_gateway ? 1 : 0
+
+  name_suffix         = "hub-${var.environment}-${var.location_short}"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  subnet_id           = module.appgw_subnet[0].id
+  zones               = []  # Set to [] for lab to reduce costs
+
+  sku_name = "WAF_v2"
+  sku_tier = "WAF_v2"
+  capacity = 1  # Minimum for lab
+
+  # Backend pool for workload web servers (always created, IPs added via null_resource)
+  backend_pools = {
+    "workload-web-servers" = {
+      ip_addresses = var.lb_backend_ips  # Empty initially, populated by null_resource
+    }
+  }
+
+  backend_http_settings = {
+    "http-80" = {
+      port                                = 80
+      protocol                            = "Http"
+      probe_name                          = "web-probe"
+      pick_host_name_from_backend_address = true
+    }
+  }
+
+  # Use default listener (port 80) - route to workload backend pool
+  http_listeners = {}
+  routing_rules  = {}
+  
+  # Override the default routing rule to use our workload pool and settings
+  default_backend_pool_name          = "workload-web-servers"
+  default_backend_http_settings_name = "http-80"
+
+  health_probes = {
+    "web-probe" = {
+      protocol                                  = "Http"
+      path                                      = "/"
+      pick_host_name_from_backend_http_settings = false
+      host                                      = "localhost"
+      interval                                  = 30
+      timeout                                   = 30
+      unhealthy_threshold                       = 3
+      match = {
+        status_code = ["200-399"]
+      }
+    }
+  }
+
+  waf_configuration = {
+    enabled          = true
+    firewall_mode    = var.appgw_waf_mode
+    rule_set_type    = "OWASP"
+    rule_set_version = "3.2"
+  }
+
+  log_analytics_workspace_id = var.log_analytics_workspace_id
+  enable_diagnostics         = var.enable_diagnostics
+  tags                       = var.tags
+
+  depends_on = [module.appgw_subnet]
 }

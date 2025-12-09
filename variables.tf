@@ -70,10 +70,10 @@ variable "sql_admin_password" {
 }
 
 variable "vpn_shared_key" {
-  description = "Shared key for VPN connections"
+  description = "Shared key for VPN connections - must be provided securely via terraform.tfvars or environment variable"
   type        = string
   sensitive   = true
-  default     = "AzureLabVPN2024!SecureKey"
+  # No default - must be explicitly set to avoid committing secrets
 }
 
 # -----------------------------------------------------------------------------
@@ -258,6 +258,12 @@ variable "onprem_bgp_asn" {
   description = "On-Premises BGP ASN"
   type        = number
   default     = 65050
+}
+
+variable "allowed_rdp_source_ips" {
+  description = "List of IP addresses/CIDR ranges allowed to RDP to on-prem management VM. Set to your public IP for security."
+  type        = list(string)
+  default     = []  # Empty means no RDP from internet - use VPN or set explicitly
 }
 
 # -----------------------------------------------------------------------------
@@ -448,4 +454,106 @@ variable "lb_web_server_size" {
   description = "VM size for web servers (2GB RAM minimum for IIS)"
   type        = string
   default     = "Standard_B1ms"
+}
+
+# -----------------------------------------------------------------------------
+# PaaS Services - Tier 1 (Free)
+# -----------------------------------------------------------------------------
+
+variable "deploy_functions" {
+  description = "Deploy Azure Functions (Consumption plan - FREE)"
+  type        = bool
+  default     = false
+}
+
+variable "deploy_static_web_app" {
+  description = "Deploy Azure Static Web App (Free tier - FREE)"
+  type        = bool
+  default     = false
+}
+
+variable "deploy_logic_apps" {
+  description = "Deploy Azure Logic Apps (Consumption - pay per execution)"
+  type        = bool
+  default     = false
+}
+
+variable "deploy_event_grid" {
+  description = "Deploy Azure Event Grid (FREE for first 100k ops/month)"
+  type        = bool
+  default     = false
+}
+
+# -----------------------------------------------------------------------------
+# PaaS Services - Tier 2 (Low Cost)
+# -----------------------------------------------------------------------------
+
+variable "deploy_service_bus" {
+  description = "Deploy Azure Service Bus (Basic tier ~$0.05/month)"
+  type        = bool
+  default     = false
+}
+
+variable "deploy_app_service" {
+  description = "Deploy Azure App Service (B1 Basic ~$13/month)"
+  type        = bool
+  default     = false
+}
+
+variable "deploy_container_apps" {
+  description = "Deploy Azure Container Apps (Consumption ~$5/month)"
+  type        = bool
+  default     = false
+}
+
+# -----------------------------------------------------------------------------
+# PaaS Services - Tier 3 (Data)
+# -----------------------------------------------------------------------------
+
+variable "deploy_cosmos_db" {
+  description = "Deploy Azure Cosmos DB (Serverless ~$0-5/month based on usage)"
+  type        = bool
+  default     = false
+}
+
+variable "paas_alternative_location" {
+  description = "Alternative Azure region for PaaS services that have quota/availability issues in primary location"
+  type        = string
+  default     = "westus2"
+}
+
+# -----------------------------------------------------------------------------
+# PaaS Services - Tier 4 (Gateway)
+# -----------------------------------------------------------------------------
+
+variable "deploy_application_gateway" {
+  description = "Deploy Azure Application Gateway (WAF_v2 ~$36/month)"
+  type        = bool
+  default     = false
+}
+
+# -----------------------------------------------------------------------------
+# Application Gateway Configuration
+# -----------------------------------------------------------------------------
+
+variable "hub_appgw_subnet_prefix" {
+  description = "Hub Application Gateway subnet prefix"
+  type        = string
+  default     = "10.0.3.0/24"
+}
+
+variable "appgw_waf_mode" {
+  description = "WAF mode for Application Gateway (Detection or Prevention)"
+  type        = string
+  default     = "Detection"
+}
+
+# -----------------------------------------------------------------------------
+# Container Apps Configuration
+# -----------------------------------------------------------------------------
+
+variable "workload_prod_container_apps_subnet_prefix" {
+  description = "Workload Prod Container Apps subnet prefix"
+  type        = string
+  default     = "10.10.8.0/23"
 }

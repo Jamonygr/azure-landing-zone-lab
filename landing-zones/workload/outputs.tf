@@ -73,4 +73,68 @@ output "web_server_ips" {
   value       = var.deploy_load_balancer ? [for ws in module.web_servers : ws.private_ip_address] : []
 }
 
+# =============================================================================
+# PAAS SERVICES OUTPUTS
+# =============================================================================
 
+# Functions
+output "function_app_url" {
+  description = "Azure Function App URL"
+  value       = var.deploy_functions ? "https://${module.functions[0].function_app_default_hostname}" : null
+}
+
+output "function_app_name" {
+  description = "Azure Function App name"
+  value       = var.deploy_functions ? module.functions[0].function_app_name : null
+}
+
+# Static Web App
+output "static_web_app_url" {
+  description = "Static Web App URL"
+  value       = var.deploy_static_web_app ? "https://${module.static_web_app[0].static_web_app_default_hostname}" : null
+}
+
+# Logic Apps
+output "logic_app_endpoint" {
+  description = "Logic App access endpoint"
+  value       = var.deploy_logic_apps ? module.logic_apps[0].logic_app_access_endpoint : null
+}
+
+# Event Grid
+output "event_grid_topic_endpoint" {
+  description = "Event Grid topic endpoint"
+  value       = var.deploy_event_grid ? module.event_grid[0].custom_topic_endpoint : null
+}
+
+# Service Bus
+output "service_bus_namespace" {
+  description = "Service Bus namespace name"
+  value       = var.deploy_service_bus ? module.service_bus[0].namespace_name : null
+}
+
+output "service_bus_endpoint" {
+  description = "Service Bus endpoint"
+  value       = var.deploy_service_bus ? module.service_bus[0].namespace_endpoint : null
+}
+
+# App Service
+output "app_service_url" {
+  description = "App Service URL"
+  value       = var.deploy_app_service ? "https://${module.app_service[0].web_app_default_hostname}" : null
+}
+
+output "app_service_name" {
+  description = "App Service name"
+  value       = var.deploy_app_service ? module.app_service[0].web_app_name : null
+}
+
+# Cosmos DB
+output "cosmos_db_endpoint" {
+  description = "Cosmos DB account endpoint"
+  value       = var.deploy_cosmos_db ? module.cosmos_db[0].account_endpoint : null
+}
+
+output "cosmos_db_name" {
+  description = "Cosmos DB account name"
+  value       = var.deploy_cosmos_db ? module.cosmos_db[0].account_name : null
+}

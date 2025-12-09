@@ -72,10 +72,10 @@ module "onprem_nsg" {
       destination_address_prefix = "*"
     },
     {
-      name                       = "AllowAllInbound"
+      name                       = "DenyAllInbound"
       priority                   = 4096
       direction                  = "Inbound"
-      access                     = "Allow"
+      access                     = "Deny"
       protocol                   = "*"
       destination_port_range     = "*"
       source_address_prefix      = "*"
@@ -87,6 +87,7 @@ module "onprem_nsg" {
 # On-Premises VPN Gateway
 module "onprem_vpn_gateway" {
   source = "../../modules/networking/vpn-gateway"
+  count  = var.deploy_vpn_gateway ? 1 : 0
 
   name                = "vpng-onprem-${var.environment}-${var.location_short}"
   resource_group_name = var.resource_group_name
@@ -126,13 +127,13 @@ module "lng_to_hub" {
 
 module "vpn_connection_onprem_to_hub" {
   source = "../../modules/networking/vpn-connection"
-  count  = var.deploy_vpn_connection ? 1 : 0
+  count  = var.deploy_vpn_connection && var.deploy_vpn_gateway ? 1 : 0
 
   name                       = "con-onprem-to-hub-${var.environment}"
   resource_group_name        = var.resource_group_name
   location                   = var.location
   type                       = "IPsec"
-  virtual_network_gateway_id = module.onprem_vpn_gateway.id
+  virtual_network_gateway_id = module.onprem_vpn_gateway[0].id
   local_network_gateway_id   = module.lng_to_hub[0].id
   shared_key                 = var.vpn_shared_key
   enable_bgp                 = var.enable_bgp
@@ -154,31 +155,60 @@ resource "azurerm_public_ip" "onprem_mgmt" {
   tags                = merge(var.tags, { Role = "OnPremManagement" })
 }
 
-# NSG for On-Prem Management VM - Allows RDP from Internet
+# NSG for On-Prem Management VM - Restrict RDP to allowed IPs only
 resource "azurerm_network_security_group" "onprem_mgmt" {
   name                = "nsg-onprem-mgmt-${var.environment}-${var.location_short}"
   resource_group_name = var.resource_group_name
   location            = var.location
   tags                = var.tags
 
+  # Only create RDP rule if allowed IPs are specified
+  dynamic "security_rule" {
+    for_each = length(var.allowed_rdp_source_ips) > 0 ? [1] : []
+    content {
+      name                       = "AllowRDPFromTrusted"
+      priority                   = 100
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "3389"
+      source_address_prefixes    = var.allowed_rdp_source_ips
+      destination_address_prefix = "*"
+    }
+  }
+
+  # Allow RDP from Azure VPN/Hub ranges
   security_rule {
-    name                       = "AllowRDPFromInternet"
-    priority                   = 100
+    name                       = "AllowRDPFromAzure"
+    priority                   = 110
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "3389"
-    source_address_prefix      = "*"
+    source_address_prefix      = "10.0.0.0/8"
     destination_address_prefix = "*"
   }
 
   security_rule {
-    name                       = "AllowICMP"
-    priority                   = 110
+    name                       = "AllowICMPFromAzure"
+    priority                   = 120
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Icmp"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "10.0.0.0/8"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "DenyAllInbound"
+    priority                   = 4096
+    direction                  = "Inbound"
+    access                     = "Deny"
+    protocol                   = "*"
     source_port_range          = "*"
     destination_port_range     = "*"
     source_address_prefix      = "*"
