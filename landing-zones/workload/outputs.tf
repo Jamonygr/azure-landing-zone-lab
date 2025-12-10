@@ -27,6 +27,11 @@ output "data_subnet_id" {
   value       = module.data_subnet.id
 }
 
+output "web_nsg_id" {
+  description = "Web tier NSG ID"
+  value       = module.web_nsg.id
+}
+
 # AKS Outputs
 output "aks_id" {
   description = "AKS cluster ID"

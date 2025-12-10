@@ -28,10 +28,10 @@ If a value is missing or of the wrong type, Terraform fails fast during `plan`, 
 | Context | `project`, `environment`, `location`, `owner` | Shapes names and tags everywhere. |
 | Network | `hub_address_space`, `identity_address_space`, `workload_prod_address_space` | Defines the IP fabric for each VNet. |
 | Security | `admin_username`, `admin_password`, `vpn_shared_key` | Authenticates VMs and VPN connections. |
-| Features | `deploy_firewall`, `deploy_vpn_gateway`, `deploy_aks`, `deploy_application_gateway` | Turns big-ticket items on or off. |
+| Features | `deploy_firewall`, `deploy_vpn_gateway`, `deploy_aks`, `deploy_application_gateway`, `deploy_private_dns_zones`, `deploy_nat_gateway`, `deploy_application_security_groups` | Turns big-ticket items and network extensions on or off. |
 | Workload | `lb_type`, `lb_web_server_count`, `lb_web_server_size` | Sizes the sample application tier. |
-| PaaS | `deploy_functions`, `deploy_cosmos_db`, `paas_alternative_location` | Controls optional cloud services. |
-| Monitoring | `deploy_log_analytics`, `log_retention_days`, `log_daily_quota_gb` | Governs observability settings. |
+| PaaS | `deploy_functions`, `deploy_cosmos_db`, `deploy_container_apps`, `paas_alternative_location` | Controls optional cloud services. |
+| Monitoring | `deploy_log_analytics`, `enable_vnet_flow_logs`, `enable_traffic_analytics`, `create_network_watcher`, `log_retention_days`, `log_daily_quota_gb` | Governs observability settings and prerequisites. |
 
 ## What locals do
 
@@ -65,7 +65,13 @@ At no point is the value rewritten; it is forwarded so you always know where it 
 | `deploy_load_balancer` | Public or internal load balancer and IIS sample VMs. |
 | `deploy_application_gateway` | App Gateway subnet plus WAF instance. |
 | `deploy_aks` | AKS subnet and cluster. |
+| `deploy_nat_gateway` | NAT Gateway for predictable egress from the workload web subnet. |
+| `deploy_private_dns_zones` | Central Private DNS zones for blob, Key Vault, and SQL Private Link. |
+| `deploy_application_security_groups` | ASGs for web/app/data tiers to simplify NSG rules. |
 | `deploy_log_analytics` | Workspace plus diagnostic settings that depend on it. |
+| `enable_vnet_flow_logs` | VNet flow logs to storage (requires storage + Network Watcher). |
+| `enable_traffic_analytics` | Traffic Analytics on the flow logs (requires Log Analytics + storage). |
+| `create_network_watcher` | Creates NetworkWatcherRG/Network Watcher if your subscription does not have one. |
 | PaaS flags (`deploy_functions`, `deploy_cosmos_db`, etc.) | Optional cloud services inside the workload zone. |
 
 Use these in combinations. For example, if you disable `deploy_firewall`, also disable the route tables that would point to it.

@@ -32,7 +32,8 @@ In this lab, a landing zone is a self-contained Terraform module that owns one p
 - Turn off the firewall or VPN gateway if you only need a light demo and want to control cost.  
 - Skip the on-premises simulation unless you want to practice VPN or BGP.  
 - Enable the workload zone to see the sample web/app/data stack and load balancer.  
-- Add the PaaS flags to try Functions, Cosmos DB, Logic Apps, and more inside the workload zone.
+- Add the PaaS flags to try Functions, Cosmos DB, Logic Apps, and more inside the workload zone.  
+- Turn on the network extensions when you need them: NAT Gateway for stable egress IPs, Private DNS zones for Private Link, ASGs for cleaner NSG rules, and VNet Flow Logs/Traffic Analytics for traffic visibility (with Network Watcher + Log Analytics prerequisites).
 
 ## Next steps
 

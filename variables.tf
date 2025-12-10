@@ -263,7 +263,7 @@ variable "onprem_bgp_asn" {
 variable "allowed_rdp_source_ips" {
   description = "List of IP addresses/CIDR ranges allowed to RDP to on-prem management VM. Set to your public IP for security."
   type        = list(string)
-  default     = []  # Empty means no RDP from internet - use VPN or set explicitly
+  default     = [] # Empty means no RDP from internet - use VPN or set explicitly
 }
 
 # -----------------------------------------------------------------------------
@@ -556,4 +556,82 @@ variable "workload_prod_container_apps_subnet_prefix" {
   description = "Workload Prod Container Apps subnet prefix"
   type        = string
   default     = "10.10.8.0/23"
+}
+
+# -----------------------------------------------------------------------------
+# Network Extensions - Private DNS Zones
+# -----------------------------------------------------------------------------
+
+variable "deploy_private_dns_zones" {
+  description = "Deploy centralized Private DNS Zones for Private Link services"
+  type        = bool
+  default     = false
+}
+
+# -----------------------------------------------------------------------------
+# Network Extensions - NAT Gateway
+# -----------------------------------------------------------------------------
+
+variable "deploy_nat_gateway" {
+  description = "Deploy NAT Gateway for explicit outbound SNAT (workload web subnet)"
+  type        = bool
+  default     = false
+}
+
+# -----------------------------------------------------------------------------
+# Network Watcher (used by flow logs)
+# -----------------------------------------------------------------------------
+
+variable "create_network_watcher" {
+  description = "Create Network Watcher/NetworkWatcherRG in the region if it does not already exist (set true for brand-new subscriptions)"
+  type        = bool
+  default     = false
+}
+
+# -----------------------------------------------------------------------------
+# Network Extensions - VNet Flow Logs (Replaces deprecated NSG Flow Logs)
+# -----------------------------------------------------------------------------
+
+variable "enable_vnet_flow_logs" {
+  description = "Enable VNet Flow Logs for traffic visibility (replaces NSG Flow Logs)"
+  type        = bool
+  default     = false
+
+  validation {
+    condition     = !(var.enable_vnet_flow_logs && !var.deploy_storage)
+    error_message = "enable_vnet_flow_logs requires deploy_storage = true to store flow logs."
+  }
+}
+
+variable "enable_nsg_flow_logs" {
+  description = "DEPRECATED: Use enable_vnet_flow_logs instead. NSG Flow Logs retired June 2025."
+  type        = bool
+  default     = false
+}
+
+variable "enable_traffic_analytics" {
+  description = "Enable Traffic Analytics (requires Log Analytics workspace)"
+  type        = bool
+  default     = false
+
+  validation {
+    condition     = !(var.enable_traffic_analytics && (!var.enable_vnet_flow_logs || !var.deploy_log_analytics || !var.deploy_storage))
+    error_message = "enable_traffic_analytics requires enable_vnet_flow_logs, deploy_log_analytics, and deploy_storage to be true."
+  }
+}
+
+variable "nsg_flow_logs_retention_days" {
+  description = "Number of days to retain flow logs (used by both NSG and VNet flow logs)"
+  type        = number
+  default     = 7
+}
+
+# -----------------------------------------------------------------------------
+# Network Extensions - Application Security Groups
+# -----------------------------------------------------------------------------
+
+variable "deploy_application_security_groups" {
+  description = "Deploy Application Security Groups for workload micro-segmentation"
+  type        = bool
+  default     = false
 }

@@ -57,6 +57,8 @@ Everything is controlled with variables and feature flags so you can scale the f
 - Azure CLI signed in (`az login`).
 - Rough budget awareness: Azure Firewall and VPN Gateway accrue notable hourly cost. Toggle `deploy_firewall` or `deploy_vpn_gateway` to control spend.
 
+> **Note:** This project uses both **AzureRM** (~> 4.0) and **AzAPI** (~> 2.0) providers. AzAPI is required for VNet Flow Logs (the modern replacement for deprecated NSG Flow Logs).
+
 ## Quick path
 
 1. Copy `terraform.tfvars.example` to `terraform.tfvars`.  

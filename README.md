@@ -2,6 +2,7 @@
 
 [![Terraform](https://img.shields.io/badge/Terraform->=1.9.0-623CE4?logo=terraform)](https://terraform.io)
 [![Azure](https://img.shields.io/badge/Azure-AzureRM%204.x-0078D4?logo=microsoftazure)](https://azure.microsoft.com)
+[![AzAPI](https://img.shields.io/badge/AzAPI-~>2.0-blue?logo=microsoftazure)](https://registry.terraform.io/providers/Azure/azapi/latest)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 Learn Azure the right way—by building it. This Terraform project deploys a complete enterprise cloud environment you can explore, break, and rebuild. Covers networking, security, hybrid connectivity, containers, and Windows workloads following Microsoft Cloud Adoption Framework (CAF) best practices.
@@ -17,6 +18,7 @@ Learn Azure the right way—by building it. This Terraform project deploys a com
 - [Lab Scenarios](#-lab-scenarios)
 - [What Gets Deployed](#-what-gets-deployed)
 - [Optional Components](#-optional-components)
+- [Network Add-Ons & Observability](#-network-add-ons--observability)
 - [Network Topology](#-network-topology)
 - [Traffic Flow](#-traffic-flow)
 - [Quick Start](#-quick-start)
@@ -46,6 +48,18 @@ This Terraform project creates a complete Azure Landing Zone lab environment tha
 - **🔗 VPN Gateway & Simulated On-Premises** - Site-to-site VPN connectivity for hybrid scenarios
 - **☸️ Azure Kubernetes Service (AKS)** - Managed Kubernetes cluster for container workloads
 - **🛡️ Application Gateway with WAF** - Layer 7 load balancing and web application firewall
+
+## 🔌 Network Add-Ons & Observability
+
+Enable these when you need tighter control or visibility. Check prerequisites to avoid failed plans:
+
+| Flag | What it adds | Prerequisites | Cost notes |
+|------|--------------|---------------|------------|
+| `deploy_nat_gateway` | Fixed outbound IP for workload web subnet. | Workload prod on. | Standard IP + NAT GW (~$25/mo + data). |
+| `deploy_private_dns_zones` | Central Private DNS for blob, Key Vault, SQL Private Link. | Hub RG present. | Minimal (DNS). |
+| `deploy_application_security_groups` | ASGs for web/app/data tiers to simplify NSG rules. | Workload prod on. | None. |
+| `enable_vnet_flow_logs` | VNet flow logs to storage. | `deploy_storage = true`, Network Watcher in region (`create_network_watcher = true` for new subs). | Storage ingest. |
+| `enable_traffic_analytics` | Analytics on flow logs. | `enable_vnet_flow_logs`, `deploy_log_analytics = true`, storage. | Log Analytics ingest. |
 
 ### ☁️ PaaS Services (Cloud-Native Workloads)
 | Service | Description | Cost |
@@ -149,6 +163,14 @@ This Terraform project creates a complete Azure Landing Zone lab environment tha
                                     │  [OPTIONAL] = Configurable         │
                                     └────────────────────────────────────┘
 ```
+
+### Architecture at a Glance
+
+- **Topology**: Hub VNet with optional VPN/App Gateway; peered spokes for identity, management, shared services, and workload. On-premises simulation connects via site-to-site VPN when enabled.
+- **Connectivity Control**: Azure Firewall centralizes egress; workload web subnet skips a firewall UDR when using a public LB to avoid asymmetric return paths; optional NAT Gateway gives the web subnet a fixed outbound IP.
+- **Name Resolution**: Identity DNS servers are shared across spokes; optional Private DNS zones in the hub cover blob, Key Vault, and SQL Private Link.
+- **Segmentation**: NSGs on every subnet; optional Application Security Groups group web/app/data tiers for cleaner rules.
+- **Observability**: Log Analytics workspace lives in management; optional VNet Flow Logs go to storage with Traffic Analytics; enable `create_network_watcher` if your subscription lacks NetworkWatcherRG.
 
 ---
 
@@ -481,6 +503,8 @@ The configuration automatically excludes the web subnet from firewall routing wh
 - [Terraform](https://terraform.io/downloads) >= 1.9.0
 - [Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli) >= 2.50.0
 - Azure subscription with Owner or Contributor access
+
+> **Note:** This project uses both **AzureRM** (~> 4.0) and **AzAPI** (~> 2.0) providers. AzAPI is required for VNet Flow Logs (the modern replacement for deprecated NSG Flow Logs).
 
 ### Step 1: Clone and Configure
 
@@ -1002,6 +1026,16 @@ deploy_service_bus    = false                  # Service Bus (~$0.05/mo)
 deploy_app_service    = false                  # App Service (~$13/mo)
 deploy_container_apps = false                  # Container Apps (~$5/mo)
 deploy_cosmos_db      = false                  # Cosmos DB (serverless)
+
+# =============================================================================
+# NETWORK ADD-ONS & OBSERVABILITY
+# =============================================================================
+deploy_private_dns_zones         = false       # Private DNS zones for PaaS
+deploy_nat_gateway               = false       # Fixed outbound IP
+deploy_application_security_groups = false     # ASGs for micro-segmentation
+enable_vnet_flow_logs            = false       # VNet flow logs (modern)
+enable_traffic_analytics         = false       # Traffic analytics
+create_network_watcher           = false       # Create NW for new subs
 ```
 
 ### Network Address Space Reference

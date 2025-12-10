@@ -119,20 +119,20 @@ aks_node_count    = 1               # Minimum nodes
 aks_vm_size       = "Standard_B2s"  # Smallest practical size
 
 # Load Balancer with IIS Web Servers
-deploy_load_balancer = true             # Enable for LB lab
-lb_type              = "public"         # Public LB (separate from firewall)
-lb_private_ip        = null              # Not used for public LB
-lb_web_server_count  = 2                # Number of IIS web servers
-lb_web_server_size   = "Standard_B1ms"  # 2GB RAM for IIS
+deploy_load_balancer = true            # Enable for LB lab
+lb_type              = "public"        # Public LB (separate from firewall)
+lb_private_ip        = null            # Not used for public LB
+lb_web_server_count  = 2               # Number of IIS web servers
+lb_web_server_size   = "Standard_B1ms" # 2GB RAM for IIS
 
 # -----------------------------------------------------------------------------
 # PaaS Services - Tier 1 (FREE)
 # These services cost nothing or almost nothing
 # -----------------------------------------------------------------------------
-deploy_functions      = true  # Azure Functions - Y1 (Consumption) - FREE
-deploy_static_web_app = true  # Static Web Apps Free tier - FREE
-deploy_logic_apps     = true  # Logic Apps Consumption - ~$0 (pay per execution)
-deploy_event_grid     = true  # Event Grid - FREE (first 100k ops/month)
+deploy_functions      = true # Azure Functions - Y1 (Consumption) - FREE
+deploy_static_web_app = true # Static Web Apps Free tier - FREE
+deploy_logic_apps     = true # Logic Apps Consumption - ~$0 (pay per execution)
+deploy_event_grid     = true # Event Grid - FREE (first 100k ops/month)
 
 # -----------------------------------------------------------------------------
 # PaaS Services - Tier 2 (Low Cost)
@@ -146,7 +146,7 @@ deploy_container_apps = false # DELETED - Module removed from codebase
 # PaaS Services - Tier 3 (Data)
 # Pay-per-use, typically ~$0-5/month for lab usage
 # -----------------------------------------------------------------------------
-deploy_cosmos_db = true  # Cosmos DB Serverless - ~$0-5/month
+deploy_cosmos_db = true # Cosmos DB Serverless - ~$0-5/month
 
 # -----------------------------------------------------------------------------
 # Alternative Location for PaaS Services with quota issues
@@ -158,12 +158,12 @@ paas_alternative_location = "westus2"
 # PaaS Services - Tier 4 (Gateway)
 # Higher fixed cost but provides enterprise features
 # -----------------------------------------------------------------------------
-deploy_application_gateway = true  # App Gateway WAF_v2 - ~$36/month
+deploy_application_gateway = true # App Gateway WAF_v2 - ~$36/month
 hub_appgw_subnet_prefix    = "10.0.3.0/24"
-appgw_waf_mode             = "Detection"  # Use Prevention in production
+appgw_waf_mode             = "Detection" # Use Prevention in production
 
 # Container Apps Subnet
-workload_prod_container_apps_subnet_prefix = "10.10.8.0/23"  # /23 for Container Apps
+workload_prod_container_apps_subnet_prefix = "10.10.8.0/23" # /23 for Container Apps
 
 # -----------------------------------------------------------------------------
 # VM Configuration

@@ -33,6 +33,15 @@ This page summarizes the root input variables you set in `terraform.tfvars`. For
 - Workloads: `deploy_workload_prod`, `deploy_workload_dev`, `deploy_load_balancer`, `deploy_application_gateway`, `deploy_aks`.  
 - PaaS options: `deploy_functions`, `deploy_static_web_app`, `deploy_logic_apps`, `deploy_event_grid`, `deploy_service_bus`, `deploy_app_service`, `deploy_cosmos_db`, `deploy_container_apps` (if present), and `paas_alternative_location`.
 
+## Network extensions
+
+- `deploy_nat_gateway` - assigns a static outbound IP for the workload web subnet.  
+- `deploy_private_dns_zones` - central Private DNS zones for blob, Key Vault, and SQL Private Link.  
+- `deploy_application_security_groups` - creates ASGs for workload web/app/data tiers to simplify NSG rules.  
+- `enable_vnet_flow_logs` - VNet-level flow logs (requires storage and a Network Watcher in the region).  
+- `enable_traffic_analytics` - turns on Traffic Analytics (requires `deploy_log_analytics = true` and storage).
+- `create_network_watcher` - create the NetworkWatcherRG/Network Watcher if your subscription doesn’t have one yet.
+
 ## VM and workload sizing
 
 - `vm_size`, `sql_vm_size`, `enable_auto_shutdown`.  

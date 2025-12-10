@@ -18,7 +18,6 @@ deploy_onprem_simulation = false # Save ~$140/month
 # Deploy only essential components
 deploy_workload_prod = false
 deploy_workload_dev  = true
-deploy_workload_vms  = true
 deploy_aks           = true
 
 # Smaller VMs for dev

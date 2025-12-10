@@ -10,6 +10,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
     }
+    azapi = {
+      source  = "Azure/azapi"
+      version = "~> 2.0"
+    }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.6.0"
@@ -308,8 +312,8 @@ module "workload_prod" {
   deploy_event_grid     = var.deploy_event_grid
 
   # PaaS Services - Tier 2 (Low Cost)
-  deploy_service_bus           = var.deploy_service_bus
-  deploy_app_service           = var.deploy_app_service
+  deploy_service_bus = var.deploy_service_bus
+  deploy_app_service = var.deploy_app_service
 
   # PaaS Services - Tier 3 (Data)
   deploy_cosmos_db = var.deploy_cosmos_db
@@ -386,10 +390,10 @@ module "onprem" {
   hub_bgp_asn             = var.hub_bgp_asn
   hub_bgp_peering_address = var.deploy_vpn_gateway && var.enable_bgp ? module.hub.vpn_gateway_bgp_peering_address : null
 
-  vm_size              = var.vm_size
-  admin_username       = var.admin_username
-  admin_password       = var.admin_password
-  enable_auto_shutdown = var.enable_auto_shutdown
+  vm_size                = var.vm_size
+  admin_username         = var.admin_username
+  admin_password         = var.admin_password
+  enable_auto_shutdown   = var.enable_auto_shutdown
   allowed_rdp_source_ips = var.allowed_rdp_source_ips
 
   depends_on = [module.hub]
@@ -866,7 +870,7 @@ resource "null_resource" "appgw_backend_update" {
   }
 
   provisioner "local-exec" {
-    command = <<-EOT
+    command     = <<-EOT
       az network application-gateway address-pool update `
         --gateway-name "agw-hub-${local.environment}-${local.location_short}" `
         --resource-group "${azurerm_resource_group.hub.name}" `
@@ -915,3 +919,215 @@ resource "azurerm_monitor_diagnostic_setting" "appgw" {
     module.management
   ]
 }
+
+# =============================================================================
+# PRIVATE DNS ZONES (Centralized in Hub)
+# =============================================================================
+
+# Private DNS Zone for Azure Blob Storage
+module "private_dns_blob" {
+  source = "./modules/networking/private-dns-zone"
+  count  = var.deploy_private_dns_zones ? 1 : 0
+
+  zone_name           = "privatelink.blob.core.windows.net"
+  resource_group_name = azurerm_resource_group.hub.name
+  tags                = local.common_tags
+
+  virtual_network_links = {
+    "link-hub" = {
+      vnet_id              = module.hub.vnet_id
+      registration_enabled = false
+    }
+    "link-identity" = {
+      vnet_id              = module.identity.vnet_id
+      registration_enabled = false
+    }
+    "link-management" = {
+      vnet_id              = module.management.vnet_id
+      registration_enabled = false
+    }
+    "link-shared" = {
+      vnet_id              = module.shared_services.vnet_id
+      registration_enabled = false
+    }
+  }
+}
+
+# Private DNS Zone for Azure Key Vault
+module "private_dns_keyvault" {
+  source = "./modules/networking/private-dns-zone"
+  count  = var.deploy_private_dns_zones ? 1 : 0
+
+  zone_name           = "privatelink.vaultcore.azure.net"
+  resource_group_name = azurerm_resource_group.hub.name
+  tags                = local.common_tags
+
+  virtual_network_links = {
+    "link-hub" = {
+      vnet_id              = module.hub.vnet_id
+      registration_enabled = false
+    }
+    "link-identity" = {
+      vnet_id              = module.identity.vnet_id
+      registration_enabled = false
+    }
+    "link-management" = {
+      vnet_id              = module.management.vnet_id
+      registration_enabled = false
+    }
+    "link-shared" = {
+      vnet_id              = module.shared_services.vnet_id
+      registration_enabled = false
+    }
+  }
+}
+
+# Private DNS Zone for Azure SQL Database
+module "private_dns_sql" {
+  source = "./modules/networking/private-dns-zone"
+  count  = var.deploy_private_dns_zones ? 1 : 0
+
+  zone_name           = "privatelink.database.windows.net"
+  resource_group_name = azurerm_resource_group.hub.name
+  tags                = local.common_tags
+
+  virtual_network_links = {
+    "link-hub" = {
+      vnet_id              = module.hub.vnet_id
+      registration_enabled = false
+    }
+    "link-identity" = {
+      vnet_id              = module.identity.vnet_id
+      registration_enabled = false
+    }
+    "link-management" = {
+      vnet_id              = module.management.vnet_id
+      registration_enabled = false
+    }
+    "link-shared" = {
+      vnet_id              = module.shared_services.vnet_id
+      registration_enabled = false
+    }
+  }
+}
+
+# =============================================================================
+# NAT GATEWAY (Workload Web Subnet)
+# =============================================================================
+
+module "nat_gateway" {
+  source = "./modules/networking/nat-gateway"
+  count  = var.deploy_nat_gateway && var.deploy_workload_prod ? 1 : 0
+
+  name                = "natgw-workload-${local.environment}-${local.location_short}"
+  resource_group_name = azurerm_resource_group.workload_prod[0].name
+  location            = var.location
+  tags                = local.common_tags
+
+  subnet_id = module.workload_prod[0].web_subnet_id
+
+  depends_on = [module.workload_prod]
+}
+
+# =============================================================================
+# APPLICATION SECURITY GROUPS (Workload Tiers)
+# =============================================================================
+
+module "asg_web" {
+  source = "./modules/networking/asg"
+  count  = var.deploy_application_security_groups && var.deploy_workload_prod ? 1 : 0
+
+  name                = "asg-web-${local.environment}-${local.location_short}"
+  resource_group_name = azurerm_resource_group.workload_prod[0].name
+  location            = var.location
+  tags                = local.common_tags
+}
+
+module "asg_app" {
+  source = "./modules/networking/asg"
+  count  = var.deploy_application_security_groups && var.deploy_workload_prod ? 1 : 0
+
+  name                = "asg-app-${local.environment}-${local.location_short}"
+  resource_group_name = azurerm_resource_group.workload_prod[0].name
+  location            = var.location
+  tags                = local.common_tags
+}
+
+module "asg_data" {
+  source = "./modules/networking/asg"
+  count  = var.deploy_application_security_groups && var.deploy_workload_prod ? 1 : 0
+
+  name                = "asg-data-${local.environment}-${local.location_short}"
+  resource_group_name = azurerm_resource_group.workload_prod[0].name
+  location            = var.location
+  tags                = local.common_tags
+}
+
+# =============================================================================
+# VNET FLOW LOGS (Replaces deprecated NSG Flow Logs)
+# =============================================================================
+# Azure Virtual Network Flow Logs - modern replacement for NSG Flow Logs
+# Captures flow data at the VNet level for comprehensive traffic visibility
+
+module "vnet_flow_logs_hub" {
+  source = "./modules/monitoring/vnet-flow-logs"
+  count  = var.enable_vnet_flow_logs ? 1 : 0
+
+  name               = "flowlog-vnet-hub-${local.environment}-${local.location_short}"
+  location           = var.location
+  virtual_network_id = module.hub.vnet_id
+  storage_account_id = module.shared_services.storage_account_id
+  tags               = local.common_tags
+
+  # Network Watcher settings (use Azure's auto-created one)
+  network_watcher_name                = "NetworkWatcher_${replace(lower(var.location), " ", "")}"
+  network_watcher_resource_group_name = "NetworkWatcherRG"
+  create_network_watcher              = var.create_network_watcher
+
+  # Retention
+  retention_enabled = true
+  retention_days    = var.nsg_flow_logs_retention_days
+
+  # Traffic Analytics (optional)
+  enable_traffic_analytics            = var.enable_traffic_analytics && var.deploy_log_analytics
+  log_analytics_workspace_guid        = var.deploy_log_analytics ? module.management.log_analytics_workspace_guid : null
+  log_analytics_workspace_resource_id = var.deploy_log_analytics ? module.management.log_analytics_workspace_id : null
+
+  depends_on = [module.hub, module.shared_services, module.management]
+}
+
+module "vnet_flow_logs_workload" {
+  source = "./modules/monitoring/vnet-flow-logs"
+  count  = var.enable_vnet_flow_logs && var.deploy_workload_prod ? 1 : 0
+
+  name               = "flowlog-vnet-prod-${local.environment}-${local.location_short}"
+  location           = var.location
+  virtual_network_id = module.workload_prod[0].vnet_id
+  storage_account_id = module.shared_services.storage_account_id
+  tags               = local.common_tags
+
+  # Network Watcher settings
+  network_watcher_name                = "NetworkWatcher_${replace(lower(var.location), " ", "")}"
+  network_watcher_resource_group_name = "NetworkWatcherRG"
+  create_network_watcher              = var.create_network_watcher
+
+  # Retention
+  retention_enabled = true
+  retention_days    = var.nsg_flow_logs_retention_days
+
+  # Traffic Analytics (optional)
+  enable_traffic_analytics            = var.enable_traffic_analytics && var.deploy_log_analytics
+  log_analytics_workspace_guid        = var.deploy_log_analytics ? module.management.log_analytics_workspace_guid : null
+  log_analytics_workspace_resource_id = var.deploy_log_analytics ? module.management.log_analytics_workspace_id : null
+
+  depends_on = [module.workload_prod, module.shared_services, module.management]
+}
+
+# =============================================================================
+# NSG FLOW LOGS (DEPRECATED - Azure retired new NSG Flow Log creation June 2025)
+# =============================================================================
+# NOTE: As of June 30, 2025, Azure no longer supports creation of new NSG Flow Logs.
+# NSG Flow Logs will be fully retired on September 30, 2027.
+# Use VNet Flow Logs above instead.
+# See: https://learn.microsoft.com/azure/network-watcher/nsg-flow-logs-migrate
+

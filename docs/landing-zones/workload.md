@@ -15,6 +15,8 @@ The workload landing zone is where you try application scenarios. It can be depl
 - Optional route tables that send outbound traffic to the hub firewall (except the public web subnet, which skips it to avoid asymmetric routing).  
 - Optional load balancer (public or internal) with IIS web servers and RDP NAT rules for convenience.  
 - Optional AKS cluster sized for a lab.  
+- Optional NAT Gateway for stable outbound IP on the web subnet.  
+- Optional Application Security Groups (ASGs) to group web/app/data tiers.  
 - Optional PaaS services: Functions, Static Web Apps, Logic Apps, Event Grid, Service Bus, App Service, Cosmos DB, and more.
 
 ## Inputs to know about
@@ -24,6 +26,8 @@ The workload landing zone is where you try application scenarios. It can be depl
 - `deploy_aks`, `aks_subnet_prefix`, `aks_node_count`, and `aks_vm_size` shape the AKS cluster.  
 - `admin_username` and `admin_password` set credentials for the web servers.  
 - PaaS flags (`deploy_functions`, `deploy_cosmos_db`, etc.) toggle cloud services; `paas_alternative_location` provides a fallback region for quota-limited resources.  
+- `deploy_nat_gateway` gives the web subnet a consistent outbound IP; useful for egress allowlists.  
+- `deploy_application_security_groups` creates ASGs you can reference in NSGs for web/app/data tiers.  
 - `firewall_private_ip` and `deploy_route_table` align egress with the hub firewall.  
 - `dns_servers` comes from identity so all workloads share the same DNS.
 
@@ -40,6 +44,7 @@ The workload landing zone is where you try application scenarios. It can be depl
 - App subnet accepts port 8080 only from the web subnet plus RDP from the hub.  
 - Data subnet accepts port 1433 from the app subnet plus RDP from the hub.  
 - When the load balancer is public, the web subnet does **not** get a firewall UDR so return traffic uses the same public IP. Internal load balancers keep the UDR for inspection.
+- If you enable ASGs, you can rewrite NSG rules to target ASG names instead of CIDR prefixes for cleaner micro-segmentation.
 
 ## AKS and diagnostics
 

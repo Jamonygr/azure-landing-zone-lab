@@ -97,12 +97,9 @@ deploy_sql      = true           # ~$5/month (Basic tier)
 # Workloads
 deploy_workload_prod = true
 deploy_workload_dev  = false     # Enable if you need dev environment
-deploy_workload_vms  = true      # Set false for network-only deployment
 
 # On-Premises Simulation
 deploy_onprem_simulation = true  # ~$140/month for VPN Gateway
-deploy_onprem_fileserver = true
-deploy_onprem_legacy_app = false
 
 # -----------------------------------------------------------------------------
 # VM Configuration

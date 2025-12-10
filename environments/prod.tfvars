@@ -18,7 +18,6 @@ deploy_onprem_simulation = true
 # All workloads
 deploy_workload_prod = true
 deploy_workload_dev  = false # No dev in prod
-deploy_workload_vms  = true
 deploy_aks           = true
 
 # Production VMs
