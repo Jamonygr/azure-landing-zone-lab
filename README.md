@@ -36,42 +36,54 @@ Learn Azure the right way—by building it. This Terraform project deploys a com
 This Terraform project creates a complete Azure Landing Zone lab environment that simulates an enterprise hybrid cloud setup. Perfect for learning, training, and proof-of-concept work.
 
 ### Core Components (Always Deployed)
-- **🌐 Hub-Spoke Network Topology** - Centralized connectivity with Azure Firewall
-- **🔐 Identity Services** - Windows Server Domain Controllers for Active Directory
-- **🖥️ Management Zone** - Jumpbox for secure access and Log Analytics for monitoring
-- **🔑 Shared Services** - Azure Key Vault for secrets, Storage Account for file shares, Azure SQL Database
-- **⚖️ Load Balanced Web Tier** - IIS Web Servers behind Azure Load Balancer
-- **🛡️ Azure Firewall** - Central network security with DNAT/SNAT rules
-- **📊 Monitoring & Alerts** - Log Analytics, diagnostic settings, and metric alerts
+- **🌐 Hub-Spoke Network Topology** - Centralized connectivity with VNet peering
+- **🔐 Identity Services** - Windows Server 2022 Domain Controller (DC01)
+- **🖥️ Management Zone** - Jumpbox VM with public IP for secure RDP access
+- **🔑 Shared Services** - Azure Key Vault for secrets, Storage Account for file shares
+- **📊 Monitoring** - Log Analytics workspace with 30-day retention
 
-### Optional Components (Configurable)
-- **🔗 VPN Gateway & Simulated On-Premises** - Site-to-site VPN connectivity for hybrid scenarios
-- **☸️ Azure Kubernetes Service (AKS)** - Managed Kubernetes cluster for container workloads
-- **🛡️ Application Gateway with WAF** - Layer 7 load balancing and web application firewall
+### Configurable Components
+- **🛡️ Azure Firewall** (~$350/mo) - Central network security with DNAT/SNAT rules
+- **⚖️ Load Balanced Web Tier** - IIS Web Servers behind Azure Load Balancer
+- **🗄️ Azure SQL Database** - Managed SQL with optional private endpoint
+- **🔗 VPN Gateway** (~$140/mo) - Site-to-site VPN for hybrid scenarios
+- **🏠 Simulated On-Premises** - VPN Gateway + File Server for hybrid testing
+- **☸️ Azure Kubernetes Service (AKS)** - Managed Kubernetes cluster
+- **🛡️ Application Gateway with WAF** (~$36/mo) - Layer 7 load balancing
+- **🔒 Private Endpoints** - Private Link for Key Vault, Storage, SQL
+- **🌐 NAT Gateway** - Fixed outbound IP for workload subnet
 
 ## 🔌 Network Add-Ons & Observability
 
 Enable these when you need tighter control or visibility. Check prerequisites to avoid failed plans:
 
-| Flag | What it adds | Prerequisites | Cost notes |
-|------|--------------|---------------|------------|
-| `deploy_nat_gateway` | Fixed outbound IP for workload web subnet. | Workload prod on. | Standard IP + NAT GW (~$25/mo + data). |
-| `deploy_private_dns_zones` | Central Private DNS for blob, Key Vault, SQL Private Link. | Hub RG present. | Minimal (DNS). |
-| `deploy_application_security_groups` | ASGs for web/app/data tiers to simplify NSG rules. | Workload prod on. | None. |
-| `enable_vnet_flow_logs` | VNet flow logs to storage. | `deploy_storage = true`, Network Watcher in region (`create_network_watcher = true` for new subs). | Storage ingest. |
-| `enable_traffic_analytics` | Analytics on flow logs. | `enable_vnet_flow_logs`, `deploy_log_analytics = true`, storage. | Log Analytics ingest. |
-| `create_network_watcher` | Creates NetworkWatcherRG/Network Watcher if missing. | Set true only if your sub lacks it. | None. |
+| Flag | What it adds | Prerequisites | Cost |
+|------|--------------|---------------|------|
+| `deploy_nat_gateway` | Fixed outbound IP for workload web subnet | `deploy_workload_prod = true` | ~$4-5/mo + data |
+| `deploy_private_dns_zones` | Central Private DNS for blob, Key Vault, SQL | Hub RG present | Minimal |
+| `deploy_private_endpoints` | Private Link for Key Vault, Storage, SQL | `deploy_private_dns_zones = true` | None |
+| `deploy_application_security_groups` | ASGs for web/app/data tiers | `deploy_workload_prod = true` | None |
+| `enable_vnet_flow_logs` | VNet flow logs to storage (replaces NSG flow logs) | `deploy_storage = true`, Network Watcher | Storage ingest |
+| `enable_traffic_analytics` | Traffic flow visualization | `enable_vnet_flow_logs`, `deploy_log_analytics`, `deploy_storage` | Log Analytics ingest |
+| `create_network_watcher` | Creates NetworkWatcherRG if missing | Set true only for new subscriptions | None |
+
+> **Note**: VNet Flow Logs are the modern replacement for NSG Flow Logs (retired June 2025). Uses **AzAPI** provider.
 
 ### ☁️ PaaS Services (Cloud-Native Workloads)
-| Service | Description | Cost |
-|---------|-------------|------|
-| 🔷 **Azure Functions** | Serverless compute | FREE (Consumption) |
-| 🌐 **Static Web Apps** | Modern web hosting | FREE |
-| ⚡ **Logic Apps** | Workflow automation | Pay per execution |
-| 📬 **Event Grid** | Event-driven messaging | FREE (100k ops/month) |
-| 🚌 **Service Bus** | Enterprise messaging | ~$0.05/month |
-| 🌍 **App Service** | Web app hosting | ~$13/month |
-| 🗃️ **Cosmos DB** | NoSQL database | ~$0-5/month |
+
+All PaaS services are **optional** and controlled via deployment flags:
+
+| Service | Flag | Tier | Monthly Cost |
+|---------|------|------|-------------|
+| 🔷 **Azure Functions** | `deploy_functions` | Y1 Consumption | **FREE** |
+| 🌐 **Static Web Apps** | `deploy_static_web_app` | Free | **FREE** |
+| ⚡ **Logic Apps** | `deploy_logic_apps` | Consumption | ~$0 (pay per run) |
+| 📬 **Event Grid** | `deploy_event_grid` | Standard | **FREE** (100k ops) |
+| 🚌 **Service Bus** | `deploy_service_bus` | Basic | ~$0.05/month |
+| 🌍 **App Service** | `deploy_app_service` | F1 Free | **FREE** |
+| 🗃️ **Cosmos DB** | `deploy_cosmos_db` | Serverless | ~$0-5/month |
+
+> **Note**: `deploy_container_apps` has been removed from the codebase.
 
 ### 🎯 Use Cases
 
@@ -87,13 +99,15 @@ Enable these when you need tighter control or visibility. Check prerequisites to
 
 ## ⚡ Deployment Profiles
 
-| Profile | Components | Deploy Time | Monthly Cost |
-|---------|------------|-------------|--------------|
-| **Minimal** | Core VNets + Identity + Management | ~10 min | ~$150 |
-| **Standard** | Minimal + Firewall + Load Balancer + IIS | ~20 min | ~$500 |
-| **Standard + PaaS** | Standard + All PaaS Services | ~35 min | ~$560 |
-| **Full Hybrid** | Standard + VPN + On-Prem Simulation | ~45 min | ~$700 |
-| **Enterprise** | Full Hybrid + AKS + App Gateway | ~60 min | ~$950 |
+| Profile | Components | Deploy Time | Est. Monthly Cost |
+|---------|------------|-------------|------------------|
+| **Minimal** | Core VNets + Identity + Management (no Firewall) | ~8 min | ~$100-150 |
+| **Standard** | Minimal + Firewall + Load Balancer + IIS | ~15 min | ~$450-500 |
+| **Standard + PaaS** | Standard + All PaaS Services | ~25 min | ~$500-550 |
+| **Full Hybrid** | Standard + VPN + On-Prem Simulation | ~45 min | ~$650-700 |
+| **Enterprise** | Full Hybrid + AKS + App Gateway | ~55 min | ~$850-950 |
+
+> **Current Default Config** (`terraform.tfvars`): Standard + PaaS + Network Add-ons (~$500-600/month)
 
 ---
 
@@ -560,72 +574,97 @@ terraform destroy
 # CORE SETTINGS
 # =============================================================================
 subscription_id = "00000000-0000-0000-0000-000000000000"  # REQUIRED
-project     = "azlab"
-environment = "lab"
-location    = "West Europe"
+project         = "azlab"
+environment     = "lab"
+location        = "East US"  # Or "West Europe", "West US 2", etc.
+owner           = "Lab-User"
 
 # =============================================================================
-# SECURITY
+# SECURITY (CHANGE THESE!)
 # =============================================================================
-admin_username = "azureadmin"
-admin_password = "YourSecurePassword123!"  # Change this!
+admin_username     = "azureadmin"
+admin_password     = "YourSecurePassword123!"   # Change this!
+sql_admin_login    = "sqladmin"
+sql_admin_password = "SqlP@ssw0rd123!"          # Change this!
+vpn_shared_key     = "YourVPNSharedKey123!"     # Required if VPN enabled
 
 # =============================================================================
-# PLATFORM FLAGS (Costs)
+# INFRASTRUCTURE FLAGS
 # =============================================================================
-deploy_firewall          = true           # Azure Firewall (~$350/mo)
-deploy_vpn_gateway       = false          # VPN Gateway (~30 min deploy)
-deploy_onprem_simulation = false          # Simulated on-premises
-deploy_application_gateway = false        # App Gateway with WAF (~$36/mo)
+# Core Networking
+deploy_firewall              = true   # Azure Firewall (~$350/mo)
+firewall_sku_tier            = "Standard"
+deploy_vpn_gateway           = false  # VPN Gateway (~$140/mo, 30 min deploy)
+deploy_onprem_simulation     = false  # Requires VPN Gateway
+deploy_application_gateway   = false  # App Gateway with WAF (~$36/mo)
+
+# Identity & Management
+deploy_secondary_dc          = false  # Second Domain Controller (~$30/mo)
+enable_jumpbox_public_ip     = true   # Public RDP to jumpbox
+allowed_jumpbox_source_ips   = ["0.0.0.0/0"]  # TODO: Restrict to your IP
+
+# Shared Services
+deploy_keyvault              = true
+deploy_storage               = true
+deploy_sql                   = false  # Azure SQL (~$5/mo)
+
+# Monitoring
+deploy_log_analytics         = true
+log_retention_days           = 30     # Free tier
+log_daily_quota_gb           = 1      # Limit ingestion
 
 # =============================================================================
 # WORKLOADS
 # =============================================================================
-deploy_workload_prod = true
-deploy_workload_dev  = false
+deploy_workload_prod         = true
+deploy_workload_dev          = true   # Dev environment (similar to prod)
 
 # Load Balancer
-deploy_load_balancer = true
-lb_type              = "public"          # public or internal
-lb_web_server_count  = 2                 # Number of web servers (1-10)
-lb_web_server_size   = "Standard_B1ms"   # VM size (2GB RAM min for IIS)
+deploy_load_balancer         = true
+lb_type                      = "public"
+lb_web_server_count          = 2
+lb_web_server_size           = "Standard_B1ms"
 
-# AKS
-deploy_aks       = false
-aks_node_count   = 1
-aks_vm_size      = "Standard_B2s"
+# AKS (Disabled by default - long deploy time)
+deploy_aks                   = false
+aks_node_count               = 1
+aks_vm_size                  = "Standard_B2s"
 
-# PaaS (all optional, cheap)
-deploy_functions       = false
-deploy_static_web_app  = false
-deploy_logic_apps      = false
-deploy_event_grid      = false
-deploy_service_bus     = false
-deploy_app_service     = false
-deploy_cosmos_db       = false
+# =============================================================================
+# PAAS SERVICES (All optional)
+# =============================================================================
+# Tier 1: FREE
+deploy_functions             = true   # Azure Functions Y1
+deploy_static_web_app        = true   # Static Web Apps Free
+deploy_logic_apps            = true   # Logic Apps Consumption
+deploy_event_grid            = true   # Event Grid (100k free)
+
+# Tier 2: Low Cost (~$15-20/mo total)
+deploy_service_bus           = true   # Service Bus Basic (~$0.05/mo)
+deploy_app_service           = true   # App Service F1 (FREE)
+
+# Tier 3: Data
+deploy_cosmos_db             = true   # Cosmos DB Serverless (~$0-5/mo)
+paas_alternative_location    = "westus2"  # For quota issues
 
 # =============================================================================
 # NETWORK ADD-ONS
 # =============================================================================
-deploy_nat_gateway               = false  # Fixed outbound IP for web subnet
-deploy_private_dns_zones         = false  # Private DNS for blob/Key Vault/SQL
-deploy_application_security_groups = false # ASGs for web/app/data tiers
+deploy_nat_gateway                   = true   # Fixed outbound IP
+deploy_private_dns_zones             = true   # Private DNS for PaaS
+deploy_private_endpoints             = true   # Private Link
+deploy_application_security_groups   = true   # ASGs for segmentation
 
-# =============================================================================
-# OBSERVABILITY
-# =============================================================================
-deploy_log_analytics    = true   # Needed for diagnostics/Traffic Analytics
-enable_vnet_flow_logs   = false  # Requires deploy_storage + Network Watcher
-enable_traffic_analytics = false # Requires flow logs + Log Analytics
-create_network_watcher  = false  # Set true if your sub lacks NetworkWatcherRG
-log_retention_days      = 30
-log_daily_quota_gb      = 1
+# Observability
+create_network_watcher               = true   # Required for flow logs
+enable_vnet_flow_logs                = true   # VNet flow logs
+enable_traffic_analytics             = true   # Traffic visualization
 
 # =============================================================================
 # COST OPTIMIZATION
 # =============================================================================
-enable_auto_shutdown = true       # VMs shutdown at 7 PM
-vm_size              = "Standard_B2s"
+enable_auto_shutdown         = true   # Shutdown VMs at 7 PM
+vm_size                      = "Standard_B2s"
 ```
 
 > Replace `<location_short>` in CLI examples with the short code derived from your region (e.g., `weu` for West Europe, `eus` for East US). See `locals.tf` for the mapping logic.
