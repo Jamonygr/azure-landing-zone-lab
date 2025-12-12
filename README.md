@@ -494,19 +494,29 @@ The configuration automatically excludes the web subnet from firewall routing wh
 | **Hub** | 10.0.0.0/16 | Central connectivity hub |
 | ├─ GatewaySubnet | 10.0.0.0/24 | VPN Gateway |
 | ├─ AzureFirewallSubnet | 10.0.1.0/24 | Azure Firewall |
-| └─ ManagementSubnet | 10.0.2.0/24 | Hub management |
+| ├─ ManagementSubnet | 10.0.2.0/24 | Hub management |
+| └─ AppGatewaySubnet | 10.0.3.0/24 | Application Gateway |
 | **Identity** | 10.1.0.0/16 | Domain Controllers |
 | └─ DCSubnet | 10.1.1.0/24 | DC01 (10.1.1.4), DC02 (10.1.1.5) |
 | **Management** | 10.2.0.0/16 | Operations |
 | └─ JumpboxSubnet | 10.2.1.0/24 | Jumpbox (10.2.1.4) |
 | **Shared** | 10.3.0.0/16 | Shared services |
-| └─ PrivateEndpointSubnet | 10.3.1.0/24 | Private endpoints |
+| ├─ AppSubnet | 10.3.1.0/24 | Application tier |
+| └─ PrivateEndpointSubnet | 10.3.2.0/24 | Private endpoints |
 | **Workload Prod** | 10.10.0.0/16 | Production apps |
 | ├─ WebSubnet | 10.10.1.0/24 | **Load Balanced Web Tier** |
 | ├─ AppSubnet | 10.10.2.0/24 | App tier VMs |
 | ├─ DataSubnet | 10.10.3.0/24 | Database VMs |
-| └─ AKSSubnet | 10.10.64.0/18 | AKS node pool |
+| ├─ ContainerAppsSubnet | 10.10.8.0/23 | Container Apps |
+| └─ AKSSubnet | 10.10.16.0/20 | AKS node pool (4094 IPs) |
+| **Workload Dev** | 10.11.0.0/16 | Development apps |
+| ├─ WebSubnet | 10.11.1.0/24 | Dev web tier |
+| ├─ AppSubnet | 10.11.2.0/24 | Dev app tier |
+| └─ DataSubnet | 10.11.3.0/24 | Dev data tier |
 | **On-Premises** | 10.100.0.0/16 | Simulated on-prem |
+| ├─ GatewaySubnet | 10.100.0.0/24 | On-prem VPN Gateway |
+| └─ ServersSubnet | 10.100.1.0/24 | File Server (10.100.1.4) |
+| **VPN Clients** | 172.16.0.0/24 | Point-to-site VPN pool |
 
 ---
 
