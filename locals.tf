@@ -21,7 +21,9 @@ locals {
     "germanywestcentral" = "gwc"
   }
 
-  location_short = lookup(local.location_short_map, lower(var.location), substr(lower(replace(var.location, " ", "")), 0, 4))
+  # Normalize region names so values like "West Europe" resolve to expected short codes
+  normalized_location = lower(replace(var.location, " ", ""))
+  location_short      = lookup(local.location_short_map, local.normalized_location, substr(local.normalized_location, 0, 4))
 
   # Common tags applied to all resources
   common_tags = {

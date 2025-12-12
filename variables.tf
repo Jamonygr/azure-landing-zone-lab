@@ -38,7 +38,7 @@ variable "owner" {
 variable "repository_url" {
   description = "Git repository URL"
   type        = string
-  default     = "https://gitlab.com/your-repo/azure-landing-zone-lab"
+  default     = "https://github.com/your-username/azure-landing-zone-lab"
 }
 
 # -----------------------------------------------------------------------------
@@ -632,6 +632,120 @@ variable "nsg_flow_logs_retention_days" {
 
 variable "deploy_application_security_groups" {
   description = "Deploy Application Security Groups for workload micro-segmentation"
+  type        = bool
+  default     = false
+}
+
+# -----------------------------------------------------------------------------
+# Azure Backup Configuration
+# -----------------------------------------------------------------------------
+
+variable "deploy_backup" {
+  description = "Deploy Azure Backup with Recovery Services Vault for VM protection"
+  type        = bool
+  default     = false
+}
+
+variable "backup_storage_redundancy" {
+  description = "Backup storage redundancy (GeoRedundant or LocallyRedundant)"
+  type        = string
+  default     = "LocallyRedundant"
+}
+
+variable "enable_soft_delete" {
+  description = "Enable soft delete for Recovery Services Vault"
+  type        = bool
+  default     = true
+}
+
+# -----------------------------------------------------------------------------
+# Secondary Region (Cross-Region) Configuration
+# -----------------------------------------------------------------------------
+
+variable "deploy_secondary_region" {
+  description = "Deploy secondary region hub in West Europe for cross-region scenarios"
+  type        = bool
+  default     = false
+}
+
+variable "secondary_location" {
+  description = "Secondary Azure region for cross-region testing"
+  type        = string
+  default     = "westeurope"
+}
+
+variable "secondary_address_space" {
+  description = "Secondary hub VNet address space"
+  type        = list(string)
+  default     = ["10.50.0.0/16"]
+}
+
+variable "secondary_subnet_prefix" {
+  description = "Secondary hub subnet prefix"
+  type        = string
+  default     = "10.50.1.0/24"
+}
+
+variable "secondary_vm_size" {
+  description = "VM size for secondary region test VM"
+  type        = string
+  default     = "Standard_B1s"
+}
+
+# -----------------------------------------------------------------------------
+# Azure Workbooks Configuration
+# -----------------------------------------------------------------------------
+
+variable "deploy_workbooks" {
+  description = "Deploy Azure Workbooks for monitoring dashboards (VM Performance, Network Traffic, Firewall)"
+  type        = bool
+  default     = false
+}
+
+# -----------------------------------------------------------------------------
+# Connection Monitor Configuration
+# -----------------------------------------------------------------------------
+
+variable "deploy_connection_monitor" {
+  description = "Deploy Connection Monitor for network connectivity testing"
+  type        = bool
+  default     = false
+}
+
+# -----------------------------------------------------------------------------
+# Scheduled Start/Stop Configuration
+# -----------------------------------------------------------------------------
+
+variable "enable_scheduled_startstop" {
+  description = "Enable scheduled VM start/stop for cost management"
+  type        = bool
+  default     = false
+}
+
+variable "startstop_timezone" {
+  description = "Timezone for scheduled start/stop (IANA format)"
+  type        = string
+  default     = "America/New_York"
+}
+
+variable "startstop_start_time" {
+  description = "Time to start VMs (HH:MM format)"
+  type        = string
+  default     = "08:00"
+}
+
+variable "startstop_stop_time" {
+  description = "Time to stop VMs (HH:MM format)"
+  type        = string
+  default     = "19:00"
+}
+
+# -----------------------------------------------------------------------------
+# RBAC Custom Roles Configuration
+# -----------------------------------------------------------------------------
+
+variable "deploy_rbac_custom_roles" {
+  description = "Deploy custom RBAC role definitions"
   type        = bool
   default     = false
 }

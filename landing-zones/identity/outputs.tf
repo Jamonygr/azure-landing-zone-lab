@@ -41,3 +41,8 @@ output "dc02_id" {
   description = "DC02 VM ID"
   value       = var.deploy_secondary_dc ? module.dc02[0].id : null
 }
+
+output "dc_nsg_id" {
+  description = "Domain Controllers NSG ID"
+  value       = module.dc_nsg.id
+}

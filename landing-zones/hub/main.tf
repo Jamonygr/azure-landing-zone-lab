@@ -209,6 +209,64 @@ module "appgw_subnet" {
   depends_on = [module.hub_mgmt_subnet]
 }
 
+# NSG for Application Gateway Subnet (required for WAF_v2)
+module "appgw_nsg" {
+  source = "../../modules/networking/nsg"
+  count  = var.deploy_application_gateway ? 1 : 0
+
+  name                  = "nsg-appgw-${var.environment}-${var.location_short}"
+  resource_group_name   = var.resource_group_name
+  location              = var.location
+  subnet_id             = module.appgw_subnet[0].id
+  associate_with_subnet = true
+  tags                  = var.tags
+
+  depends_on = [module.appgw_subnet]
+
+  security_rules = [
+    {
+      name                       = "AllowGatewayManager"
+      priority                   = 100
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      destination_port_range     = "65200-65535"
+      source_address_prefix      = "GatewayManager"
+      destination_address_prefix = "*"
+    },
+    {
+      name                       = "AllowAzureLoadBalancer"
+      priority                   = 110
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "*"
+      destination_port_range     = "*"
+      source_address_prefix      = "AzureLoadBalancer"
+      destination_address_prefix = "*"
+    },
+    {
+      name                       = "AllowHTTP"
+      priority                   = 200
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      destination_port_range     = "80"
+      source_address_prefix      = "Internet"
+      destination_address_prefix = "*"
+    },
+    {
+      name                       = "AllowHTTPS"
+      priority                   = 210
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      destination_port_range     = "443"
+      source_address_prefix      = "Internet"
+      destination_address_prefix = "*"
+    }
+  ]
+}
+
 # Application Gateway
 module "application_gateway" {
   source = "../../modules/application-gateway"
@@ -274,5 +332,5 @@ module "application_gateway" {
   enable_diagnostics         = var.enable_diagnostics
   tags                       = var.tags
 
-  depends_on = [module.appgw_subnet]
+  depends_on = [module.appgw_nsg]
 }

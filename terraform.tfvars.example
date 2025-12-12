@@ -6,11 +6,12 @@
 # -----------------------------------------------------------------------------
 # General Configuration
 # -----------------------------------------------------------------------------
+subscription_id = "00000000-0000-0000-0000-000000000000" # REQUIRED - replace with your subscription
 project        = "azlab"
 environment    = "lab"
 location       = "West Europe"
 owner          = "Your-Name"
-repository_url = "https://gitlab.com/your-username/azure-landing-zone-lab"
+repository_url = "https://github.com/your-username/azure-landing-zone-lab"
 
 # -----------------------------------------------------------------------------
 # Authentication (MUST CHANGE THESE!)
@@ -100,6 +101,16 @@ deploy_workload_dev  = false     # Enable if you need dev environment
 
 # On-Premises Simulation
 deploy_onprem_simulation = true  # ~$140/month for VPN Gateway
+
+# Network add-ons
+deploy_nat_gateway                 = false  # Fixed outbound IP for web subnet
+deploy_private_dns_zones           = false  # Private DNS for blob/Key Vault/SQL
+deploy_application_security_groups = false  # ASGs for web/app/data tiers
+
+# Observability
+enable_vnet_flow_logs    = false   # Requires storage + Network Watcher
+enable_traffic_analytics = false   # Requires flow logs + Log Analytics
+create_network_watcher   = false   # Set true only if your subscription lacks it
 
 # -----------------------------------------------------------------------------
 # VM Configuration

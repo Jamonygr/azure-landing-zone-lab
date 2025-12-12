@@ -32,6 +32,22 @@ output "web_nsg_id" {
   value       = module.web_nsg.id
 }
 
+output "app_nsg_id" {
+  description = "App tier NSG ID"
+  value       = module.app_nsg.id
+}
+
+output "data_nsg_id" {
+  description = "Data tier NSG ID"
+  value       = module.data_nsg.id
+}
+
+# AKS NSG (only when AKS is deployed)
+output "aks_nsg_id" {
+  description = "AKS subnet NSG ID"
+  value       = var.deploy_aks ? module.aks[0].nsg_id : null
+}
+
 # AKS Outputs
 output "aks_id" {
   description = "AKS cluster ID"
@@ -76,6 +92,11 @@ output "lb_backend_pool_id" {
 output "web_server_ips" {
   description = "Private IP addresses of web servers"
   value       = var.deploy_load_balancer ? [for ws in module.web_servers : ws.private_ip_address] : []
+}
+
+output "web_server_vm_ids" {
+  description = "IDs of web server virtual machines"
+  value       = var.deploy_load_balancer ? [for ws in module.web_servers : ws.id] : []
 }
 
 # =============================================================================

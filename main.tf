@@ -787,9 +787,11 @@ module "monitoring_alerts" {
   tags                = local.common_tags
 
   # VM monitoring
-  vm_ids = compact([
-    module.identity.dc01_id,
-  ])
+  vm_ids = concat(
+    [module.identity.dc01_id],
+    module.management.jumpbox_id != null ? [module.management.jumpbox_id] : [],
+    var.deploy_workload_prod && var.deploy_load_balancer ? module.workload_prod[0].web_server_vm_ids : []
+  )
   enable_vm_alerts = true
   vm_cpu_threshold = 85
 
@@ -806,12 +808,12 @@ module "monitoring_alerts" {
   enable_firewall_alerts    = var.deploy_firewall
 
   # VPN monitoring (disabled)
-  vpn_gateway_id    = ""
-  enable_vpn_alerts = false
+  vpn_gateway_id    = var.deploy_vpn_gateway ? module.hub.vpn_gateway_id : ""
+  enable_vpn_alerts = var.deploy_vpn_gateway
 
   # SQL monitoring (disabled by default)
-  sql_database_id   = ""
-  enable_sql_alerts = false
+  sql_database_id   = var.deploy_sql ? module.shared_services.sql_database_id : ""
+  enable_sql_alerts = var.deploy_sql
 
   depends_on = [
     module.monitoring_action_group,
@@ -833,19 +835,21 @@ module "monitoring_diagnostics" {
   # Resource IDs for diagnostic settings
   firewall_id                 = var.deploy_firewall ? module.hub.firewall_id : ""
   enable_firewall_diagnostics = var.deploy_firewall
-  vpn_gateway_id              = ""
-  enable_vpn_diagnostics      = false
+  vpn_gateway_id              = var.deploy_vpn_gateway ? module.hub.vpn_gateway_id : ""
+  enable_vpn_diagnostics      = var.deploy_vpn_gateway
   aks_cluster_id              = var.deploy_workload_prod && var.deploy_aks ? module.workload_prod[0].aks_id : ""
   enable_aks_diagnostics      = var.deploy_workload_prod && var.deploy_aks
-  sql_server_id               = ""
-  sql_database_id             = ""
-  enable_sql_diagnostics      = false
-  keyvault_id                 = ""
-  enable_keyvault_diagnostics = false
-  storage_account_id          = ""
-  enable_storage_diagnostics  = false
-  nsg_ids                     = []
-  enable_nsg_diagnostics      = false
+  sql_server_id               = var.deploy_sql ? module.shared_services.sql_server_id : ""
+  sql_database_id             = var.deploy_sql ? module.shared_services.sql_database_id : ""
+  enable_sql_diagnostics      = var.deploy_sql
+  keyvault_id                 = var.deploy_keyvault ? module.shared_services.keyvault_id : ""
+  enable_keyvault_diagnostics = var.deploy_keyvault
+  storage_account_id          = var.deploy_storage ? module.shared_services.storage_account_id : ""
+  enable_storage_diagnostics  = var.deploy_storage
+  # NSG diagnostics disabled - requires known keys at plan time
+  # To enable, use -target to apply NSGs first, then run apply again
+  nsg_ids = []
+  enable_nsg_diagnostics = false
 
   depends_on = [
     module.monitoring_alerts,
@@ -933,24 +937,32 @@ module "private_dns_blob" {
   resource_group_name = azurerm_resource_group.hub.name
   tags                = local.common_tags
 
-  virtual_network_links = {
-    "link-hub" = {
-      vnet_id              = module.hub.vnet_id
-      registration_enabled = false
-    }
-    "link-identity" = {
-      vnet_id              = module.identity.vnet_id
-      registration_enabled = false
-    }
-    "link-management" = {
-      vnet_id              = module.management.vnet_id
-      registration_enabled = false
-    }
-    "link-shared" = {
-      vnet_id              = module.shared_services.vnet_id
-      registration_enabled = false
-    }
-  }
+  virtual_network_links = merge(
+    {
+      "link-hub" = {
+        vnet_id              = module.hub.vnet_id
+        registration_enabled = false
+      }
+      "link-identity" = {
+        vnet_id              = module.identity.vnet_id
+        registration_enabled = false
+      }
+      "link-management" = {
+        vnet_id              = module.management.vnet_id
+        registration_enabled = false
+      }
+      "link-shared" = {
+        vnet_id              = module.shared_services.vnet_id
+        registration_enabled = false
+      }
+    },
+    var.deploy_workload_prod ? {
+      "link-workload-prod" = {
+        vnet_id              = module.workload_prod[0].vnet_id
+        registration_enabled = false
+      }
+    } : {}
+  )
 }
 
 # Private DNS Zone for Azure Key Vault
@@ -962,24 +974,32 @@ module "private_dns_keyvault" {
   resource_group_name = azurerm_resource_group.hub.name
   tags                = local.common_tags
 
-  virtual_network_links = {
-    "link-hub" = {
-      vnet_id              = module.hub.vnet_id
-      registration_enabled = false
-    }
-    "link-identity" = {
-      vnet_id              = module.identity.vnet_id
-      registration_enabled = false
-    }
-    "link-management" = {
-      vnet_id              = module.management.vnet_id
-      registration_enabled = false
-    }
-    "link-shared" = {
-      vnet_id              = module.shared_services.vnet_id
-      registration_enabled = false
-    }
-  }
+  virtual_network_links = merge(
+    {
+      "link-hub" = {
+        vnet_id              = module.hub.vnet_id
+        registration_enabled = false
+      }
+      "link-identity" = {
+        vnet_id              = module.identity.vnet_id
+        registration_enabled = false
+      }
+      "link-management" = {
+        vnet_id              = module.management.vnet_id
+        registration_enabled = false
+      }
+      "link-shared" = {
+        vnet_id              = module.shared_services.vnet_id
+        registration_enabled = false
+      }
+    },
+    var.deploy_workload_prod ? {
+      "link-workload-prod" = {
+        vnet_id              = module.workload_prod[0].vnet_id
+        registration_enabled = false
+      }
+    } : {}
+  )
 }
 
 # Private DNS Zone for Azure SQL Database
@@ -991,24 +1011,32 @@ module "private_dns_sql" {
   resource_group_name = azurerm_resource_group.hub.name
   tags                = local.common_tags
 
-  virtual_network_links = {
-    "link-hub" = {
-      vnet_id              = module.hub.vnet_id
-      registration_enabled = false
-    }
-    "link-identity" = {
-      vnet_id              = module.identity.vnet_id
-      registration_enabled = false
-    }
-    "link-management" = {
-      vnet_id              = module.management.vnet_id
-      registration_enabled = false
-    }
-    "link-shared" = {
-      vnet_id              = module.shared_services.vnet_id
-      registration_enabled = false
-    }
-  }
+  virtual_network_links = merge(
+    {
+      "link-hub" = {
+        vnet_id              = module.hub.vnet_id
+        registration_enabled = false
+      }
+      "link-identity" = {
+        vnet_id              = module.identity.vnet_id
+        registration_enabled = false
+      }
+      "link-management" = {
+        vnet_id              = module.management.vnet_id
+        registration_enabled = false
+      }
+      "link-shared" = {
+        vnet_id              = module.shared_services.vnet_id
+        registration_enabled = false
+      }
+    },
+    var.deploy_workload_prod ? {
+      "link-workload-prod" = {
+        vnet_id              = module.workload_prod[0].vnet_id
+        registration_enabled = false
+      }
+    } : {}
+  )
 }
 
 # =============================================================================
@@ -1123,6 +1151,87 @@ module "vnet_flow_logs_workload" {
   depends_on = [module.workload_prod, module.shared_services, module.management]
 }
 
+module "vnet_flow_logs_identity" {
+  source = "./modules/monitoring/vnet-flow-logs"
+  count  = var.enable_vnet_flow_logs ? 1 : 0
+
+  name               = "flowlog-vnet-identity-${local.environment}-${local.location_short}"
+  location           = var.location
+  virtual_network_id = module.identity.vnet_id
+  storage_account_id = module.shared_services.storage_account_id
+  tags               = local.common_tags
+
+  # Network Watcher settings
+  network_watcher_name                = "NetworkWatcher_${replace(lower(var.location), " ", "")}"
+  network_watcher_resource_group_name = "NetworkWatcherRG"
+  create_network_watcher              = var.create_network_watcher
+
+  # Retention
+  retention_enabled = true
+  retention_days    = var.nsg_flow_logs_retention_days
+
+  # Traffic Analytics (optional)
+  enable_traffic_analytics            = var.enable_traffic_analytics && var.deploy_log_analytics
+  log_analytics_workspace_guid        = var.deploy_log_analytics ? module.management.log_analytics_workspace_guid : null
+  log_analytics_workspace_resource_id = var.deploy_log_analytics ? module.management.log_analytics_workspace_id : null
+
+  depends_on = [module.identity, module.shared_services, module.management, module.vnet_flow_logs_hub]
+}
+
+module "vnet_flow_logs_management" {
+  source = "./modules/monitoring/vnet-flow-logs"
+  count  = var.enable_vnet_flow_logs ? 1 : 0
+
+  name               = "flowlog-vnet-mgmt-${local.environment}-${local.location_short}"
+  location           = var.location
+  virtual_network_id = module.management.vnet_id
+  storage_account_id = module.shared_services.storage_account_id
+  tags               = local.common_tags
+
+  # Network Watcher settings
+  network_watcher_name                = "NetworkWatcher_${replace(lower(var.location), " ", "")}"
+  network_watcher_resource_group_name = "NetworkWatcherRG"
+  create_network_watcher              = var.create_network_watcher
+
+  # Retention
+  retention_enabled = true
+  retention_days    = var.nsg_flow_logs_retention_days
+
+  # Traffic Analytics (optional)
+  enable_traffic_analytics            = var.enable_traffic_analytics && var.deploy_log_analytics
+  log_analytics_workspace_guid        = var.deploy_log_analytics ? module.management.log_analytics_workspace_guid : null
+  log_analytics_workspace_resource_id = var.deploy_log_analytics ? module.management.log_analytics_workspace_id : null
+
+  depends_on = [module.management, module.shared_services, module.vnet_flow_logs_identity]
+}
+
+module "vnet_flow_logs_shared" {
+  source = "./modules/monitoring/vnet-flow-logs"
+  count  = var.enable_vnet_flow_logs ? 1 : 0
+
+  name               = "flowlog-vnet-shared-${local.environment}-${local.location_short}"
+  location           = var.location
+  virtual_network_id = module.shared_services.vnet_id
+  storage_account_id = module.shared_services.storage_account_id
+  tags               = local.common_tags
+
+  # Network Watcher settings
+  network_watcher_name                = "NetworkWatcher_${replace(lower(var.location), " ", "")}"
+  network_watcher_resource_group_name = "NetworkWatcherRG"
+  create_network_watcher              = var.create_network_watcher
+
+  # Retention
+  retention_enabled = true
+  retention_days    = var.nsg_flow_logs_retention_days
+
+  # Traffic Analytics (optional)
+  enable_traffic_analytics            = var.enable_traffic_analytics && var.deploy_log_analytics
+  log_analytics_workspace_guid        = var.deploy_log_analytics ? module.management.log_analytics_workspace_guid : null
+  log_analytics_workspace_resource_id = var.deploy_log_analytics ? module.management.log_analytics_workspace_id : null
+
+  depends_on = [module.shared_services, module.management, module.vnet_flow_logs_management]
+}
+
 # =============================================================================
 # NSG FLOW LOGS (DEPRECATED - Azure retired new NSG Flow Log creation June 2025)
 # =============================================================================
@@ -1130,4 +1239,207 @@ module "vnet_flow_logs_workload" {
 # NSG Flow Logs will be fully retired on September 30, 2027.
 # Use VNet Flow Logs above instead.
 # See: https://learn.microsoft.com/azure/network-watcher/nsg-flow-logs-migrate
+
+# =============================================================================
+# SECONDARY REGION (West Europe Hub for Cross-Region Testing)
+# =============================================================================
+
+module "secondary_region" {
+  source = "./landing-zones/secondary-region"
+  count  = var.deploy_secondary_region ? 1 : 0
+
+  environment    = local.environment
+  location       = var.secondary_location
+  location_short = "weu"
+  tags           = merge(local.common_tags, { Region = "Secondary" })
+
+  address_space      = var.secondary_address_space
+  mgmt_subnet_prefix = var.secondary_subnet_prefix
+
+  # Global peering to primary hub
+  primary_hub_vnet_id        = module.hub.vnet_id
+  primary_hub_vnet_name      = module.hub.vnet_name
+  primary_hub_resource_group = azurerm_resource_group.hub.name
+  primary_has_gateway        = var.deploy_vpn_gateway
+  use_remote_gateways        = false # Global peering doesn't support remote gateways
+
+  # Test VM configuration
+  deploy_vm      = true
+  vm_size        = var.secondary_vm_size
+  admin_username = var.admin_username
+  admin_password = var.admin_password
+
+  depends_on = [module.hub]
+}
+
+# =============================================================================
+# AZURE BACKUP (Recovery Services Vault)
+# =============================================================================
+
+resource "azurerm_resource_group" "backup" {
+  count    = var.deploy_backup ? 1 : 0
+  name     = "rg-backup-${local.environment}-${local.location_short}"
+  location = var.location
+  tags     = local.common_tags
+}
+
+module "backup" {
+  source = "./modules/backup"
+  count  = var.deploy_backup ? 1 : 0
+
+  vault_name          = "rsv-${local.environment}-${local.location_short}"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.backup[0].name
+  tags                = local.common_tags
+
+  storage_mode_type   = var.backup_storage_redundancy
+  soft_delete_enabled = var.enable_soft_delete
+
+  # VMs to protect
+  protected_vms = [
+    {
+      name     = "dc01"
+      id       = module.identity.dc01_id
+      critical = true
+    }
+  ]
+
+  depends_on = [
+    module.identity,
+    module.workload_prod
+  ]
+}
+
+# =============================================================================
+# AZURE WORKBOOKS (Monitoring Dashboards)
+# =============================================================================
+
+module "workbooks" {
+  source = "./modules/monitoring/workbooks"
+  count  = var.deploy_workbooks && var.deploy_log_analytics ? 1 : 0
+
+  environment         = local.environment
+  location            = var.location
+  resource_group_name = azurerm_resource_group.management.name
+  tags                = local.common_tags
+
+  log_analytics_workspace_id = module.management.log_analytics_workspace_id
+
+  # Feature flags for workbooks
+  deploy_vm_workbook       = true
+  deploy_network_workbook  = true
+  deploy_firewall_workbook = var.deploy_firewall
+
+  depends_on = [module.management]
+}
+
+# =============================================================================
+# CONNECTION MONITOR (Network Connectivity Testing)
+# =============================================================================
+
+module "connection_monitor" {
+  source = "./modules/monitoring/connection-monitor"
+  count  = var.deploy_connection_monitor && var.deploy_log_analytics ? 1 : 0
+
+  monitor_name        = "cmon-${local.environment}-${local.location_short}"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.management.name
+  tags                = local.common_tags
+
+  log_analytics_workspace_id = module.management.log_analytics_workspace_id
+
+  # Source endpoints (VMs with Network Watcher Agent)
+  source_endpoints = [
+    {
+      name        = "DC01"
+      resource_id = module.identity.dc01_id
+    }
+  ]
+
+  # Destination endpoints
+  destination_endpoints = [
+    {
+      name    = "Azure-Portal"
+      address = "portal.azure.com"
+      type    = "ExternalAddress"
+    },
+    {
+      name    = "Microsoft"
+      address = "www.microsoft.com"
+      type    = "ExternalAddress"
+    }
+  ]
+
+  # Test configurations
+  test_configurations = [
+    {
+      name              = "tcp-443"
+      protocol          = "Tcp"
+      frequency_seconds = 60
+      port              = 443
+      trace_route       = true
+    },
+    {
+      name              = "icmp-ping"
+      protocol          = "Icmp"
+      frequency_seconds = 60
+      trace_route       = true
+    }
+  ]
+
+  depends_on = [module.identity, module.management]
+}
+
+# =============================================================================
+# AUTOMATION (Scheduled Start/Stop)
+# =============================================================================
+
+resource "azurerm_resource_group" "automation" {
+  count    = var.enable_scheduled_startstop ? 1 : 0
+  name     = "rg-automation-${local.environment}-${local.location_short}"
+  location = var.location
+  tags     = local.common_tags
+}
+
+module "automation" {
+  source = "./modules/automation"
+  count  = var.enable_scheduled_startstop ? 1 : 0
+
+  automation_account_name = "aa-${local.environment}-${local.location_short}"
+  location                = var.location
+  resource_group_name     = azurerm_resource_group.automation[0].name
+  tags                    = local.common_tags
+
+  subscription_id = var.subscription_id
+
+  # Resource groups to manage
+  resource_group_names = [
+    azurerm_resource_group.identity.name,
+    var.deploy_workload_prod ? azurerm_resource_group.workload_prod[0].name : ""
+  ]
+
+  # Schedule configuration
+  timezone            = var.startstop_timezone
+  enable_start_schedule = true
+  enable_stop_schedule  = true
+
+  depends_on = [
+    module.identity,
+    module.workload_prod
+  ]
+}
+
+# =============================================================================
+# RBAC CUSTOM ROLES
+# =============================================================================
+
+module "rbac" {
+  source = "./modules/rbac"
+  count  = var.deploy_rbac_custom_roles ? 1 : 0
+
+  # Role definitions
+  deploy_network_operator_role   = true
+  deploy_backup_operator_role    = true
+  deploy_monitoring_reader_role  = true
+}
 

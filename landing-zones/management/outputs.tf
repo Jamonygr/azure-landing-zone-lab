@@ -32,6 +32,11 @@ output "jumpbox_id" {
   value       = module.jumpbox.id
 }
 
+output "jumpbox_nsg_id" {
+  description = "Jump box NSG ID"
+  value       = module.jumpbox_nsg.id
+}
+
 output "log_analytics_workspace_id" {
   description = "Log Analytics workspace ID"
   value       = var.deploy_log_analytics ? module.log_analytics[0].id : null

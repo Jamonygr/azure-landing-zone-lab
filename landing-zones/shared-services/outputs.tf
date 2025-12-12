@@ -17,6 +17,11 @@ output "app_subnet_id" {
   value       = module.app_subnet.id
 }
 
+output "app_nsg_id" {
+  description = "Application subnet NSG ID"
+  value       = module.app_nsg.id
+}
+
 output "pe_subnet_id" {
   description = "Private Endpoint subnet ID"
   value       = module.pe_subnet.id
@@ -45,6 +50,16 @@ output "storage_account_name" {
 output "sql_server_fqdn" {
   description = "SQL Server FQDN"
   value       = var.deploy_sql ? module.sql[0].server_fqdn : null
+}
+
+output "sql_server_id" {
+  description = "SQL Server resource ID"
+  value       = var.deploy_sql ? module.sql[0].server_id : null
+}
+
+output "sql_database_id" {
+  description = "SQL Database resource ID"
+  value       = var.deploy_sql ? module.sql[0].database_id : null
 }
 
 output "sql_database_name" {

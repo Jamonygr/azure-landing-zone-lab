@@ -22,7 +22,8 @@ Everything is controlled with variables and feature flags so you can scale the f
 1) Start with **Architecture** to see how the Terraform files fit together.  
 2) Move to **Landing zones** to understand each slice of the platform.  
 3) Check **Modules** if you want to reuse a building block in your own code.  
-4) Refer to **Reference** for variables, outputs, and naming while you edit `terraform.tfvars`.
+4) Refer to **Reference** for variables, outputs, and naming while you edit `terraform.tfvars`.  
+5) Use **Lab testing** after your first apply to confirm everything works end to end.
 
 ## Article map
 
@@ -49,6 +50,7 @@ Everything is controlled with variables and feature flags so you can scale the f
 | [Outputs reference](reference/outputs.md) | What the deployment returns for downstream use. |
 | [Naming conventions](reference/naming-conventions.md) | CAF-aligned names and tags used throughout. |
 | [Terraform patterns](reference/terraform-patterns.md) | Reusable HCL idioms in this repo. |
+| [Lab testing guide](testing/lab-testing-guide.md) | Step-by-step validation checklist after deployment. |
 
 ## Before you start
 

@@ -30,7 +30,7 @@ If a value is missing or of the wrong type, Terraform fails fast during `plan`, 
 | Security | `admin_username`, `admin_password`, `vpn_shared_key` | Authenticates VMs and VPN connections. |
 | Features | `deploy_firewall`, `deploy_vpn_gateway`, `deploy_aks`, `deploy_application_gateway`, `deploy_private_dns_zones`, `deploy_nat_gateway`, `deploy_application_security_groups` | Turns big-ticket items and network extensions on or off. |
 | Workload | `lb_type`, `lb_web_server_count`, `lb_web_server_size` | Sizes the sample application tier. |
-| PaaS | `deploy_functions`, `deploy_cosmos_db`, `deploy_container_apps`, `paas_alternative_location` | Controls optional cloud services. |
+| PaaS | `deploy_functions`, `deploy_cosmos_db`, `deploy_container_apps` (placeholder), `paas_alternative_location` | Controls optional cloud services. |
 | Monitoring | `deploy_log_analytics`, `enable_vnet_flow_logs`, `enable_traffic_analytics`, `create_network_watcher`, `log_retention_days`, `log_daily_quota_gb` | Governs observability settings and prerequisites. |
 
 ## What locals do

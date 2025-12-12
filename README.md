@@ -60,6 +60,7 @@ Enable these when you need tighter control or visibility. Check prerequisites to
 | `deploy_application_security_groups` | ASGs for web/app/data tiers to simplify NSG rules. | Workload prod on. | None. |
 | `enable_vnet_flow_logs` | VNet flow logs to storage. | `deploy_storage = true`, Network Watcher in region (`create_network_watcher = true` for new subs). | Storage ingest. |
 | `enable_traffic_analytics` | Analytics on flow logs. | `enable_vnet_flow_logs`, `deploy_log_analytics = true`, storage. | Log Analytics ingest. |
+| `create_network_watcher` | Creates NetworkWatcherRG/Network Watcher if missing. | Set true only if your sub lacks it. | None. |
 
 ### ☁️ PaaS Services (Cloud-Native Workloads)
 | Service | Description | Cost |
@@ -70,7 +71,6 @@ Enable these when you need tighter control or visibility. Check prerequisites to
 | 📬 **Event Grid** | Event-driven messaging | FREE (100k ops/month) |
 | 🚌 **Service Bus** | Enterprise messaging | ~$0.05/month |
 | 🌍 **App Service** | Web app hosting | ~$13/month |
-| 📦 **Container Apps** | Managed containers | ~$5/month |
 | 🗃️ **Cosmos DB** | NoSQL database | ~$0-5/month |
 
 ### 🎯 Use Cases
@@ -262,7 +262,7 @@ Invoke-WebRequest -Uri https://ifconfig.me  # Check SNAT IP
 deploy_aks = true
 
 # Connect to cluster
-az aks get-credentials --resource-group rg-workload-prod-lab-east --name aks-prod-lab-east
+az aks get-credentials --resource-group rg-workload-prod-lab-<location_short> --name aks-prod-lab-<location_short>
 kubectl get nodes
 ```
 
@@ -515,15 +515,16 @@ cd azure-landing-zone-lab
 # Copy example config
 cp terraform.tfvars.example terraform.tfvars
 
-# Edit configuration
+# Edit configuration (set at minimum subscription_id and admin credentials)
 code terraform.tfvars
 ```
 
 ### Step 2: Deploy
 
 ```bash
-# Login to Azure
+# Login to Azure and set the target subscription
 az login
+az account set --subscription "<your-subscription-id>"
 
 # Initialize Terraform
 terraform init
@@ -543,6 +544,9 @@ terraform output lb_frontend_ip
 
 # Test with curl (should alternate between web01-prd and web02-prd)
 curl http://$(terraform output -raw lb_frontend_ip)
+
+# Clean up when done
+terraform destroy
 ```
 
 ---
@@ -555,24 +559,10 @@ curl http://$(terraform output -raw lb_frontend_ip)
 # =============================================================================
 # CORE SETTINGS
 # =============================================================================
+subscription_id = "00000000-0000-0000-0000-000000000000"  # REQUIRED
 project     = "azlab"
 environment = "lab"
-location    = "eastus"
-
-# =============================================================================
-# LOAD BALANCER CONFIGURATION (Always Deployed)
-# =============================================================================
-lb_type              = "public"          # public or internal
-lb_web_server_count  = 2                 # Number of web servers (1-10)
-lb_web_server_size   = "Standard_B1ms"   # VM size (2GB RAM min for IIS)
-
-# =============================================================================
-# OPTIONAL COMPONENTS
-# =============================================================================
-deploy_vpn_gateway       = false         # VPN Gateway (~30 min deploy)
-deploy_onprem_simulation = false         # Simulated on-premises
-deploy_aks               = false         # Azure Kubernetes Service
-deploy_sql               = false         # Azure SQL Database
+location    = "West Europe"
 
 # =============================================================================
 # SECURITY
@@ -581,11 +571,64 @@ admin_username = "azureadmin"
 admin_password = "YourSecurePassword123!"  # Change this!
 
 # =============================================================================
+# PLATFORM FLAGS (Costs)
+# =============================================================================
+deploy_firewall          = true           # Azure Firewall (~$350/mo)
+deploy_vpn_gateway       = false          # VPN Gateway (~30 min deploy)
+deploy_onprem_simulation = false          # Simulated on-premises
+deploy_application_gateway = false        # App Gateway with WAF (~$36/mo)
+
+# =============================================================================
+# WORKLOADS
+# =============================================================================
+deploy_workload_prod = true
+deploy_workload_dev  = false
+
+# Load Balancer
+deploy_load_balancer = true
+lb_type              = "public"          # public or internal
+lb_web_server_count  = 2                 # Number of web servers (1-10)
+lb_web_server_size   = "Standard_B1ms"   # VM size (2GB RAM min for IIS)
+
+# AKS
+deploy_aks       = false
+aks_node_count   = 1
+aks_vm_size      = "Standard_B2s"
+
+# PaaS (all optional, cheap)
+deploy_functions       = false
+deploy_static_web_app  = false
+deploy_logic_apps      = false
+deploy_event_grid      = false
+deploy_service_bus     = false
+deploy_app_service     = false
+deploy_cosmos_db       = false
+
+# =============================================================================
+# NETWORK ADD-ONS
+# =============================================================================
+deploy_nat_gateway               = false  # Fixed outbound IP for web subnet
+deploy_private_dns_zones         = false  # Private DNS for blob/Key Vault/SQL
+deploy_application_security_groups = false # ASGs for web/app/data tiers
+
+# =============================================================================
+# OBSERVABILITY
+# =============================================================================
+deploy_log_analytics    = true   # Needed for diagnostics/Traffic Analytics
+enable_vnet_flow_logs   = false  # Requires deploy_storage + Network Watcher
+enable_traffic_analytics = false # Requires flow logs + Log Analytics
+create_network_watcher  = false  # Set true if your sub lacks NetworkWatcherRG
+log_retention_days      = 30
+log_daily_quota_gb      = 1
+
+# =============================================================================
 # COST OPTIMIZATION
 # =============================================================================
-enable_auto_shutdown = true              # VMs shutdown at 7 PM
-vm_size              = "Standard_B2s"    # Default VM size
+enable_auto_shutdown = true       # VMs shutdown at 7 PM
+vm_size              = "Standard_B2s"
 ```
+
+> Replace `<location_short>` in CLI examples with the short code derived from your region (e.g., `weu` for West Europe, `eus` for East US). See `locals.tf` for the mapping logic.
 
 ---
 
@@ -661,18 +704,18 @@ Test-NetConnection -ComputerName 10.100.1.4 -Port 445  # File server on-prem
 ```bash
 # Check backend pool health
 az network lb show \
-  --resource-group rg-workload-prod-lab-east \
-  --name lb-prod-lab-east \
+  --resource-group rg-workload-prod-lab-<location_short> \
+  --name lb-prod-lab-<location_short> \
   --query "loadBalancingRules[].backendAddressPool.id" -o table
 
 # Check probe status
 az network lb probe list \
-  --resource-group rg-workload-prod-lab-east \
-  --lb-name lb-prod-lab-east -o table
+  --resource-group rg-workload-prod-lab-<location_short> \
+  --lb-name lb-prod-lab-<location_short> -o table
 
 # Check VPN tunnel status
 az network vpn-connection show \
-  --resource-group rg-hub-lab-east \
+  --resource-group rg-hub-lab-<location_short> \
   --name vpn-conn-hub-to-onprem \
   --query "connectionStatus" -o tsv
 ```
@@ -779,19 +822,19 @@ VMs are configured to auto-shutdown at **7:00 PM** local time when `enable_auto_
 ```bash
 # Check if VMs are in backend pool
 az network nic show \
-  --resource-group rg-workload-prod-lab-east \
+  --resource-group rg-workload-prod-lab-<location_short> \
   --name nic-web01-prd \
   --query "ipConfigurations[0].loadBalancerBackendAddressPools" -o table
 
 # Check health probe status
 az network lb probe list \
-  --resource-group rg-workload-prod-lab-east \
-  --lb-name lb-prod-lab-east -o table
+  --resource-group rg-workload-prod-lab-<location_short> \
+  --lb-name lb-prod-lab-<location_short> -o table
 
 # Verify NSG allows HTTP
 az network nsg rule list \
-  --resource-group rg-workload-prod-lab-east \
-  --nsg-name nsg-web-prod-lab-east -o table
+  --resource-group rg-workload-prod-lab-<location_short> \
+  --nsg-name nsg-web-prod-lab-<location_short> -o table
 ```
 
 #### Asymmetric Routing Issues
@@ -825,19 +868,19 @@ Set-Content -Path "C:\inetpub\wwwroot\index.html" -Value $content
 ```bash
 # Check VPN connection status
 az network vpn-connection show \
-  --resource-group rg-hub-lab-east \
+  --resource-group rg-hub-lab-<location_short> \
   --name vpn-conn-hub-to-onprem \
   --query "{Status:connectionStatus,IngressBytes:ingressBytesTransferred,EgressBytes:egressBytesTransferred}" -o table
 
 # Check VPN Gateway status
 az network vnet-gateway show \
-  --resource-group rg-hub-lab-east \
-  --name vpngw-hub-lab-east \
+  --resource-group rg-hub-lab-<location_short> \
+  --name vpngw-hub-lab-<location_short> \
   --query "provisioningState" -o tsv
 
 # Reset VPN connection if stuck
 az network vpn-connection update \
-  --resource-group rg-hub-lab-east \
+  --resource-group rg-hub-lab-<location_short> \
   --name vpn-conn-hub-to-onprem \
   --set connectionProtocol=IKEv2
 ```
@@ -849,7 +892,7 @@ az network vpn-connection update \
 Test-NetConnection -ComputerName kv-azlab-xxxx.vault.azure.net -Port 443
 
 # Verify RBAC access
-az role assignment list --scope /subscriptions/<sub-id>/resourceGroups/rg-shared-lab-east
+az role assignment list --scope /subscriptions/<sub-id>/resourceGroups/rg-shared-lab-<location_short>
 
 # Check Key Vault firewall
 az keyvault network-rule list --name kv-azlab-xxxx
@@ -995,7 +1038,7 @@ vpn_shared_key     = "YourVPNSharedKey123!"   # If using VPN
 # =============================================================================
 project     = "azlab"                          # Resource naming prefix
 environment = "lab"                            # Environment tag
-location    = "eastus"                         # Azure region
+location    = "West Europe"                    # Azure region
 
 # =============================================================================
 # DEPLOYMENT FLAGS - Enable/disable components
@@ -1077,7 +1120,7 @@ terraform destroy -auto-approve
 terraform destroy -target=module.workload_prod
 
 # Import existing resource
-terraform import azurerm_resource_group.hub /subscriptions/.../resourceGroups/rg-hub-lab-east
+terraform import azurerm_resource_group.hub /subscriptions/.../resourceGroups/rg-hub-lab-<location_short>
 ```
 
 ---

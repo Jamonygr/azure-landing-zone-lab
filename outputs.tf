@@ -211,3 +211,40 @@ output "connection_info" {
     
   EOT
 }
+
+# -----------------------------------------------------------------------------
+# Secondary Region Outputs
+# -----------------------------------------------------------------------------
+
+output "secondary_region_vnet_id" {
+  description = "Secondary region hub VNet ID"
+  value       = var.deploy_secondary_region ? module.secondary_region[0].vnet_id : null
+}
+
+output "secondary_region_vm_private_ip" {
+  description = "Secondary region test VM private IP"
+  value       = var.deploy_secondary_region ? module.secondary_region[0].vm_private_ip : null
+}
+
+# -----------------------------------------------------------------------------
+# Backup Outputs
+# -----------------------------------------------------------------------------
+
+output "recovery_services_vault_id" {
+  description = "Recovery Services Vault ID"
+  value       = var.deploy_backup ? module.backup[0].vault_id : null
+}
+
+output "recovery_services_vault_name" {
+  description = "Recovery Services Vault Name"
+  value       = var.deploy_backup ? module.backup[0].vault_name : null
+}
+
+# -----------------------------------------------------------------------------
+# Automation Outputs
+# -----------------------------------------------------------------------------
+
+output "automation_account_name" {
+  description = "Automation Account name for scheduled start/stop"
+  value       = var.enable_scheduled_startstop ? module.automation[0].automation_account_name : null
+}
