@@ -21,7 +21,7 @@ The lab is built from small, reusable Terraform modules. Each module creates a f
 1. Create a scratch `main.tf` that points to the module folder.  
 2. Supply the minimal inputs and run `terraform init && terraform apply`.  
 3. Destroy when finished to keep costs near zero.  
-4. Add the module to `docs/modules/*.md` if you plan to keep it.
+4. Add the module to `wiki/modules/*.md` if you plan to keep it.
 
 ## Categories you will find
 
