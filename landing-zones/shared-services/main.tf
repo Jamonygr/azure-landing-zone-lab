@@ -164,3 +164,52 @@ module "shared_route_table" {
     }
   ]
 }
+
+# =============================================================================
+# PRIVATE ENDPOINTS
+# =============================================================================
+
+# Private Endpoint for Key Vault
+module "keyvault_private_endpoint" {
+  source = "../../modules/private-endpoint"
+  count  = var.deploy_private_endpoints && var.deploy_keyvault ? 1 : 0
+
+  name                           = "pe-kv-${var.project}-${var.environment}-${var.location_short}"
+  resource_group_name            = var.resource_group_name
+  location                       = var.location
+  subnet_id                      = module.pe_subnet.id
+  private_connection_resource_id = module.keyvault[0].id
+  subresource_names              = ["vault"]
+  private_dns_zone_id            = var.private_dns_zone_keyvault_id
+  tags                           = var.tags
+}
+
+# Private Endpoint for Storage Account (Blob)
+module "storage_private_endpoint" {
+  source = "../../modules/private-endpoint"
+  count  = var.deploy_private_endpoints && var.deploy_storage ? 1 : 0
+
+  name                           = "pe-st-${var.project}-${var.environment}-${var.location_short}"
+  resource_group_name            = var.resource_group_name
+  location                       = var.location
+  subnet_id                      = module.pe_subnet.id
+  private_connection_resource_id = module.storage[0].id
+  subresource_names              = ["blob"]
+  private_dns_zone_id            = var.private_dns_zone_blob_id
+  tags                           = var.tags
+}
+
+# Private Endpoint for SQL Server
+module "sql_private_endpoint" {
+  source = "../../modules/private-endpoint"
+  count  = var.deploy_private_endpoints && var.deploy_sql ? 1 : 0
+
+  name                           = "pe-sql-${var.project}-${var.environment}-${var.location_short}"
+  resource_group_name            = var.resource_group_name
+  location                       = var.location
+  subnet_id                      = module.pe_subnet.id
+  private_connection_resource_id = module.sql[0].server_id
+  subresource_names              = ["sqlServer"]
+  private_dns_zone_id            = var.private_dns_zone_sql_id
+  tags                           = var.tags
+}

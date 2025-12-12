@@ -50,6 +50,8 @@ Everything is controlled with variables and feature flags so you can scale the f
 | [Outputs reference](reference/outputs.md) | What the deployment returns for downstream use. |
 | [Naming conventions](reference/naming-conventions.md) | CAF-aligned names and tags used throughout. |
 | [Terraform patterns](reference/terraform-patterns.md) | Reusable HCL idioms in this repo. |
+| [Current config (VPN-off, public jumpbox)](reference/current-config.md) | Snapshot of the active lab profile and access path. |
+| [Hardening checklist](reference/hardening.md) | Quick steps to lock down the current lab profile. |
 | [Lab testing guide](testing/lab-testing-guide.md) | Step-by-step validation checklist after deployment. |
 
 ## Before you start

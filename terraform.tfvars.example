@@ -118,3 +118,46 @@ create_network_watcher   = false   # Set true only if your subscription lacks it
 vm_size              = "Standard_B2s"  # 2 vCPU, 4 GB RAM
 sql_vm_size          = "Standard_B2s"  # Same for SQL VMs
 enable_auto_shutdown = true            # Auto-shutdown at 7 PM
+
+# -----------------------------------------------------------------------------
+# Private Endpoints Configuration
+# -----------------------------------------------------------------------------
+deploy_private_endpoints = false  # Private Endpoints for Key Vault, Storage, SQL
+                                  # Requires deploy_private_dns_zones = true
+
+# -----------------------------------------------------------------------------
+# Azure Policy Configuration  
+# -----------------------------------------------------------------------------
+deploy_azure_policy = false  # Enable Azure Policy governance assignments
+
+# Policy allowed locations (where resources can be deployed)
+# policy_allowed_locations = ["westeurope", "northeurope", "eastus", "eastus2"]
+
+# Required tags for all resources
+# policy_required_tags = {
+#   "Environment" = ""
+#   "Owner"       = ""
+#   "Project"     = ""
+# }
+
+# -----------------------------------------------------------------------------
+# Management Groups Configuration (CAF Hierarchy)
+# -----------------------------------------------------------------------------
+deploy_management_groups   = false          # Create CAF management group hierarchy
+management_group_root_name = "Organization" # Root management group display name
+management_group_root_id   = "org-root"     # Root management group ID (unique per tenant)
+
+# -----------------------------------------------------------------------------
+# Cost Management Configuration
+# -----------------------------------------------------------------------------
+deploy_cost_management = false  # Enable cost budgets and alerts
+cost_budget_amount     = 1000   # Monthly budget in USD
+# cost_alert_emails    = ["admin@example.com", "finance@example.com"]
+
+# -----------------------------------------------------------------------------
+# Regulatory Compliance Configuration
+# -----------------------------------------------------------------------------
+deploy_regulatory_compliance = false       # Deploy HIPAA/PCI-DSS to workload RGs
+enable_hipaa_compliance      = false       # HIPAA HITRUST 9.2 policy initiative
+enable_pci_dss_compliance    = false       # PCI-DSS 4.0 policy initiative
+compliance_enforcement_mode  = "DoNotEnforce"  # "Default" to enforce, "DoNotEnforce" for audit

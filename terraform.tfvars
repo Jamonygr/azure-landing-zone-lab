@@ -86,7 +86,7 @@ onprem_bgp_asn               = 65050
 # Core Infrastructure
 deploy_firewall    = true # ~$300/month
 firewall_sku_tier  = "Standard"
-deploy_vpn_gateway = false # DISABLED - takes too long to provision (~$140/month)
+deploy_vpn_gateway = false # Disabled per request to avoid VPN deployment
 vpn_gateway_sku    = "VpnGw1"
 enable_bgp         = false # Disabled with VPN
 hub_bgp_asn        = 65515
@@ -95,7 +95,8 @@ hub_bgp_asn        = 65515
 deploy_secondary_dc = false # Save ~$30/month
 
 # Management
-enable_jumpbox_public_ip = false # Recommended: Use VPN instead
+enable_jumpbox_public_ip = true  # Enable public RDP to jumpbox
+allowed_jumpbox_source_ips = ["0.0.0.0/0"] # TODO: tighten to your public IP/CIDR
 deploy_log_analytics     = true
 log_retention_days       = 30 # Free tier
 log_daily_quota_gb       = 1  # Limit ingestion
@@ -158,7 +159,7 @@ paas_alternative_location = "westus2"
 # PaaS Services - Tier 4 (Gateway)
 # Higher fixed cost but provides enterprise features
 # -----------------------------------------------------------------------------
-deploy_application_gateway = true # App Gateway WAF_v2 - ~$36/month
+deploy_application_gateway = false # Disabled until backend IPs are wired (avoids unused cost)
 hub_appgw_subnet_prefix    = "10.0.3.0/24"
 appgw_waf_mode             = "Detection" # Use Prevention in production
 
@@ -171,3 +172,19 @@ workload_prod_container_apps_subnet_prefix = "10.10.8.0/23" # /23 for Container 
 vm_size              = "Standard_B2s" # 2 vCPU, 4 GB RAM, ~$30/month
 sql_vm_size          = "Standard_B2s" # Same for SQL VM
 enable_auto_shutdown = true           # Shutdown at 7 PM to save costs
+
+# -----------------------------------------------------------------------------
+# Private Endpoints Configuration
+# -----------------------------------------------------------------------------
+deploy_private_dns_zones = true  # Required for private endpoints
+deploy_private_endpoints = true  # Private Endpoints for Key Vault, Storage, SQL
+
+# -----------------------------------------------------------------------------
+# Azure Policy Configuration
+# -----------------------------------------------------------------------------
+deploy_azure_policy      = false  # Disabled - policy conflicts with resource creation
+
+# -----------------------------------------------------------------------------
+# Regulatory Compliance (Workload RGs Only - Audit Mode)
+# -----------------------------------------------------------------------------
+deploy_regulatory_compliance = false  # Disabled - policy initiatives have parameter changes

@@ -66,3 +66,22 @@ output "sql_database_name" {
   description = "SQL Database name"
   value       = var.deploy_sql ? module.sql[0].database_name : null
 }
+
+# =============================================================================
+# PRIVATE ENDPOINT OUTPUTS
+# =============================================================================
+
+output "keyvault_private_endpoint_id" {
+  description = "Key Vault Private Endpoint ID"
+  value       = var.deploy_private_endpoints && var.deploy_keyvault ? module.keyvault_private_endpoint[0].id : null
+}
+
+output "storage_private_endpoint_id" {
+  description = "Storage Account Private Endpoint ID"
+  value       = var.deploy_private_endpoints && var.deploy_storage ? module.storage_private_endpoint[0].id : null
+}
+
+output "sql_private_endpoint_id" {
+  description = "SQL Server Private Endpoint ID"
+  value       = var.deploy_private_endpoints && var.deploy_sql ? module.sql_private_endpoint[0].id : null
+}

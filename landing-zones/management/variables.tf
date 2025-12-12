@@ -88,6 +88,12 @@ variable "enable_jumpbox_public_ip" {
   default     = false
 }
 
+variable "allowed_jumpbox_source_ips" {
+  description = "IP ranges allowed to RDP to the jump box when a public IP is enabled"
+  type        = list(string)
+  default     = []
+}
+
 variable "enable_auto_shutdown" {
   description = "Enable auto-shutdown"
   type        = bool

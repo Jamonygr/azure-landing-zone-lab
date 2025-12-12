@@ -318,6 +318,12 @@ variable "enable_jumpbox_public_ip" {
   default     = false
 }
 
+variable "allowed_jumpbox_source_ips" {
+  description = "List of IPs/CIDRs allowed to RDP to the jump box when a public IP is enabled"
+  type        = list(string)
+  default     = []
+}
+
 variable "deploy_log_analytics" {
   description = "Deploy Log Analytics workspace"
   type        = bool
@@ -568,6 +574,12 @@ variable "deploy_private_dns_zones" {
   default     = false
 }
 
+variable "deploy_private_endpoints" {
+  description = "Deploy Private Endpoints for Key Vault, Storage, and SQL (requires deploy_private_dns_zones = true)"
+  type        = bool
+  default     = false
+}
+
 # -----------------------------------------------------------------------------
 # Network Extensions - NAT Gateway
 # -----------------------------------------------------------------------------
@@ -748,4 +760,107 @@ variable "deploy_rbac_custom_roles" {
   description = "Deploy custom RBAC role definitions"
   type        = bool
   default     = false
+}
+
+# -----------------------------------------------------------------------------
+# Azure Policy Configuration
+# -----------------------------------------------------------------------------
+
+variable "deploy_azure_policy" {
+  description = "Deploy Azure Policy assignments for governance"
+  type        = bool
+  default     = false
+}
+
+variable "policy_allowed_locations" {
+  description = "List of allowed Azure locations for policy enforcement"
+  type        = list(string)
+  default     = ["westeurope", "northeurope", "eastus", "eastus2", "westus2"]
+}
+
+variable "policy_required_tags" {
+  description = "Map of required tag names for policy enforcement"
+  type        = map(string)
+  default = {
+    "Environment" = ""
+    "Owner"       = ""
+    "Project"     = ""
+  }
+}
+
+# -----------------------------------------------------------------------------
+# Management Groups Configuration
+# -----------------------------------------------------------------------------
+
+variable "deploy_management_groups" {
+  description = "Deploy management group hierarchy following CAF"
+  type        = bool
+  default     = false
+}
+
+variable "management_group_root_name" {
+  description = "Display name for the root management group"
+  type        = string
+  default     = "Organization"
+}
+
+variable "management_group_root_id" {
+  description = "ID for the root management group (must be unique in tenant)"
+  type        = string
+  default     = "org-root"
+}
+
+# -----------------------------------------------------------------------------
+# Cost Management Configuration
+# -----------------------------------------------------------------------------
+
+variable "deploy_cost_management" {
+  description = "Deploy cost management budgets and alerts"
+  type        = bool
+  default     = false
+}
+
+variable "cost_budget_amount" {
+  description = "Monthly cost budget amount in USD"
+  type        = number
+  default     = 1000
+}
+
+variable "cost_alert_emails" {
+  description = "Email addresses to receive cost alerts"
+  type        = list(string)
+  default     = []
+}
+
+# -----------------------------------------------------------------------------
+# Regulatory Compliance Configuration
+# -----------------------------------------------------------------------------
+
+variable "deploy_regulatory_compliance" {
+  description = "Deploy regulatory compliance policies (HIPAA/PCI-DSS) to workload resource groups"
+  type        = bool
+  default     = false
+}
+
+variable "enable_hipaa_compliance" {
+  description = "Enable HIPAA HITRUST 9.2 policy initiative on workload RGs"
+  type        = bool
+  default     = false
+}
+
+variable "enable_pci_dss_compliance" {
+  description = "Enable PCI-DSS 4.0 policy initiative on workload RGs"
+  type        = bool
+  default     = false
+}
+
+variable "compliance_enforcement_mode" {
+  description = "Enforcement mode for compliance policies (Default or DoNotEnforce for audit-only)"
+  type        = string
+  default     = "DoNotEnforce"
+
+  validation {
+    condition     = contains(["Default", "DoNotEnforce"], var.compliance_enforcement_mode)
+    error_message = "Enforcement mode must be Default or DoNotEnforce."
+  }
 }

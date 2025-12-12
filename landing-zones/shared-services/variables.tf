@@ -126,3 +126,31 @@ variable "random_suffix" {
   type        = string
   default     = ""
 }
+
+# -----------------------------------------------------------------------------
+# Private Endpoints Configuration
+# -----------------------------------------------------------------------------
+
+variable "deploy_private_endpoints" {
+  description = "Deploy Private Endpoints for Key Vault, Storage, and SQL"
+  type        = bool
+  default     = false
+}
+
+variable "private_dns_zone_blob_id" {
+  description = "Private DNS Zone ID for Azure Blob Storage"
+  type        = string
+  default     = null
+}
+
+variable "private_dns_zone_keyvault_id" {
+  description = "Private DNS Zone ID for Azure Key Vault"
+  type        = string
+  default     = null
+}
+
+variable "private_dns_zone_sql_id" {
+  description = "Private DNS Zone ID for Azure SQL"
+  type        = string
+  default     = null
+}

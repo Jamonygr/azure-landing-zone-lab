@@ -39,10 +39,23 @@ module "jumpbox_nsg" {
 
   depends_on = [module.jumpbox_subnet]  # Wait for subnet before NSG association
 
-  security_rules = [
+  security_rules = concat(
+    length(var.allowed_jumpbox_source_ips) > 0 ? [
+      for idx, ip in var.allowed_jumpbox_source_ips : {
+        name                       = "AllowRDPFromTrusted${idx + 1}"
+        priority                   = 100 + idx
+        direction                  = "Inbound"
+        access                     = "Allow"
+        protocol                   = "Tcp"
+        destination_port_range     = "3389"
+        source_address_prefix      = ip
+        destination_address_prefix = "*"
+      }
+    ] : [],
+  [
     {
       name                       = "AllowRDPFromVPN"
-      priority                   = 100
+      priority                   = 150
       direction                  = "Inbound"
       access                     = "Allow"
       protocol                   = "Tcp"
@@ -52,7 +65,7 @@ module "jumpbox_nsg" {
     },
     {
       name                       = "AllowRDPFromHub"
-      priority                   = 110
+      priority                   = 160
       direction                  = "Inbound"
       access                     = "Allow"
       protocol                   = "Tcp"
@@ -62,7 +75,7 @@ module "jumpbox_nsg" {
     },
     {
       name                       = "AllowRDPFromOnPrem"
-      priority                   = 120
+      priority                   = 170
       direction                  = "Inbound"
       access                     = "Allow"
       protocol                   = "Tcp"
@@ -80,7 +93,7 @@ module "jumpbox_nsg" {
       source_address_prefix      = "*"
       destination_address_prefix = "*"
     }
-  ]
+  ])
 }
 
 # Jump Box VM

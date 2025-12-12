@@ -204,6 +204,7 @@ module "management" {
   hub_address_prefix      = var.hub_address_space[0]
   vpn_client_address_pool = var.vpn_client_address_pool
   onprem_address_prefix   = var.onprem_address_space[0]
+  allowed_jumpbox_source_ips = var.allowed_jumpbox_source_ips
 
   vm_size                  = var.vm_size
   admin_username           = var.admin_username
@@ -260,6 +261,12 @@ module "shared_services" {
   firewall_private_ip  = var.deploy_firewall ? module.hub.firewall_private_ip : null
   deploy_route_table   = var.deploy_firewall
   random_suffix        = random_string.suffix.result
+
+  # Private Endpoints
+  deploy_private_endpoints     = var.deploy_private_endpoints
+  private_dns_zone_blob_id     = var.deploy_private_dns_zones ? module.private_dns_blob[0].id : null
+  private_dns_zone_keyvault_id = var.deploy_private_dns_zones ? module.private_dns_keyvault[0].id : null
+  private_dns_zone_sql_id      = var.deploy_private_dns_zones ? module.private_dns_sql[0].id : null
 }
 
 # =============================================================================
@@ -1443,3 +1450,94 @@ module "rbac" {
   deploy_monitoring_reader_role  = true
 }
 
+# =============================================================================
+# AZURE POLICY
+# =============================================================================
+
+module "azure_policy" {
+  source = "./modules/policy"
+  count  = var.deploy_azure_policy ? 1 : 0
+
+  scope       = "/subscriptions/${var.subscription_id}"
+  location    = var.location
+  environment = local.environment
+
+  # Policy configuration
+  enable_allowed_locations_policy = true
+  allowed_locations               = var.policy_allowed_locations
+  enable_require_tag_policy       = true
+  required_tags                   = var.policy_required_tags
+  enable_inherit_tag_policy       = true
+  enable_audit_public_network_access = true
+  enable_require_https_storage    = true
+  enable_audit_unattached_disks   = true
+  enable_require_nsg_on_subnet    = true
+}
+
+# =============================================================================
+# MANAGEMENT GROUPS (CAF Hierarchy)
+# =============================================================================
+
+module "management_groups" {
+  source = "./modules/management-groups"
+  count  = var.deploy_management_groups ? 1 : 0
+
+  root_management_group_name = var.management_group_root_name
+  root_management_group_id   = var.management_group_root_id
+
+  create_platform_mg       = true
+  create_landing_zones_mg  = true
+  create_sandbox_mg        = true
+  create_decommissioned_mg = true
+
+  # Place current subscription in Landing Zones > Corp
+  subscription_ids_landing_zones_corp = [var.subscription_id]
+}
+
+# =============================================================================
+# COST MANAGEMENT
+# =============================================================================
+
+module "cost_management" {
+  source = "./modules/cost-management"
+  count  = var.deploy_cost_management ? 1 : 0
+
+  scope       = "/subscriptions/${var.subscription_id}"
+  environment = local.environment
+  location    = var.location
+
+  enable_budget   = true
+  budget_amount   = var.cost_budget_amount
+  budget_name     = "monthly-budget-${var.project}"
+
+  enable_action_group          = length(var.cost_alert_emails) > 0
+  action_group_email_receivers = [for i, email in var.cost_alert_emails : {
+    name          = "cost-alert-${i + 1}"
+    email_address = email
+  }]
+
+  enable_anomaly_alert          = length(var.cost_alert_emails) > 0
+  anomaly_alert_email_receivers = var.cost_alert_emails
+
+  tags = local.common_tags
+}
+
+# =============================================================================
+# REGULATORY COMPLIANCE (Workload RGs Only)
+# =============================================================================
+
+module "regulatory_compliance_workload_prod" {
+  source = "./modules/regulatory-compliance"
+  count  = var.deploy_regulatory_compliance && var.deploy_workload_prod ? 1 : 0
+
+  scope       = azurerm_resource_group.workload_prod[0].id
+  location    = var.location
+  environment = local.environment
+
+  enable_hipaa              = var.enable_hipaa_compliance
+  hipaa_enforcement_mode    = var.compliance_enforcement_mode
+  enable_pci_dss            = var.enable_pci_dss_compliance
+  pci_dss_enforcement_mode  = var.compliance_enforcement_mode
+
+  log_analytics_workspace_id = var.deploy_log_analytics ? module.management.log_analytics_workspace_id : null
+}

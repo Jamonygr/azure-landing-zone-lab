@@ -93,7 +93,7 @@ module "web_nsg" {
       access                     = "Allow"
       protocol                   = "Tcp"
       destination_port_range     = "3389"
-      source_address_prefix      = var.hub_address_prefix
+      source_address_prefix      = "VirtualNetwork" # Allow jumpbox/peered spokes to manage web VMs
       destination_address_prefix = "*"
     },
     {
@@ -140,7 +140,7 @@ module "app_nsg" {
       access                     = "Allow"
       protocol                   = "Tcp"
       destination_port_range     = "3389"
-      source_address_prefix      = var.hub_address_prefix
+      source_address_prefix      = "VirtualNetwork" # Allow jumpbox/peered spokes to manage app VMs
       destination_address_prefix = "*"
     },
     {
@@ -187,7 +187,7 @@ module "data_nsg" {
       access                     = "Allow"
       protocol                   = "Tcp"
       destination_port_range     = "3389"
-      source_address_prefix      = var.hub_address_prefix
+      source_address_prefix      = "VirtualNetwork" # Allow jumpbox/peered spokes to manage data VMs
       destination_address_prefix = "*"
     },
     {

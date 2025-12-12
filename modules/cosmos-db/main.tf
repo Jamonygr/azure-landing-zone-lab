@@ -10,6 +10,13 @@ resource "azurerm_cosmosdb_account" "this" {
   offer_type          = "Standard"
   kind                = var.kind
 
+  # Extended timeouts to avoid temporary lock errors during destroy
+  timeouts {
+    create = "60m"
+    update = "60m"
+    delete = "60m"
+  }
+
   # Serverless capability
   dynamic "capabilities" {
     for_each = var.enable_serverless ? [1] : []
@@ -53,6 +60,13 @@ resource "azurerm_cosmosdb_account" "this" {
   }
 
   tags = var.tags
+
+  # Prevent destroy failures due to dependent resources
+  lifecycle {
+    ignore_changes = [
+      capabilities # Cosmos DB capabilities can trigger unnecessary updates
+    ]
+  }
 }
 
 # SQL Database (for SQL API)
