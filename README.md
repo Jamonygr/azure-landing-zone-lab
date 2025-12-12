@@ -430,24 +430,37 @@ The configuration automatically excludes the web subnet from firewall routing wh
 
 | Resource Group | Purpose | Key Resources |
 |----------------|---------|---------------|
-| `rg-hub-{env}-{location}` | Hub networking | Azure Firewall, VPN Gateway, App Gateway |
-| `rg-identity-{env}-{location}` | Identity services | Domain Controllers (DC01, DC02) |
-| `rg-management-{env}-{location}` | Operations | Jumpbox, Log Analytics, Alerts |
-| `rg-shared-{env}-{location}` | Shared services | Key Vault, Storage Account, SQL Database |
-| `rg-workload-prod-{env}-{location}` | Production workload | Load Balancer, Web Servers, AKS |
-| `rg-onprem-{env}-{location}` | Simulated on-prem | VPN Gateway, File Server (Optional) |
+| `rg-hub-{env}-{location}` | Hub networking | VNet, Azure Firewall*, VPN Gateway*, App Gateway* |
+| `rg-identity-{env}-{location}` | Identity services | VNet, Domain Controller (DC01), DC02* |
+| `rg-management-{env}-{location}` | Operations | VNet, Jumpbox VM, Log Analytics |
+| `rg-shared-{env}-{location}` | Shared services | VNet, Key Vault, Storage Account, SQL Database* |
+| `rg-workload-prod-{env}-{location}` | Production workload | VNet, Load Balancer*, Web Servers*, AKS*, PaaS* |
+| `rg-workload-dev-{env}-{location}` | Development workload | VNet, similar to prod* |
+| `rg-onprem-{env}-{location}` | Simulated on-prem | VNet, VPN Gateway, File Server* |
 
-### Core Infrastructure (~130 Resources)
+> \* = Optional, controlled by deployment flags
+
+### Resource Count by Configuration
+
+| Configuration | Approximate Resources |
+|---------------|----------------------|
+| **Minimal** (No firewall, no LB) | ~60-80 |
+| **Standard** (Firewall + LB + IIS) | ~130-150 |
+| **Standard + PaaS** | ~170-190 |
+| **Full Hybrid** (+ VPN + On-prem) | ~190-210 |
+| **Enterprise** (+ AKS + AppGW) | ~220-250 |
+
+### Core Infrastructure Breakdown
 
 | Category | Resources | Count |
 |----------|-----------|-------|
-| **Networking** | VNets, Subnets, NSGs, Route Tables, Peerings | ~25 |
-| **Security** | Azure Firewall, Firewall Policy, Rule Collections | ~8 |
-| **Compute** | VMs (DC, Jumpbox, Web Servers), NICs, Disks | ~15 |
-| **Load Balancing** | Load Balancer, Backend Pool, Health Probes, Rules | ~8 |
-| **Storage** | Storage Account, Key Vault, File Shares | ~5 |
-| **Database** | Azure SQL Server, Database, Private Endpoint | ~4 |
-| **Monitoring** | Log Analytics, Diagnostic Settings, Alerts | ~20+ |
+| **Networking** | VNets, Subnets, NSGs, Route Tables, Peerings | ~30-40 |
+| **Security** | Azure Firewall, Firewall Policy, Rule Collections | ~8-10 |
+| **Compute** | VMs (DC, Jumpbox, Web Servers), NICs, Disks | ~15-25 |
+| **Load Balancing** | Load Balancer, Backend Pool, Health Probes, Rules | ~8-10 |
+| **Storage** | Storage Account, Key Vault, File Shares | ~5-8 |
+| **Database** | Azure SQL Server, Database, Private Endpoint | ~3-5 |
+| **Monitoring** | Log Analytics, Diagnostic Settings, Alerts | ~15-25 |
 | **Identity** | Managed Identities, RBAC Assignments | ~5 |
 
 ### Load Balancer Configuration
@@ -1123,12 +1136,66 @@ deploy_cosmos_db      = false                  # Cosmos DB (serverless)
 # NETWORK ADD-ONS & OBSERVABILITY
 # =============================================================================
 deploy_private_dns_zones         = false       # Private DNS zones for PaaS
+deploy_private_endpoints         = false       # Private Link endpoints
 deploy_nat_gateway               = false       # Fixed outbound IP
 deploy_application_security_groups = false     # ASGs for micro-segmentation
-enable_vnet_flow_logs            = false       # VNet flow logs (modern)
+enable_vnet_flow_logs            = false       # VNet flow logs (uses AzAPI)
 enable_traffic_analytics         = false       # Traffic analytics
 create_network_watcher           = false       # Create NW for new subs
+
+# =============================================================================
+# GOVERNANCE & COMPLIANCE (Advanced)
+# =============================================================================
+deploy_azure_policy              = false       # Azure Policy assignments
+deploy_regulatory_compliance     = false       # HIPAA/PCI-DSS (audit mode)
+deploy_cost_management           = false       # Budget alerts
+deploy_backup                    = false       # Recovery Services Vault
 ```
+
+### All Deployment Flags Reference
+
+| Flag | Description | Default | Cost Impact |
+|------|-------------|---------|-------------|
+| **Core Infrastructure** ||||
+| `deploy_firewall` | Azure Firewall for egress control | `true` | ~$350/mo |
+| `deploy_vpn_gateway` | VPN Gateway for hybrid connectivity | `false` | ~$140/mo |
+| `deploy_onprem_simulation` | Simulated on-premises with VPN | `false` | ~$60/mo |
+| `deploy_application_gateway` | App Gateway with WAF | `false` | ~$36/mo |
+| **Identity & Management** ||||
+| `deploy_secondary_dc` | Second Domain Controller | `false` | ~$30/mo |
+| `enable_jumpbox_public_ip` | Public IP on jumpbox | `true` | ~$3/mo |
+| `deploy_log_analytics` | Log Analytics workspace | `true` | ~$10/mo |
+| **Shared Services** ||||
+| `deploy_keyvault` | Azure Key Vault | `true` | ~$3/mo |
+| `deploy_storage` | Storage Account | `true` | ~$5/mo |
+| `deploy_sql` | Azure SQL Database | `false` | ~$5/mo |
+| **Workloads** ||||
+| `deploy_workload_prod` | Production workload VNet | `true` | Varies |
+| `deploy_workload_dev` | Development workload VNet | `false` | Varies |
+| `deploy_load_balancer` | Public Load Balancer + IIS VMs | `true` | ~$55/mo |
+| `deploy_aks` | Azure Kubernetes Service | `false` | ~$30+/mo |
+| **PaaS Services** ||||
+| `deploy_functions` | Azure Functions (Consumption) | `false` | FREE |
+| `deploy_static_web_app` | Static Web Apps (Free) | `false` | FREE |
+| `deploy_logic_apps` | Logic Apps (Consumption) | `false` | ~$0 |
+| `deploy_event_grid` | Event Grid | `false` | FREE |
+| `deploy_service_bus` | Service Bus (Basic) | `false` | ~$0.05/mo |
+| `deploy_app_service` | App Service (F1) | `false` | FREE |
+| `deploy_cosmos_db` | Cosmos DB (Serverless) | `false` | ~$0-5/mo |
+| **Network Add-ons** ||||
+| `deploy_nat_gateway` | NAT Gateway for fixed outbound IP | `false` | ~$4-5/mo |
+| `deploy_private_dns_zones` | Private DNS zones | `false` | Minimal |
+| `deploy_private_endpoints` | Private Link endpoints | `false` | None |
+| `deploy_application_security_groups` | ASGs for segmentation | `false` | None |
+| **Observability** ||||
+| `create_network_watcher` | Network Watcher (new subs) | `false` | None |
+| `enable_vnet_flow_logs` | VNet flow logs | `false` | Storage |
+| `enable_traffic_analytics` | Traffic Analytics | `false` | Log ingest |
+| **Governance** ||||
+| `deploy_azure_policy` | Azure Policy assignments | `false` | None |
+| `deploy_regulatory_compliance` | HIPAA/PCI-DSS policies | `false` | None |
+| `deploy_cost_management` | Budget and alerts | `false` | None |
+| `deploy_backup` | Recovery Services Vault | `false` | ~$10/mo |
 
 ### Network Address Space Reference
 
@@ -1138,8 +1205,10 @@ create_network_watcher           = false       # Create NW for new subs
 | **Identity** | 10.1.0.0/16 | DC Subnet (10.1.1.0/24) |
 | **Management** | 10.2.0.0/16 | Jumpbox (10.2.1.0/24) |
 | **Shared** | 10.3.0.0/16 | App (10.3.1.0/24), Private Endpoint (10.3.2.0/24) |
-| **Workload Prod** | 10.10.0.0/16 | Web (10.10.1.0/24), App (10.10.2.0/24), Data (10.10.3.0/24), AKS (10.10.16.0/20) |
+| **Workload Prod** | 10.10.0.0/16 | Web (10.10.1.0/24), App (10.10.2.0/24), Data (10.10.3.0/24), ContainerApps (10.10.8.0/23), AKS (10.10.16.0/20) |
+| **Workload Dev** | 10.11.0.0/16 | Web (10.11.1.0/24), App (10.11.2.0/24), Data (10.11.3.0/24) |
 | **On-Premises** | 10.100.0.0/16 | Gateway (10.100.0.0/24), Servers (10.100.1.0/24) |
+| **VPN Clients** | 172.16.0.0/24 | P2S VPN address pool |
 
 ---
 
