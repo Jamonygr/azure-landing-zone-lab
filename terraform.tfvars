@@ -108,7 +108,7 @@ deploy_sql      = false # Disabled - East US has provisioning restrictions
 
 # Workloads
 deploy_workload_prod = true  # Re-enabled for AKS
-deploy_workload_dev  = false # Enable if needed
+deploy_workload_dev  = true  # Enabled - FREE dev/prod separation
 
 # On-Premises Simulation - DISABLED - VPN takes too long
 deploy_onprem_simulation = false # Disabled with VPN
@@ -172,6 +172,15 @@ workload_prod_container_apps_subnet_prefix = "10.10.8.0/23" # /23 for Container 
 vm_size              = "Standard_B2s" # 2 vCPU, 4 GB RAM, ~$30/month
 sql_vm_size          = "Standard_B2s" # Same for SQL VM
 enable_auto_shutdown = true           # Shutdown at 7 PM to save costs
+
+# -----------------------------------------------------------------------------
+# Network Add-ons & Observability (FREE)
+# -----------------------------------------------------------------------------
+create_network_watcher             = true  # Required for flow logs (FREE)
+enable_vnet_flow_logs              = true  # Network traffic visibility (FREE)
+enable_traffic_analytics           = true  # Traffic flow visualization (FREE)
+deploy_application_security_groups = true  # Micro-segmentation (FREE)
+deploy_nat_gateway                 = true  # Fixed outbound IPs (~$4-5/mo)
 
 # -----------------------------------------------------------------------------
 # Private Endpoints Configuration

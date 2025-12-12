@@ -72,16 +72,6 @@ module "app_nsg" {
       destination_port_range     = "3389"
       source_address_prefix      = var.hub_address_prefix
       destination_address_prefix = "*"
-    },
-    {
-      name                       = "AllowAllInbound"
-      priority                   = 4096
-      direction                  = "Inbound"
-      access                     = "Allow"
-      protocol                   = "*"
-      destination_port_range     = "*"
-      source_address_prefix      = "*"
-      destination_address_prefix = "*"
     }
   ]
 }
