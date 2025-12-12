@@ -848,15 +848,16 @@ az network vpn-connection show \
 
 | Service | Tier | Monthly Cost |
 |---------|------|--------------|
-| **Azure Functions** | Consumption | **FREE** |
+| **Azure Functions** | Consumption (Y1) | **FREE** |
 | **Static Web Apps** | Free | **FREE** |
 | **Logic Apps** | Consumption | ~$0 (pay per run) |
 | **Event Grid** | Standard | **FREE** (100k ops) |
 | **Service Bus** | Basic | ~$0.05 |
-| **App Service** | B1 Basic | ~$13 |
-| **Container Apps** | Consumption | ~$5 |
+| **App Service** | F1 Free | **FREE** |
 | **Cosmos DB** | Serverless | ~$0-5 |
-| **Total PaaS** | | **~$20-60/month** |
+| **Total PaaS** | | **~$0-10/month** |
+
+> **Note**: `deploy_container_apps` has been removed from the codebase.
 
 ### 💡 Cost Optimization Tips
 
@@ -1012,6 +1013,10 @@ AzureDiagnostics
 | Firewall Rule Collections | ~3 minutes each |
 | AKS Cluster | ~10-15 minutes |
 | Application Gateway | ~8-12 minutes |
+| Cosmos DB | ~3-5 minutes |
+| Key Vault | ~8-12 minutes (with soft-delete recovery) |
+| Private Endpoints | ~2-3 minutes |
+| VNet Flow Logs | ~1-2 minutes |
 
 ---
 
@@ -1019,12 +1024,14 @@ AzureDiagnostics
 
 ```
 azure-landing-zone-lab/
-├── main.tf                    # Root orchestration - all landing zones
-├── variables.tf               # 50+ configurable input variables
+├── main.tf                    # Root orchestration (~1500 lines)
+├── variables.tf               # 80+ configurable input variables
 ├── outputs.tf                 # Key resource outputs (IPs, URLs, etc.)
 ├── locals.tf                  # Computed local values
 ├── terraform.tfvars           # Your configuration (gitignored)
 ├── terraform.tfvars.example   # Example configuration template
+├── LICENSE                    # MIT License
+├── README.md                  # This documentation
 │
 ├── environments/              # Environment-specific configurations
 │   ├── dev.tfvars             # Development settings
@@ -1037,14 +1044,14 @@ azure-landing-zone-lab/
 │   │   └── outputs.tf
 │   ├── identity/              # Domain Controllers, AD DS
 │   ├── management/            # Jumpbox, Log Analytics, Monitoring
-│   ├── shared-services/       # Key Vault, Storage, SQL Database
-│   ├── workload/              # Load Balancer, Web Servers, AKS
+│   ├── shared-services/       # Key Vault, Storage, SQL Database, Private Endpoints
+│   ├── workload/              # Load Balancer, Web Servers, AKS, PaaS
 │   └── onprem-simulated/      # Simulated on-premises environment
 │
 └── modules/                   # Reusable infrastructure modules
     ├── aks/                   # Azure Kubernetes Service
     ├── compute/
-    │   └── windows-vm/        # Windows Server VMs
+    │   └── windows-vm/        # Windows Server 2022 VMs
     ├── firewall/              # Azure Firewall
     ├── firewall-rules/        # Firewall policy & rule collections
     ├── keyvault/              # Azure Key Vault
@@ -1075,8 +1082,17 @@ azure-landing-zone-lab/
 |------|---------|
 | `main.tf` | Orchestrates all landing zones and resources |
 | `variables.tf` | 50+ configurable parameters for customization |
-| `terraform.tfvars` | Your environment-specific values |
+| `terraform.tfvars` | Your environment-specific values (gitignored) |
 | `outputs.tf` | Connection info (IPs, URLs, FQDNs) |
+| `locals.tf` | Location short codes, naming conventions |
+
+### Providers Used
+
+| Provider | Version | Purpose |
+|----------|---------|---------|
+| **azurerm** | ~> 4.0 | Primary Azure resource management |
+| **azapi** | ~> 2.0 | VNet Flow Logs (modern API) |
+| **random** | ~> 3.6.0 | Unique naming suffixes |
 
 ---
 
@@ -1093,21 +1109,22 @@ azure-landing-zone-lab/
 subscription_id    = "your-subscription-id"
 admin_password     = "YourSecureP@ssw0rd!"    # Minimum 12 chars, complexity required
 sql_admin_password = "SqlSecureP@ssw0rd!"
-vpn_shared_key     = "YourVPNSharedKey123!"   # If using VPN
+vpn_shared_key     = "YourVPNSharedKey123!"   # Required if VPN enabled
 
 # =============================================================================
 # CORE SETTINGS
 # =============================================================================
 project     = "azlab"                          # Resource naming prefix
 environment = "lab"                            # Environment tag
-location    = "West Europe"                    # Azure region
+location    = "East US"                        # Azure region
+owner       = "Lab-User"                       # Owner tag value
 
 # =============================================================================
 # DEPLOYMENT FLAGS - Enable/disable components
 # =============================================================================
 deploy_firewall          = true                # Azure Firewall (~$350/mo)
-deploy_vpn_gateway       = true                # VPN Gateway (~$140/mo)
-deploy_onprem_simulation = true                # Simulated on-premises
+deploy_vpn_gateway       = false               # VPN Gateway (~$140/mo)
+deploy_onprem_simulation = false               # Simulated on-premises
 deploy_load_balancer     = true                # Public Load Balancer
 deploy_aks               = false               # Kubernetes cluster
 deploy_application_gateway = false             # App Gateway with WAF
