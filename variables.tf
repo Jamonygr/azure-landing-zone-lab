@@ -285,7 +285,7 @@ variable "firewall_sku_tier" {
 variable "deploy_vpn_gateway" {
   description = "Deploy VPN Gateway"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "vpn_gateway_sku" {
@@ -375,7 +375,7 @@ variable "deploy_workload_dev" {
 variable "deploy_onprem_simulation" {
   description = "Deploy simulated On-Premises environment"
   type        = bool
-  default     = true
+  default     = false
 }
 
 # -----------------------------------------------------------------------------
@@ -435,7 +435,7 @@ variable "aks_vm_size" {
 variable "deploy_load_balancer" {
   description = "Deploy load balancer with IIS web servers in workload prod"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "lb_type" {
@@ -469,25 +469,25 @@ variable "lb_web_server_size" {
 variable "deploy_functions" {
   description = "Deploy Azure Functions (Consumption plan - FREE)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "deploy_static_web_app" {
   description = "Deploy Azure Static Web App (Free tier - FREE)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "deploy_logic_apps" {
   description = "Deploy Azure Logic Apps (Consumption - pay per execution)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "deploy_event_grid" {
   description = "Deploy Azure Event Grid (FREE for first 100k ops/month)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 # -----------------------------------------------------------------------------
@@ -497,13 +497,13 @@ variable "deploy_event_grid" {
 variable "deploy_service_bus" {
   description = "Deploy Azure Service Bus (Basic tier ~$0.05/month)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "deploy_app_service" {
   description = "Deploy Azure App Service (B1 Basic ~$13/month)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "deploy_container_apps" {
@@ -519,13 +519,19 @@ variable "deploy_container_apps" {
 variable "deploy_cosmos_db" {
   description = "Deploy Azure Cosmos DB (Serverless ~$0-5/month based on usage)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "paas_alternative_location" {
   description = "Alternative Azure region for PaaS services that have quota/availability issues in primary location"
   type        = string
   default     = "westus2"
+}
+
+variable "cosmos_location" {
+  description = "Optional override for Cosmos DB region (defaults to paas_alternative_location)"
+  type        = string
+  default     = ""
 }
 
 # -----------------------------------------------------------------------------
@@ -535,7 +541,7 @@ variable "paas_alternative_location" {
 variable "deploy_application_gateway" {
   description = "Deploy Azure Application Gateway (WAF_v2 ~$36/month)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 # -----------------------------------------------------------------------------
@@ -571,13 +577,13 @@ variable "workload_prod_container_apps_subnet_prefix" {
 variable "deploy_private_dns_zones" {
   description = "Deploy centralized Private DNS Zones for Private Link services"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "deploy_private_endpoints" {
   description = "Deploy Private Endpoints for Key Vault, Storage, and SQL (requires deploy_private_dns_zones = true)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 # -----------------------------------------------------------------------------
@@ -587,7 +593,7 @@ variable "deploy_private_endpoints" {
 variable "deploy_nat_gateway" {
   description = "Deploy NAT Gateway for explicit outbound SNAT (workload web subnet)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 # -----------------------------------------------------------------------------
@@ -597,7 +603,7 @@ variable "deploy_nat_gateway" {
 variable "create_network_watcher" {
   description = "Create Network Watcher/NetworkWatcherRG in the region if it does not already exist (set true for brand-new subscriptions)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 # -----------------------------------------------------------------------------
@@ -607,7 +613,7 @@ variable "create_network_watcher" {
 variable "enable_vnet_flow_logs" {
   description = "Enable VNet Flow Logs for traffic visibility (replaces NSG Flow Logs)"
   type        = bool
-  default     = false
+  default     = true
 
   validation {
     condition     = !(var.enable_vnet_flow_logs && !var.deploy_storage)
@@ -624,7 +630,7 @@ variable "enable_nsg_flow_logs" {
 variable "enable_traffic_analytics" {
   description = "Enable Traffic Analytics (requires Log Analytics workspace)"
   type        = bool
-  default     = false
+  default     = true
 
   validation {
     condition     = !(var.enable_traffic_analytics && (!var.enable_vnet_flow_logs || !var.deploy_log_analytics || !var.deploy_storage))
@@ -655,7 +661,7 @@ variable "deploy_application_security_groups" {
 variable "deploy_backup" {
   description = "Deploy Azure Backup with Recovery Services Vault for VM protection"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "backup_storage_redundancy" {
@@ -671,47 +677,13 @@ variable "enable_soft_delete" {
 }
 
 # -----------------------------------------------------------------------------
-# Secondary Region (Cross-Region) Configuration
-# -----------------------------------------------------------------------------
-
-variable "deploy_secondary_region" {
-  description = "Deploy secondary region hub in West Europe for cross-region scenarios"
-  type        = bool
-  default     = false
-}
-
-variable "secondary_location" {
-  description = "Secondary Azure region for cross-region testing"
-  type        = string
-  default     = "westeurope"
-}
-
-variable "secondary_address_space" {
-  description = "Secondary hub VNet address space"
-  type        = list(string)
-  default     = ["10.50.0.0/16"]
-}
-
-variable "secondary_subnet_prefix" {
-  description = "Secondary hub subnet prefix"
-  type        = string
-  default     = "10.50.1.0/24"
-}
-
-variable "secondary_vm_size" {
-  description = "VM size for secondary region test VM"
-  type        = string
-  default     = "Standard_B1s"
-}
-
-# -----------------------------------------------------------------------------
 # Azure Workbooks Configuration
 # -----------------------------------------------------------------------------
 
 variable "deploy_workbooks" {
   description = "Deploy Azure Workbooks for monitoring dashboards (VM Performance, Network Traffic, Firewall)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 # -----------------------------------------------------------------------------
@@ -721,7 +693,7 @@ variable "deploy_workbooks" {
 variable "deploy_connection_monitor" {
   description = "Deploy Connection Monitor for network connectivity testing"
   type        = bool
-  default     = false
+  default     = true
 }
 
 # -----------------------------------------------------------------------------
@@ -731,7 +703,7 @@ variable "deploy_connection_monitor" {
 variable "enable_scheduled_startstop" {
   description = "Enable scheduled VM start/stop for cost management"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "startstop_timezone" {
@@ -759,7 +731,7 @@ variable "startstop_stop_time" {
 variable "deploy_rbac_custom_roles" {
   description = "Deploy custom RBAC role definitions"
   type        = bool
-  default     = false
+  default     = true
 }
 
 # -----------------------------------------------------------------------------
@@ -769,7 +741,7 @@ variable "deploy_rbac_custom_roles" {
 variable "deploy_azure_policy" {
   description = "Deploy Azure Policy assignments for governance"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "policy_allowed_locations" {
@@ -795,7 +767,7 @@ variable "policy_required_tags" {
 variable "deploy_management_groups" {
   description = "Deploy management group hierarchy following CAF"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "management_group_root_name" {
@@ -817,7 +789,7 @@ variable "management_group_root_id" {
 variable "deploy_cost_management" {
   description = "Deploy cost management budgets and alerts"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "cost_budget_amount" {
@@ -839,7 +811,7 @@ variable "cost_alert_emails" {
 variable "deploy_regulatory_compliance" {
   description = "Deploy regulatory compliance policies (HIPAA/PCI-DSS) to workload resource groups"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "enable_hipaa_compliance" {

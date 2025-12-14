@@ -225,3 +225,9 @@ variable "paas_alternative_location" {
   type        = string
   default     = "westus2"
 }
+
+variable "cosmos_location" {
+  description = "Optional override for Cosmos DB region"
+  type        = string
+  default     = ""
+}

@@ -12,7 +12,7 @@ subscription_id = "97386c43-2906-40dc-9493-4e82e13b31bf"
 # -----------------------------------------------------------------------------
 project        = "azlab"
 environment    = "lab"
-location       = "East US"
+location       = "westus2"
 owner          = "Lab-User"
 repository_url = "https://gitlab.com/your-repo/azure-landing-zone-lab"
 
@@ -99,12 +99,12 @@ enable_jumpbox_public_ip = true  # Enable public RDP to jumpbox
 allowed_jumpbox_source_ips = ["0.0.0.0/0"] # TODO: tighten to your public IP/CIDR
 deploy_log_analytics     = true
 log_retention_days       = 30 # Free tier
-log_daily_quota_gb       = 1  # Limit ingestion
+log_daily_quota_gb       = 2  # Increased for flow logs + diagnostics
 
 # Shared Services
 deploy_keyvault = true
 deploy_storage  = true
-deploy_sql      = false # Disabled - East US has provisioning restrictions
+deploy_sql      = true # Enabled per request
 
 # Workloads
 deploy_workload_prod = true  # Re-enabled for AKS
@@ -130,7 +130,7 @@ lb_web_server_size   = "Standard_B1ms" # 2GB RAM for IIS
 # PaaS Services - Tier 1 (FREE)
 # These services cost nothing or almost nothing
 # -----------------------------------------------------------------------------
-deploy_functions      = true # Azure Functions - Y1 (Consumption) - FREE
+deploy_functions      = true # Testing with westeurope location
 deploy_static_web_app = true # Static Web Apps Free tier - FREE
 deploy_logic_apps     = true # Logic Apps Consumption - ~$0 (pay per execution)
 deploy_event_grid     = true # Event Grid - FREE (first 100k ops/month)
@@ -140,7 +140,7 @@ deploy_event_grid     = true # Event Grid - FREE (first 100k ops/month)
 # ~$15-20/month combined
 # -----------------------------------------------------------------------------
 deploy_service_bus    = true  # Service Bus Basic - ~$0.05/month
-deploy_app_service    = true  # App Service F1 (Free) - FREE
+deploy_app_service    = true  # Testing with westeurope location
 deploy_container_apps = false # DELETED - Module removed from codebase
 
 # -----------------------------------------------------------------------------
@@ -151,15 +151,16 @@ deploy_cosmos_db = true # Cosmos DB Serverless - ~$0-5/month
 
 # -----------------------------------------------------------------------------
 # Alternative Location for PaaS Services with quota issues
-# eastus has quota/availability issues for some services
+# US regions have 0 quota for App Service/Functions - use Canada Central
 # -----------------------------------------------------------------------------
-paas_alternative_location = "westus2"
+paas_alternative_location = "canadacentral"
+cosmos_location           = "northeurope"
 
 # -----------------------------------------------------------------------------
 # PaaS Services - Tier 4 (Gateway)
 # Higher fixed cost but provides enterprise features
 # -----------------------------------------------------------------------------
-deploy_application_gateway = false # Disabled until backend IPs are wired (avoids unused cost)
+deploy_application_gateway = true # Enabled per request
 hub_appgw_subnet_prefix    = "10.0.3.0/24"
 appgw_waf_mode             = "Detection" # Use Prevention in production
 
@@ -174,13 +175,36 @@ sql_vm_size          = "Standard_B2s" # Same for SQL VM
 enable_auto_shutdown = true           # Shutdown at 7 PM to save costs
 
 # -----------------------------------------------------------------------------
+# Automation (Scheduled Start/Stop)
+# -----------------------------------------------------------------------------
+enable_scheduled_startstop = true
+startstop_timezone         = "America/New_York"
+startstop_start_time       = "08:00"
+startstop_stop_time        = "19:00"
+
+# -----------------------------------------------------------------------------
 # Network Add-ons & Observability (FREE)
 # -----------------------------------------------------------------------------
 create_network_watcher             = true  # Required for flow logs (FREE)
-enable_vnet_flow_logs              = true  # Network traffic visibility (FREE)
-enable_traffic_analytics           = true  # Traffic flow visualization (FREE)
+enable_vnet_flow_logs              = true  # VNet Flow Logs - tested and working!
+enable_traffic_analytics           = true  # Traffic Analytics - 10 min interval
 deploy_application_security_groups = true  # Micro-segmentation (FREE)
 deploy_nat_gateway                 = true  # Fixed outbound IPs (~$4-5/mo)
+
+# -----------------------------------------------------------------------------
+# Monitoring & Observability (FREE/Low Cost)
+# -----------------------------------------------------------------------------
+deploy_workbooks          = true  # Azure Monitor Workbooks (FREE)
+deploy_connection_monitor = true # Enabled per request
+deploy_cost_management    = true  # Budget alerts (FREE)
+cost_budget_amount        = 500   # Monthly budget in USD
+cost_alert_emails         = ["your-email@example.com"]  # Change to your email
+
+# -----------------------------------------------------------------------------
+# Azure Backup
+# -----------------------------------------------------------------------------
+deploy_backup              = true
+backup_storage_redundancy  = "LocallyRedundant"
 
 # -----------------------------------------------------------------------------
 # Private Endpoints Configuration
@@ -189,11 +213,22 @@ deploy_private_dns_zones = true  # Required for private endpoints
 deploy_private_endpoints = true  # Private Endpoints for Key Vault, Storage, SQL
 
 # -----------------------------------------------------------------------------
-# Azure Policy Configuration
+# Governance & Policy
 # -----------------------------------------------------------------------------
-deploy_azure_policy      = false  # Disabled - policy conflicts with resource creation
+deploy_azure_policy       = true
+policy_allowed_locations  = ["eastus", "eastus2", "westeurope", "northeurope", "westus2"]
+policy_required_tags = {
+  Environment = "lab"
+  Owner       = "Lab-User"
+  Project     = "azlab"
+}
+deploy_management_groups  = true
+deploy_rbac_custom_roles  = true
 
 # -----------------------------------------------------------------------------
 # Regulatory Compliance (Workload RGs Only - Audit Mode)
 # -----------------------------------------------------------------------------
-deploy_regulatory_compliance = false  # Disabled - policy initiatives have parameter changes
+deploy_regulatory_compliance = true  # Enabled per request
+enable_hipaa_compliance      = true
+enable_pci_dss_compliance    = true
+compliance_enforcement_mode  = "DoNotEnforce"

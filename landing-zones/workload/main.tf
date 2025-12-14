@@ -368,18 +368,19 @@ module "web_servers" {
 # PAAS SERVICES - TIER 1 (FREE)
 # =============================================================================
 
-# Azure Functions (Consumption - FREE)
-# Note: Using alternative location due to quota restrictions in primary region
+# Azure Functions (Y1 Consumption tier - no quota required)
+# Note: Using Canada Central due to 0 quota in US regions
 module "functions" {
   source = "../../modules/functions"
   count  = var.deploy_functions ? 1 : 0
 
   name_suffix         = "${var.workload_name}-${var.environment}-${var.location_short}"
   resource_group_name = var.resource_group_name
-  location            = "ukwest"
-  os_type             = "Windows"
-  runtime             = "dotnet"
-  runtime_version     = "8.0"
+  location            = var.paas_alternative_location
+  os_type             = "Linux"
+  runtime             = "python"
+  runtime_version     = "3.11"
+  sku_name            = "Y1"
   enable_app_insights = true
   log_analytics_workspace_id = var.log_analytics_workspace_id
   tags                = var.tags
@@ -449,19 +450,19 @@ module "service_bus" {
   tags                       = var.tags
 }
 
-# App Service (F1 - Free tier)
-# Note: Using alternative location due to quota restrictions in primary region
+# App Service (F1 Free tier - no quota required)
+# Note: Using Canada Central due to 0 quota in US regions
 module "app_service" {
   source = "../../modules/app-service"
   count  = var.deploy_app_service ? 1 : 0
 
   name_suffix                = "${var.workload_name}-${var.environment}-${var.location_short}"
   resource_group_name        = var.resource_group_name
-  location                   = "ukwest"
+  location                   = var.paas_alternative_location
   os_type                    = "Linux"
   sku_name                   = "F1"
-  runtime                    = "dotnet"
-  runtime_version            = "8.0"
+  runtime                    = "python"
+  runtime_version            = "3.13"
   enable_app_insights        = true
   log_analytics_workspace_id = var.log_analytics_workspace_id
   enable_diagnostics         = var.enable_diagnostics
@@ -480,7 +481,7 @@ module "cosmos_db" {
 
   name_suffix                = "${var.workload_name}-${var.environment}-${var.location_short}"
   resource_group_name        = var.resource_group_name
-  location                   = var.paas_alternative_location
+  location                   = length(var.cosmos_location) > 0 ? var.cosmos_location : var.paas_alternative_location
   kind                       = "GlobalDocumentDB"
   enable_serverless          = true
   consistency_level          = "Session"

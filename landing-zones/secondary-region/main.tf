@@ -166,4 +166,6 @@ resource "azurerm_dev_test_global_vm_shutdown_schedule" "vm" {
   notification_settings {
     enabled = false
   }
+
+  tags = var.tags
 }

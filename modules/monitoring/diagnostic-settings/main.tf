@@ -96,10 +96,6 @@ resource "azurerm_monitor_diagnostic_setting" "sql_server" {
   target_resource_id         = var.sql_server_id
   log_analytics_workspace_id = var.log_analytics_workspace_id
 
-  enabled_log {
-    category = "SQLSecurityAuditEvents"
-  }
-
   enabled_metric {
     category = "AllMetrics"
   }

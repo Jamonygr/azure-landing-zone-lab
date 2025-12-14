@@ -21,7 +21,7 @@ resource "azurerm_monitor_action_group" "cost" {
   count = var.enable_action_group && length(var.action_group_email_receivers) > 0 ? 1 : 0
 
   name                = "${var.action_group_name}-${var.environment}"
-  resource_group_name = split("/", var.scope)[4] # Extract RG name from scope if RG scope
+  resource_group_name = var.resource_group_name
   short_name          = substr(var.action_group_short_name, 0, 12)
   tags                = var.tags
 

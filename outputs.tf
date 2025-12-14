@@ -213,20 +213,6 @@ output "connection_info" {
 }
 
 # -----------------------------------------------------------------------------
-# Secondary Region Outputs
-# -----------------------------------------------------------------------------
-
-output "secondary_region_vnet_id" {
-  description = "Secondary region hub VNet ID"
-  value       = var.deploy_secondary_region ? module.secondary_region[0].vnet_id : null
-}
-
-output "secondary_region_vm_private_ip" {
-  description = "Secondary region test VM private IP"
-  value       = var.deploy_secondary_region ? module.secondary_region[0].vm_private_ip : null
-}
-
-# -----------------------------------------------------------------------------
 # Backup Outputs
 # -----------------------------------------------------------------------------
 

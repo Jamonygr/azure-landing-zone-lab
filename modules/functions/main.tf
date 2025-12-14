@@ -14,13 +14,13 @@ resource "azurerm_storage_account" "function" {
   tags = var.tags
 }
 
-# App Service Plan - Consumption (Y1) - Serverless, no VM quota needed
+# App Service Plan - configurable SKU (default Y1 Consumption)
 resource "azurerm_service_plan" "function" {
   name                = "asp-func-${var.name_suffix}"
   resource_group_name = var.resource_group_name
   location            = var.location
   os_type             = var.os_type
-  sku_name            = "Y1" # Consumption plan - serverless, no VM quota
+  sku_name            = var.sku_name
 
   tags = var.tags
 }

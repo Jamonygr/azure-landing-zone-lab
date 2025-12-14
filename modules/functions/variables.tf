@@ -43,6 +43,12 @@ variable "runtime_version" {
   default     = "8.0"
 }
 
+variable "sku_name" {
+  description = "SKU for the Function App service plan (e.g., Y1 for Consumption, EP1 for Elastic Premium)"
+  type        = string
+  default     = "Y1"
+}
+
 variable "enable_app_insights" {
   description = "Enable Application Insights for monitoring"
   type        = bool

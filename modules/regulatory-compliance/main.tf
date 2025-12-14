@@ -34,18 +34,6 @@ resource "azurerm_resource_group_policy_assignment" "hipaa" {
   non_compliance_message {
     content = "This resource is not compliant with HIPAA HITRUST 9.2 requirements."
   }
-
-  # Parameters for common policy requirements
-  parameters = jsonencode({
-    # Allowed locations for data residency
-    "listOfAllowedLocations" = {
-      value = var.hipaa_allowed_locations
-    }
-    # Log Analytics workspace for diagnostic settings
-    "logAnalyticsWorkspaceIdforVMReporting" = {
-      value = var.log_analytics_workspace_id != null ? var.log_analytics_workspace_id : ""
-    }
-  })
 }
 
 # Role assignments for HIPAA remediation tasks
@@ -75,7 +63,7 @@ resource "azurerm_resource_group_policy_assignment" "pci_dss" {
   display_name         = "PCI-DSS 4.0 - ${var.environment}"
   description          = "Assigns PCI-DSS 4.0 policy initiative for payment card industry data security"
   resource_group_id    = var.scope
-  policy_definition_id = "/providers/Microsoft.Authorization/policySetDefinitions/c676748e-3af9-4e22-bc28-50fed0f511fd"
+  policy_definition_id = "/providers/Microsoft.Authorization/policySetDefinitions/a06d5deb-24aa-4991-9d58-fa7563154e31"
   location             = var.location
   enforce              = var.pci_dss_enforcement_mode == "Default" ? true : false
 
@@ -86,18 +74,6 @@ resource "azurerm_resource_group_policy_assignment" "pci_dss" {
   non_compliance_message {
     content = "This resource is not compliant with PCI-DSS 4.0 requirements."
   }
-
-  # Parameters for common policy requirements
-  parameters = jsonencode({
-    # Allowed locations for data residency
-    "listOfAllowedLocations" = {
-      value = var.pci_dss_allowed_locations
-    }
-    # Log Analytics workspace for monitoring
-    "logAnalyticsWorkspaceIdforVMReporting" = {
-      value = var.log_analytics_workspace_id != null ? var.log_analytics_workspace_id : ""
-    }
-  })
 }
 
 # Role assignments for PCI-DSS remediation tasks

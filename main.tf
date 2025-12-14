@@ -324,6 +324,7 @@ module "workload_prod" {
 
   # PaaS Services - Tier 3 (Data)
   deploy_cosmos_db = var.deploy_cosmos_db
+  cosmos_location  = var.cosmos_location != "" ? var.cosmos_location : null
 
   # Alternative location for services with quota issues
   paas_alternative_location = var.paas_alternative_location
@@ -356,6 +357,9 @@ module "workload_dev" {
   deploy_route_table  = var.deploy_firewall
 
   enable_diagnostics = var.deploy_log_analytics
+
+  # Optional Cosmos location override
+  cosmos_location = var.cosmos_location != "" ? var.cosmos_location : null
 }
 
 # =============================================================================
@@ -1248,38 +1252,6 @@ module "vnet_flow_logs_shared" {
 # See: https://learn.microsoft.com/azure/network-watcher/nsg-flow-logs-migrate
 
 # =============================================================================
-# SECONDARY REGION (West Europe Hub for Cross-Region Testing)
-# =============================================================================
-
-module "secondary_region" {
-  source = "./landing-zones/secondary-region"
-  count  = var.deploy_secondary_region ? 1 : 0
-
-  environment    = local.environment
-  location       = var.secondary_location
-  location_short = "weu"
-  tags           = merge(local.common_tags, { Region = "Secondary" })
-
-  address_space      = var.secondary_address_space
-  mgmt_subnet_prefix = var.secondary_subnet_prefix
-
-  # Global peering to primary hub
-  primary_hub_vnet_id        = module.hub.vnet_id
-  primary_hub_vnet_name      = module.hub.vnet_name
-  primary_hub_resource_group = azurerm_resource_group.hub.name
-  primary_has_gateway        = var.deploy_vpn_gateway
-  use_remote_gateways        = false # Global peering doesn't support remote gateways
-
-  # Test VM configuration
-  deploy_vm      = true
-  vm_size        = var.secondary_vm_size
-  admin_username = var.admin_username
-  admin_password = var.admin_password
-
-  depends_on = [module.hub]
-}
-
-# =============================================================================
 # AZURE BACKUP (Recovery Services Vault)
 # =============================================================================
 
@@ -1351,6 +1323,7 @@ module "connection_monitor" {
   monitor_name        = "cmon-${local.environment}-${local.location_short}"
   location            = var.location
   resource_group_name = azurerm_resource_group.management.name
+  create_network_watcher = var.create_network_watcher
   tags                = local.common_tags
 
   log_analytics_workspace_id = module.management.log_analytics_workspace_id
@@ -1467,10 +1440,10 @@ module "azure_policy" {
   allowed_locations               = var.policy_allowed_locations
   enable_require_tag_policy       = true
   required_tags                   = var.policy_required_tags
-  enable_inherit_tag_policy       = true
+  enable_inherit_tag_policy       = false # Disabled - policy definition deprecated
   enable_audit_public_network_access = true
   enable_require_https_storage    = true
-  enable_audit_unattached_disks   = true
+  enable_audit_unattached_disks   = false # Disabled - policy definition deprecated
   enable_require_nsg_on_subnet    = true
 }
 
@@ -1502,9 +1475,10 @@ module "cost_management" {
   source = "./modules/cost-management"
   count  = var.deploy_cost_management ? 1 : 0
 
-  scope       = "/subscriptions/${var.subscription_id}"
-  environment = local.environment
-  location    = var.location
+  scope               = "/subscriptions/${var.subscription_id}"
+  resource_group_name = azurerm_resource_group.management.name
+  environment         = local.environment
+  location            = var.location
 
   enable_budget   = true
   budget_amount   = var.cost_budget_amount
