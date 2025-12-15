@@ -17,6 +17,8 @@ Azure Landing Zone Lab is a hands-on, Terraform-first walkthrough of the Cloud A
 
 Everything is controlled with variables and feature flags so you can scale the footprint up or down to fit a demo or proof of concept.
 
+The fastest way to change the footprint is the **MASTER CONTROL PANEL** at the top of `terraform.tfvars` (all `deploy_*` / `enable_*` switches in one place).
+
 ## How to use these docs
 
 1) Start with **Architecture** to see how the Terraform files fit together.  
@@ -50,7 +52,7 @@ Everything is controlled with variables and feature flags so you can scale the f
 | [Outputs reference](reference/outputs.md) | What the deployment returns for downstream use. |
 | [Naming conventions](reference/naming-conventions.md) | CAF-aligned names and tags used throughout. |
 | [Terraform patterns](reference/terraform-patterns.md) | Reusable HCL idioms in this repo. |
-| [Current config (Full PaaS, VPN-off, public jumpbox)](reference/current-config.md) | Snapshot of the active lab profile and access path. |
+| [Current config (westus2 lab profile)](reference/current-config.md) | Snapshot of the active lab profile and access path. |
 | [Hardening checklist](reference/hardening.md) | Quick steps to lock down the current lab profile. |
 | [Lab testing guide](testing/lab-testing-guide.md) | Step-by-step validation checklist after deployment. |
 

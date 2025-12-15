@@ -6,7 +6,7 @@ This page summarizes the root input variables you set in `terraform.tfvars`. For
 
 - `subscription_id` – Azure subscription to deploy into (required).  
 - `project`, `environment` – naming prefixes; default to `azlab` and `lab`.  
-- `location` – Azure region (for example, `westeurope`).  
+- `location` – Azure region (for example, `westus2`).  
 - `owner`, `repository_url` – used in tags for traceability.
 
 ## Authentication and credentials
@@ -31,7 +31,7 @@ This page summarizes the root input variables you set in `terraform.tfvars`. For
 - Management: `enable_jumpbox_public_ip`, `allowed_jumpbox_source_ips` (CIDRs allowed to RDP when the jumpbox has a public IP), `deploy_log_analytics`.  
 - Shared services: `deploy_keyvault`, `deploy_storage`, `deploy_sql`.  
 - Workloads: `deploy_workload_prod`, `deploy_workload_dev`, `deploy_load_balancer`, `deploy_application_gateway`, `deploy_aks`.  
-- PaaS options: `deploy_functions`, `deploy_static_web_app`, `deploy_logic_apps`, `deploy_event_grid`, `deploy_service_bus`, `deploy_app_service`, `deploy_cosmos_db`, `deploy_container_apps` (placeholder flag), and `paas_alternative_location`.
+- PaaS options: `deploy_functions`, `deploy_static_web_app`, `deploy_logic_apps`, `deploy_event_grid`, `deploy_service_bus`, `deploy_app_service`, `deploy_cosmos_db`, and `paas_alternative_location`. (`deploy_container_apps` exists as a placeholder flag but is not currently wired to a module.)
 
 ## Network extensions
 

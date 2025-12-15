@@ -1,6 +1,6 @@
 # Hardening and hygiene checklist (current lab profile)
 
-Use this to tighten the lab after initial deployment. The current profile runs with VPN off and a public jumpbox; firewall is on; LB is public; many PaaS services are enabled.
+Use this to tighten the lab after initial deployment. The current profile runs with VPN off and a public jumpbox; firewall is on; LB is public; Application Gateway is enabled; several PaaS services are enabled.
 
 ## Highest-priority fixes
 
@@ -16,12 +16,12 @@ Use this to tighten the lab after initial deployment. The current profile runs w
 ## Networking notes
 
 - Firewall is on; VPN and on-prem simulation are off, so inbound access is only via the jumpbox public IP and LB NAT rules.
-- Private endpoints and Private DNS are on; SQL is off. If you later enable SQL, ensure the private endpoint DNS entries resolve from spokes.
-- Application Gateway is off; leave it that way unless you wire backend IPs.
+- Private endpoints and Private DNS are on; SQL is on. Confirm Private Link DNS resolves correctly from spokes before relying on private-only endpoints.
+- Application Gateway is on by default in the current profile. If you don't need it, set `deploy_application_gateway = false` to reduce cost and simplify traffic paths.
 
 ## PaaS footprint and regions
 
-- Functions and App Service deploy to `ukwest`, Static Web App to `eastus2`, Cosmos DB to `westus2` (quota workarounds). Align to a single region if latency/governance matters.
+- This repo supports alternate regions for quota workarounds via `paas_alternative_location` and `cosmos_location`. The current `terraform.tfvars` uses `canadacentral` (PaaS alternative) and `northeurope` (Cosmos).
 - Disable PaaS flags you do not need to reduce surface area and deployment time.
 
 ## Cost and lifecycle

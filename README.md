@@ -110,7 +110,8 @@ All PaaS services are **optional** and controlled via deployment flags:
 | 🌍 **App Service** | `deploy_app_service` | F1 Free | **FREE** |
 | 🗃️ **Cosmos DB** | `deploy_cosmos_db` | Serverless | ~$0-5/month |
 
-> **Note**: `deploy_container_apps` has been removed from the codebase.
+> **Note**: `deploy_container_apps` exists as a placeholder flag but is not currently wired to a module.
+
 
 ### 🎯 Use Cases
 
@@ -619,6 +620,10 @@ terraform destroy
 
 ### terraform.tfvars
 
+#### 🎛️ Master Control Panel (feature toggles)
+
+At the top of `terraform.tfvars` there is a **MASTER CONTROL PANEL** section that contains all the main `deploy_*` / `enable_*` switches in one place. Flip those values to quickly change what gets deployed, then run `terraform plan` and `terraform apply`.
+
 ```hcl
 # =============================================================================
 # CORE SETTINGS
@@ -626,7 +631,7 @@ terraform destroy
 subscription_id = "00000000-0000-0000-0000-000000000000"  # REQUIRED
 project         = "azlab"
 environment     = "lab"
-location        = "East US"  # Or "West Europe", "West US 2", etc.
+location        = "westus2"  # Example: current lab profile region
 owner           = "Lab-User"
 
 # =============================================================================
@@ -646,7 +651,7 @@ deploy_firewall              = true   # Azure Firewall (~$350/mo)
 firewall_sku_tier            = "Standard"
 deploy_vpn_gateway           = false  # VPN Gateway (~$140/mo, 30 min deploy)
 deploy_onprem_simulation     = false  # Requires VPN Gateway
-deploy_application_gateway   = false  # App Gateway with WAF (~$36/mo)
+deploy_application_gateway   = true   # App Gateway with WAF (~$36/mo)
 
 # Identity & Management
 deploy_secondary_dc          = false  # Second Domain Controller (~$30/mo)
@@ -656,12 +661,12 @@ allowed_jumpbox_source_ips   = ["0.0.0.0/0"]  # TODO: Restrict to your IP
 # Shared Services
 deploy_keyvault              = true
 deploy_storage               = true
-deploy_sql                   = false  # Azure SQL (~$5/mo)
+deploy_sql                   = true   # Azure SQL (~$5/mo)
 
 # Monitoring
 deploy_log_analytics         = true
 log_retention_days           = 30     # Free tier
-log_daily_quota_gb           = 1      # Limit ingestion
+log_daily_quota_gb           = 2      # Limit ingestion
 
 # =============================================================================
 # WORKLOADS
@@ -684,7 +689,7 @@ aks_vm_size                  = "Standard_B2s"
 # PAAS SERVICES (All optional)
 # =============================================================================
 # Tier 1: FREE
-deploy_functions             = true   # Azure Functions Y1
+deploy_functions             = false  # Azure Functions Y1
 deploy_static_web_app        = true   # Static Web Apps Free
 deploy_logic_apps            = true   # Logic Apps Consumption
 deploy_event_grid            = true   # Event Grid (100k free)
@@ -695,7 +700,8 @@ deploy_app_service           = true   # App Service F1 (FREE)
 
 # Tier 3: Data
 deploy_cosmos_db             = true   # Cosmos DB Serverless (~$0-5/mo)
-paas_alternative_location    = "westus2"  # For quota issues
+paas_alternative_location    = "canadacentral"  # For quota issues
+cosmos_location              = "northeurope"    # Example alternate region
 
 # =============================================================================
 # NETWORK ADD-ONS
@@ -706,9 +712,9 @@ deploy_private_endpoints             = true   # Private Link
 deploy_application_security_groups   = true   # ASGs for segmentation
 
 # Observability
-create_network_watcher               = true   # Required for flow logs
-enable_vnet_flow_logs                = true   # VNet flow logs
-enable_traffic_analytics             = true   # Traffic visualization
+create_network_watcher               = false  # Use existing NW (create only for new subs)
+enable_vnet_flow_logs                = false  # VNet flow logs
+enable_traffic_analytics             = false  # Traffic visualization
 
 # =============================================================================
 # COST OPTIMIZATION
@@ -717,7 +723,7 @@ enable_auto_shutdown         = true   # Shutdown VMs at 7 PM
 vm_size                      = "Standard_B2s"
 ```
 
-> Replace `<location_short>` in CLI examples with the short code derived from your region (e.g., `weu` for West Europe, `eus` for East US). See `locals.tf` for the mapping logic.
+> Replace `<location_short>` in CLI examples with the short code derived from your region (e.g., `weu` for West Europe, `eus` for East US, `wus2` for West US 2). See `locals.tf` for the mapping logic.
 
 ---
 
@@ -884,7 +890,7 @@ az network vpn-connection show \
 | **Cosmos DB** | Serverless | ~$0-5 |
 | **Total PaaS** | | **~$0-10/month** |
 
-> **Note**: `deploy_container_apps` has been removed from the codebase.
+> **Note**: `deploy_container_apps` exists as a placeholder flag but is not currently wired to a module.
 
 ### 💡 Cost Optimization Tips
 
@@ -1143,7 +1149,7 @@ vpn_shared_key     = "YourVPNSharedKey123!"   # Required if VPN enabled
 # =============================================================================
 project     = "azlab"                          # Resource naming prefix
 environment = "lab"                            # Environment tag
-location    = "East US"                        # Azure region
+location    = "westus2"                        # Azure region
 owner       = "Lab-User"                       # Owner tag value
 
 # =============================================================================
@@ -1173,7 +1179,7 @@ deploy_logic_apps     = false                  # Logic Apps (pay per run)
 deploy_event_grid     = false                  # Event Grid (FREE 100k)
 deploy_service_bus    = false                  # Service Bus (~$0.05/mo)
 deploy_app_service    = false                  # App Service (~$13/mo)
-deploy_container_apps = false                  # Container Apps (~$5/mo)
+deploy_container_apps = false                  # Container Apps (placeholder flag; not wired)
 deploy_cosmos_db      = false                  # Cosmos DB (serverless)
 
 # =============================================================================
