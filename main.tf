@@ -38,7 +38,6 @@ provider "azurerm" {
       recover_soft_deleted_key_vaults = true
     }
     resource_group {
-      # Allow RG deletion even if Azure created nested resources like ContainerInsights solutions
       prevent_deletion_if_contains_resources = false
     }
     virtual_machine {
@@ -47,6 +46,72 @@ provider "azurerm" {
     }
   }
 }
+
+# =============================================================================
+# FEATURE TOGGLES REFERENCE - Set values in terraform.tfvars
+# =============================================================================
+#
+# CORE INFRASTRUCTURE                          Variable                        Cost
+# ----------------------------------------------------------------------------------
+# Azure Firewall                               deploy_firewall                 ~$300
+# VPN Gateway                                  deploy_vpn_gateway              ~$140
+# Application Gateway + WAF                    deploy_application_gateway      ~$20
+# NAT Gateway                                  deploy_nat_gateway              ~$5
+# Load Balancer + IIS VMs                      deploy_load_balancer            ~$35
+#
+# LANDING ZONES
+# ----------------------------------------------------------------------------------
+# Production Workload VNet                     deploy_workload_prod            FREE
+# Development Workload VNet                    deploy_workload_dev             FREE
+# On-Prem Simulation                           deploy_onprem_simulation        ~$30
+# Secondary Domain Controller                  deploy_secondary_dc             ~$30
+#
+# COMPUTE & CONTAINERS
+# ----------------------------------------------------------------------------------
+# Azure Kubernetes Service                     deploy_aks                      ~$70+
+# Container Apps                               deploy_container_apps           ~$0-20
+# Azure Functions                              deploy_functions                FREE
+#
+# PAAS SERVICES
+# ----------------------------------------------------------------------------------
+# App Service                                  deploy_app_service              ~$15
+# Static Web App                               deploy_static_web_app           FREE
+# Logic Apps                                   deploy_logic_apps               FREE
+# Event Grid                                   deploy_event_grid               FREE
+# Service Bus                                  deploy_service_bus              ~$0.05
+# Cosmos DB Serverless                         deploy_cosmos_db                ~$0-5
+#
+# DATA & SECURITY
+# ----------------------------------------------------------------------------------
+# Key Vault                                    deploy_keyvault                 FREE
+# Storage Account                              deploy_storage                  ~$1
+# Azure SQL Database                           deploy_sql                      ~$5
+# Recovery Services Vault                      deploy_backup                   ~$10+
+# Private Endpoints                            deploy_private_endpoints        FREE
+# Private DNS Zones                            deploy_private_dns_zones        FREE
+#
+# MONITORING & OBSERVABILITY
+# ----------------------------------------------------------------------------------
+# Log Analytics                                deploy_log_analytics            FREE
+# Azure Workbooks                              deploy_workbooks                FREE
+# Connection Monitor                           deploy_connection_monitor       ~$1
+# Cost Management                              deploy_cost_management          FREE
+# VNet Flow Logs                               enable_vnet_flow_logs           ~$1-5
+# Traffic Analytics                            enable_traffic_analytics        ~$3
+#
+# GOVERNANCE & COMPLIANCE
+# ----------------------------------------------------------------------------------
+# Azure Policy                                 deploy_azure_policy             FREE
+# Management Groups                            deploy_management_groups        FREE
+# Custom RBAC Roles                            deploy_rbac_custom_roles        FREE
+# Regulatory Compliance                        deploy_regulatory_compliance    FREE
+#
+# AUTOMATION
+# ----------------------------------------------------------------------------------
+# VM Auto-Shutdown (7PM)                       enable_auto_shutdown            SAVES $
+# Scheduled Start/Stop                         enable_scheduled_startstop      ~$1
+#
+# =============================================================================
 
 # =============================================================================
 # DATA SOURCES
