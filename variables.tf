@@ -606,6 +606,12 @@ variable "create_network_watcher" {
   default     = true
 }
 
+variable "network_watcher_name" {
+  description = "Name of the existing Network Watcher (used when create_network_watcher = false)"
+  type        = string
+  default     = null
+}
+
 # -----------------------------------------------------------------------------
 # Network Extensions - VNet Flow Logs (Replaces deprecated NSG Flow Logs)
 # -----------------------------------------------------------------------------

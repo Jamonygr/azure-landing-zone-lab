@@ -130,7 +130,7 @@ lb_web_server_size   = "Standard_B1ms" # 2GB RAM for IIS
 # PaaS Services - Tier 1 (FREE)
 # These services cost nothing or almost nothing
 # -----------------------------------------------------------------------------
-deploy_functions      = true # Testing with westeurope location
+deploy_functions      = false # Disabled: Azure doesn't allow mixing Dynamic Linux Functions with Windows App Service in same RG
 deploy_static_web_app = true # Static Web Apps Free tier - FREE
 deploy_logic_apps     = true # Logic Apps Consumption - ~$0 (pay per execution)
 deploy_event_grid     = true # Event Grid - FREE (first 100k ops/month)
@@ -185,9 +185,10 @@ startstop_stop_time        = "19:00"
 # -----------------------------------------------------------------------------
 # Network Add-ons & Observability (FREE)
 # -----------------------------------------------------------------------------
-create_network_watcher             = true  # Required for flow logs (FREE)
-enable_vnet_flow_logs              = true  # VNet Flow Logs - tested and working!
-enable_traffic_analytics           = true  # Traffic Analytics - 10 min interval
+create_network_watcher             = false # Use existing Network Watcher (westus2-watcher)
+network_watcher_name               = "westus2-watcher"  # Actual name in subscription
+enable_vnet_flow_logs              = false # Disabled: BadRequest error needs investigation
+enable_traffic_analytics           = false # Disabled: Requires VNet Flow Logs to be enabled
 deploy_application_security_groups = true  # Micro-segmentation (FREE)
 deploy_nat_gateway                 = true  # Fixed outbound IPs (~$4-5/mo)
 
@@ -216,7 +217,7 @@ deploy_private_endpoints = true  # Private Endpoints for Key Vault, Storage, SQL
 # Governance & Policy
 # -----------------------------------------------------------------------------
 deploy_azure_policy       = true
-policy_allowed_locations  = ["eastus", "eastus2", "westeurope", "northeurope", "westus2"]
+policy_allowed_locations  = ["eastus", "eastus2", "westeurope", "northeurope", "westus2", "canadacentral"]
 policy_required_tags = {
   Environment = "lab"
   Owner       = "Lab-User"

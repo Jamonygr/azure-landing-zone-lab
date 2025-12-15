@@ -15,15 +15,25 @@ terraform {
   }
 }
 
-# Azure automatically creates NetworkWatcherRG and NetworkWatcher_<region>
-# when Network Watcher is first accessed. We use data sources to reference them.
+# Network Watcher - either look up existing or create new
+# When create_network_watcher = false, we look up the existing one
 data "azurerm_network_watcher" "this" {
+  count               = var.create_network_watcher ? 0 : 1
   name                = var.network_watcher_name
   resource_group_name = var.network_watcher_resource_group_name
 }
 
+# When create_network_watcher = true, we create one with the expected name
+resource "azurerm_network_watcher" "this" {
+  count               = var.create_network_watcher ? 1 : 0
+  name                = var.network_watcher_name
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  tags                = var.tags
+}
+
 locals {
-  network_watcher_id = data.azurerm_network_watcher.this.id
+  network_watcher_id = var.create_network_watcher ? azurerm_network_watcher.this[0].id : data.azurerm_network_watcher.this[0].id
 }
 
 # VNet Flow Log using AzAPI (not yet available in AzureRM as native resource)

@@ -3,6 +3,14 @@
 # Scheduled Start/Stop for VMs
 # =============================================================================
 
+# Calculate a future start time for schedules (tomorrow at 8AM or 7PM)
+locals {
+  # Get tomorrow's date at the specified time
+  base_date       = formatdate("YYYY-MM-DD", timeadd(timestamp(), "24h"))
+  start_schedule_time = "${local.base_date}T08:00:00Z"
+  stop_schedule_time  = "${local.base_date}T19:00:00Z"
+}
+
 # Automation Account
 resource "azurerm_automation_account" "automation" {
   name                = var.automation_account_name
@@ -166,10 +174,14 @@ resource "azurerm_automation_schedule" "start_schedule" {
   frequency               = "Week"
   interval                = 1
   timezone                = var.timezone
-  start_time              = var.start_time
+  start_time              = local.start_schedule_time
   week_days               = var.start_days
 
-  description = "Start VMs every weekday morning at ${var.start_time}"
+  description = "Start VMs every weekday morning at 08:00"
+
+  lifecycle {
+    ignore_changes = [start_time]
+  }
 }
 
 # Evening Stop Schedule (7 PM weekdays)
@@ -181,10 +193,14 @@ resource "azurerm_automation_schedule" "stop_schedule" {
   frequency               = "Week"
   interval                = 1
   timezone                = var.timezone
-  start_time              = var.stop_time
+  start_time              = local.stop_schedule_time
   week_days               = var.stop_days
 
-  description = "Stop VMs every weekday evening at ${var.stop_time}"
+  description = "Stop VMs every weekday evening at 19:00"
+
+  lifecycle {
+    ignore_changes = [start_time]
+  }
 }
 
 # =============================================================================

@@ -29,6 +29,12 @@ variable "create_network_watcher" {
   default     = false
 }
 
+variable "network_watcher_name" {
+  description = "Name of the Network Watcher (used when create_network_watcher = false, or for creating with a specific name)"
+  type        = string
+  default     = null
+}
+
 variable "log_analytics_workspace_id" {
   description = "Log Analytics Workspace ID for test results"
   type        = string

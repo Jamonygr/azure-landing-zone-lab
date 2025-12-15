@@ -1118,10 +1118,11 @@ module "vnet_flow_logs_hub" {
   storage_account_id = module.shared_services.storage_account_id
   tags               = local.common_tags
 
-  # Network Watcher settings (use Azure's auto-created one)
-  network_watcher_name                = "NetworkWatcher_${replace(lower(var.location), " ", "")}"
+  # Network Watcher settings - use provided name or default convention
+  network_watcher_name                = var.network_watcher_name != null ? var.network_watcher_name : "NetworkWatcher_${replace(lower(var.location), " ", "")}"
   network_watcher_resource_group_name = "NetworkWatcherRG"
   create_network_watcher              = var.create_network_watcher
+  resource_group_name                 = azurerm_resource_group.management.name
 
   # Retention
   retention_enabled = true
@@ -1145,10 +1146,11 @@ module "vnet_flow_logs_workload" {
   storage_account_id = module.shared_services.storage_account_id
   tags               = local.common_tags
 
-  # Network Watcher settings
-  network_watcher_name                = "NetworkWatcher_${replace(lower(var.location), " ", "")}"
+  # Network Watcher settings - use provided name or default convention
+  network_watcher_name                = var.network_watcher_name != null ? var.network_watcher_name : "NetworkWatcher_${replace(lower(var.location), " ", "")}"
   network_watcher_resource_group_name = "NetworkWatcherRG"
   create_network_watcher              = var.create_network_watcher
+  resource_group_name                 = azurerm_resource_group.management.name
 
   # Retention
   retention_enabled = true
@@ -1172,10 +1174,11 @@ module "vnet_flow_logs_identity" {
   storage_account_id = module.shared_services.storage_account_id
   tags               = local.common_tags
 
-  # Network Watcher settings
-  network_watcher_name                = "NetworkWatcher_${replace(lower(var.location), " ", "")}"
+  # Network Watcher settings - use provided name or default convention
+  network_watcher_name                = var.network_watcher_name != null ? var.network_watcher_name : "NetworkWatcher_${replace(lower(var.location), " ", "")}"
   network_watcher_resource_group_name = "NetworkWatcherRG"
   create_network_watcher              = var.create_network_watcher
+  resource_group_name                 = azurerm_resource_group.management.name
 
   # Retention
   retention_enabled = true
@@ -1199,10 +1202,11 @@ module "vnet_flow_logs_management" {
   storage_account_id = module.shared_services.storage_account_id
   tags               = local.common_tags
 
-  # Network Watcher settings
-  network_watcher_name                = "NetworkWatcher_${replace(lower(var.location), " ", "")}"
+  # Network Watcher settings - use provided name or default convention
+  network_watcher_name                = var.network_watcher_name != null ? var.network_watcher_name : "NetworkWatcher_${replace(lower(var.location), " ", "")}"
   network_watcher_resource_group_name = "NetworkWatcherRG"
   create_network_watcher              = var.create_network_watcher
+  resource_group_name                 = azurerm_resource_group.management.name
 
   # Retention
   retention_enabled = true
@@ -1226,10 +1230,11 @@ module "vnet_flow_logs_shared" {
   storage_account_id = module.shared_services.storage_account_id
   tags               = local.common_tags
 
-  # Network Watcher settings
-  network_watcher_name                = "NetworkWatcher_${replace(lower(var.location), " ", "")}"
+  # Network Watcher settings - use provided name or default convention
+  network_watcher_name                = var.network_watcher_name != null ? var.network_watcher_name : "NetworkWatcher_${replace(lower(var.location), " ", "")}"
   network_watcher_resource_group_name = "NetworkWatcherRG"
   create_network_watcher              = var.create_network_watcher
+  resource_group_name                 = azurerm_resource_group.management.name
 
   # Retention
   retention_enabled = true
@@ -1324,6 +1329,7 @@ module "connection_monitor" {
   location            = var.location
   resource_group_name = azurerm_resource_group.management.name
   create_network_watcher = var.create_network_watcher
+  network_watcher_name   = var.network_watcher_name
   tags                = local.common_tags
 
   log_analytics_workspace_id = module.management.log_analytics_workspace_id

@@ -40,6 +40,12 @@ variable "create_network_watcher" {
   default     = false
 }
 
+variable "resource_group_name" {
+  description = "Resource group name to create the Network Watcher in (when create_network_watcher = true)"
+  type        = string
+  default     = null
+}
+
 variable "enabled" {
   description = "Enable or disable flow logging"
   type        = bool

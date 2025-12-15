@@ -3,16 +3,21 @@
 # Network connectivity testing between endpoints
 # =============================================================================
 
+locals {
+  # Use provided name or default to Azure convention
+  network_watcher_name_resolved = var.network_watcher_name != null ? var.network_watcher_name : "NetworkWatcher_${replace(lower(var.location), " ", "")}"
+}
+
 # Connection Monitor uses Network Watcher
 data "azurerm_network_watcher" "watcher" {
   count               = var.create_network_watcher ? 0 : 1
-  name                = "NetworkWatcher_${replace(lower(var.location), " ", "")}"
+  name                = local.network_watcher_name_resolved
   resource_group_name = "NetworkWatcherRG"
 }
 
 resource "azurerm_network_watcher" "watcher" {
   count               = var.create_network_watcher ? 1 : 0
-  name                = "NetworkWatcher_${replace(lower(var.location), " ", "")}"
+  name                = local.network_watcher_name_resolved
   location            = var.location
   resource_group_name = var.resource_group_name
   tags                = var.tags
