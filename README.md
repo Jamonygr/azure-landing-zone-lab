@@ -36,6 +36,10 @@ Learn Azure the right way—by building it. This Terraform project deploys a com
 
 > 💡 **Hands-on Learning**: Deploy real enterprise infrastructure in minutes. Perfect for Azure certifications (AZ-104, AZ-305, AZ-700), team training, or validating architectures before production.
 
+## 🎛️ Master Control Panel (feature toggles)
+
+At the top of `terraform.tfvars` there is a **MASTER CONTROL PANEL** section that contains all the main `deploy_*` / `enable_*` switches in one place. Flip those values to quickly change what gets deployed, then run `terraform plan` and `terraform apply`.
+
 ---
 
 ## 📋 Table of Contents
@@ -619,10 +623,6 @@ terraform destroy
 ## ⚙️ Configuration Options
 
 ### terraform.tfvars
-
-#### 🎛️ Master Control Panel (feature toggles)
-
-At the top of `terraform.tfvars` there is a **MASTER CONTROL PANEL** section that contains all the main `deploy_*` / `enable_*` switches in one place. Flip those values to quickly change what gets deployed, then run `terraform plan` and `terraform apply`.
 
 ```hcl
 # =============================================================================
