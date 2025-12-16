@@ -53,6 +53,7 @@ At the top of `terraform.tfvars` there is a **MASTER CONTROL PANEL** section tha
 - [Network Topology](#-network-topology)
 - [Traffic Flow](#-traffic-flow)
 - [Quick Start](#-quick-start)
+- [CI/CD Pipeline](#-cicd-pipeline)
 - [Configuration Options](#-configuration-options)
 - [Testing the Environment](#-testing-the-environment)
 - [Security Features](#-security-features)
@@ -617,6 +618,79 @@ curl http://$(terraform output -raw lb_frontend_ip)
 # Clean up when done
 terraform destroy
 ```
+
+---
+
+## 🔄 CI/CD Pipeline
+
+This project includes a complete GitHub Actions pipeline for automated deployments.
+
+### Pipeline Stages
+
+```
+Format → Validate → Security Scans → TFLint → Plan → Apply/Destroy
+```
+
+| Stage | Purpose |
+|-------|---------|
+| **Format Check** | Ensures `terraform fmt` compliance |
+| **Validate** | Runs `terraform validate` |
+| **Security Scans** | tfsec + Checkov (parallel) |
+| **TFLint** | Azure-specific linting |
+| **Plan** | Shows infrastructure changes |
+| **Apply** | Deploys to Azure |
+| **Destroy** | Tears down environment (manual only) |
+
+### Triggers
+
+| Event | Action |
+|-------|--------|
+| **Push to `main`** | Auto-apply if changes detected |
+| **Pull Request** | Plan only with PR comment |
+| **Manual** | Choose action/environment in GitHub Actions |
+
+### Manual Deployment
+
+```bash
+# Via GitHub CLI
+gh workflow run "Terraform Pipeline" -f action=apply -f environment=lab
+
+# Watch the run
+gh run watch
+```
+
+### Required GitHub Secrets
+
+| Secret | Description |
+|--------|-------------|
+| `AZURE_CLIENT_ID` | Service Principal Client ID |
+| `AZURE_CLIENT_SECRET` | Service Principal Secret |
+| `AZURE_SUBSCRIPTION_ID` | Target Azure Subscription |
+| `AZURE_TENANT_ID` | Azure AD Tenant ID |
+| `AZURE_CREDENTIALS` | JSON credentials for Azure Login |
+| `TF_STATE_RG` | Resource group for Terraform state |
+| `TF_STATE_SA` | Storage account for Terraform state |
+
+### Create Service Principal
+
+```bash
+az ad sp create-for-rbac \
+  --name "terraform-alz-pipeline" \
+  --role Owner \
+  --scopes /subscriptions/<SUBSCRIPTION_ID> \
+  --sdk-auth
+```
+
+### Destroy Environment
+
+```bash
+gh workflow run "Terraform Pipeline" \
+  -f action=destroy \
+  -f environment=lab \
+  -f destroy_confirm=DESTROY
+```
+
+> 📖 **Full documentation**: See [wiki/reference/pipeline.md](wiki/reference/pipeline.md)
 
 ---
 
