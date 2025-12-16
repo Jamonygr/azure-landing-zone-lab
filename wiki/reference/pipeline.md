@@ -4,14 +4,53 @@ This document describes the GitHub Actions pipeline used to deploy and manage th
 
 ## Overview
 
-The pipeline is defined in [`.github/workflows/terraform.yml`](../../.github/workflows/terraform.yml) and provides a complete CI/CD workflow for Terraform:
+The pipeline is defined in [`.github/workflows/terraform.yml`](../../.github/workflows/terraform.yml) and provides a complete CI/CD workflow for Terraform with **8 visible job stages**:
 
 ```
-┌─────────────┐    ┌───────────┐    ┌──────────────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
-│   Format    │───▶│  Validate │───▶│  Security Scans  │───▶│ TFLint  │───▶│  Plan   │───▶│  Apply  │
-│   Check     │    │           │    │  (tfsec+Checkov) │    │         │    │         │    │         │
-└─────────────┘    └───────────┘    └──────────────────┘    └─────────┘    └─────────┘    └─────────┘
+┌─────────────┐    ┌───────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
+│ 1️⃣ Format   │───▶│ 2️⃣ Validate│───▶│ 3️⃣ tfsec │    │ 3️⃣ Checkov│    │ 4️⃣ TFLint │
+│   Check     │    │           │    │         │    │         │    │         │
+└─────────────┘    └───────────┘    └────┬────┘    └────┬────┘    └────┬────┘
+                                         │              │              │
+                                         └──────────────┴──────────────┘
+                                                        │
+                                                        ▼
+                   ┌─────────────────────────────────────────────────────┐
+                   │                     5️⃣ Plan                         │
+                   └─────────────────────────────────────────────────────┘
+                                         │
+                          ┌──────────────┴──────────────┐
+                          ▼                             ▼
+                   ┌─────────────┐               ┌─────────────┐
+                   │  6️⃣ Apply   │               │  7️⃣ Destroy  │
+                   │ (manual)    │               │ (manual)    │
+                   └─────────────┘               └─────────────┘
 ```
+
+### Architecture: 2-Level Template Structure
+
+The pipeline uses a **2-level architecture** for maintainability and code reuse:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│              LEVEL 2: ORCHESTRATOR WORKFLOW                         │
+│                   terraform.yml (8 jobs)                            │
+│   Format → Validate → tfsec/Checkov/TFLint → Plan → Apply/Destroy  │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│              LEVEL 1: COMPOSITE ACTIONS (Hidden)                    │
+│  .github/actions/                                                   │
+│  ├── validate/   - Format check + validation                       │
+│  ├── security/   - tfsec + Checkov + TFLint                        │
+│  ├── plan/       - Terraform init + plan with change detection     │
+│  ├── apply/      - Download artifact + apply                       │
+│  └── destroy/    - Confirm + destroy                               │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+> **Note:** Composite actions are in `.github/actions/` and do NOT appear in the GitHub Actions UI - only the main workflow is visible.
 
 ---
 
@@ -184,18 +223,32 @@ GitHub Repository
 
 ---
 
-## Pipeline Stages
+## Pipeline Jobs
 
-| Stage | Purpose | Blocks Deploy? |
-|-------|---------|----------------|
-| 1️⃣ **Format Check** | Ensures `terraform fmt` compliance | ✅ Yes |
-| 2️⃣ **Validate** | Runs `terraform validate` | ✅ Yes |
-| 3️⃣ **Security - tfsec** | Static security analysis | ⚠️ Soft fail |
-| 3️⃣ **Security - Checkov** | Policy-as-code security scanning | ⚠️ Soft fail |
-| 4️⃣ **TFLint** | Azure-specific linting rules | ⚠️ Soft fail |
-| 5️⃣ **Terraform Plan** | Shows infrastructure changes | ✅ Yes |
-| 6️⃣ **Terraform Apply** | Deploys changes to Azure | - |
-| 7️⃣ **Terraform Destroy** | Tears down environment (manual only) | - |
+The pipeline has **8 separate job boxes** visible in GitHub Actions:
+
+| Job | Name | Purpose | Blocks Deploy? |
+|-----|------|---------|----------------|
+| 1 | **1️⃣ Format Check** | Ensures `terraform fmt` compliance | ✅ Yes |
+| 2 | **2️⃣ Validate** | Runs `terraform validate` | ✅ Yes |
+| 3a | **3️⃣ Security - tfsec** | Static security analysis | ⚠️ Soft fail |
+| 3b | **3️⃣ Security - Checkov** | Policy-as-code security scanning | ⚠️ Soft fail |
+| 4 | **4️⃣ TFLint** | Azure-specific linting rules | ⚠️ Soft fail |
+| 5 | **5️⃣ Plan** | Shows infrastructure changes | ✅ Yes |
+| 6 | **6️⃣ Apply** | Deploys changes to Azure (manual trigger) | - |
+| 7 | **7️⃣ Destroy** | Tears down environment (manual trigger) | - |
+
+### Job Dependencies
+
+```yaml
+format → validate → [tfsec, checkov, tflint] → plan → apply
+                                                    ↘ destroy
+```
+
+- Jobs 3a, 3b, and 4 run **in parallel** after Validate
+- Plan waits for ALL security scans to complete
+- Apply requires manual trigger with `action=apply`
+- Destroy is independent and requires `action=destroy` + confirmation
 
 ## Triggers
 
@@ -574,6 +627,8 @@ The Apply stage skips if no changes detected. This is expected behavior.
 
 ## Related Documentation
 
+- [Pipeline Templates Architecture](pipeline-templates.md) - 2-level template structure details
 - [Variables Reference](variables.md) - Input variables
 - [Outputs Reference](outputs.md) - Deployment outputs
 - [Architecture Overview](../architecture/overview.md) - Infrastructure design
+
