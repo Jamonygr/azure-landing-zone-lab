@@ -22,8 +22,11 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working_directory }}
       run: |
-        # Force re-initialize with backend disabled to avoid backend conflicts
-        terraform init -backend=false -reconfigure
+        # Remove any existing terraform state to start fresh
+        rm -rf .terraform .terraform.lock.hcl
+        
+        # Initialize with backend disabled
+        terraform init -backend=false
         
         terraform graph > graph.dot
         dot -T${{ inputs.output_format }} graph.dot -o terraform-graph.${{ inputs.output_format }}

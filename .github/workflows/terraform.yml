@@ -236,9 +236,6 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Init
-        run: terraform init -backend=false
-
       - uses: ./.github/actions/graph
         with:
           output_format: svg
