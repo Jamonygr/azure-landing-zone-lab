@@ -1,0 +1,188 @@
+# =============================================================================
+# LEVEL 2: REUSABLE WORKFLOW - Plan
+# =============================================================================
+# Reusable workflow for Terraform plan
+# =============================================================================
+
+name: Terraform Plan
+
+on:
+  workflow_call:
+    inputs:
+      terraform_version:
+        description: 'Terraform version'
+        type: string
+        required: false
+        default: '1.9.0'
+      working_directory:
+        description: 'Working directory'
+        type: string
+        required: false
+        default: '.'
+      environment:
+        description: 'Target environment'
+        type: string
+        required: true
+      var_file:
+        description: 'Variables file path'
+        type: string
+        required: true
+    secrets:
+      AZURE_CREDENTIALS:
+        required: true
+      TF_STATE_RG:
+        required: true
+      TF_STATE_SA:
+        required: true
+    outputs:
+      has_changes:
+        description: 'Whether plan has changes'
+        value: ${{ jobs.plan.outputs.has_changes }}
+      add:
+        description: 'Resources to add'
+        value: ${{ jobs.plan.outputs.add }}
+      change:
+        description: 'Resources to change'
+        value: ${{ jobs.plan.outputs.change }}
+      destroy:
+        description: 'Resources to destroy'
+        value: ${{ jobs.plan.outputs.destroy }}
+
+jobs:
+  plan:
+    name: 'Terraform Plan'
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.plan.outputs.has_changes }}
+      add: ${{ steps.summary.outputs.add }}
+      change: ${{ steps.summary.outputs.change }}
+      destroy: ${{ steps.summary.outputs.destroy }}
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+          terraform_wrapper: false
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Terraform Init
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ secrets.TF_STATE_RG }}" \
+            -backend-config="storage_account_name=${{ secrets.TF_STATE_SA }}" \
+            -backend-config="container_name=tfstate" \
+            -backend-config="key=${{ inputs.environment }}.terraform.tfstate"
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          set +e
+          set -o pipefail
+          terraform plan \
+            -var-file="${{ inputs.var_file }}" \
+            -out=tfplan \
+            -detailed-exitcode \
+            -no-color 2>&1 | tee plan_output.txt
+          
+          EXITCODE=${PIPESTATUS[0]}
+          
+          if [ $EXITCODE -eq 0 ]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          elif [ $EXITCODE -eq 2 ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            cat plan_output.txt
+            exit 1
+          fi
+
+      - name: Parse Plan Output
+        id: summary
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          ADD=$(grep -oP '\d+(?= to add)' plan_output.txt || echo "0")
+          CHANGE=$(grep -oP '\d+(?= to change)' plan_output.txt || echo "0")
+          DESTROY=$(grep -oP '\d+(?= to destroy)' plan_output.txt || echo "0")
+          
+          echo "add=$ADD" >> $GITHUB_OUTPUT
+          echo "change=$CHANGE" >> $GITHUB_OUTPUT
+          echo "destroy=$DESTROY" >> $GITHUB_OUTPUT
+
+      - name: Plan Summary
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          echo "## 📋 Terraform Plan - ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.plan.outputs.has_changes }}" == "false" ]; then
+            echo "✅ **No changes detected**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Action | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| ➕ Add | ${{ steps.summary.outputs.add }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| 🔄 Change | ${{ steps.summary.outputs.change }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| ➖ Destroy | ${{ steps.summary.outputs.destroy }} |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ inputs.environment }}-${{ github.sha }}
+          path: |
+            ${{ inputs.working_directory }}/tfplan
+            ${{ inputs.working_directory }}/plan_output.txt
+          retention-days: 5
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const fs = require('fs');
+            const planPath = '${{ inputs.working_directory }}/plan_output.txt';
+            const plan = fs.readFileSync(planPath, 'utf8');
+            const truncated = plan.length > 60000 ? plan.substring(0, 60000) + '\n...(truncated)' : plan;
+            
+            const body = `## 📋 Terraform Plan - ${{ inputs.environment }}
+            
+            | Action | Count |
+            |--------|-------|
+            | ➕ Add | ${{ steps.summary.outputs.add }} |
+            | 🔄 Change | ${{ steps.summary.outputs.change }} |
+            | ➖ Destroy | ${{ steps.summary.outputs.destroy }} |
+            
+            <details><summary>Show Plan</summary>
+            
+            \`\`\`hcl
+            ${truncated}
+            \`\`\`
+            </details>`;
+            
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number
+            });
+            const existing = comments.find(c => c.user.type === 'Bot' && c.body.includes('Terraform Plan'));
+            
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body: body
+              });
+            }

@@ -1,0 +1,156 @@
+# =============================================================================
+# LEVEL 2: REUSABLE WORKFLOW - Security
+# =============================================================================
+# Reusable workflow for security scanning (tfsec, Checkov, TFLint)
+# =============================================================================
+
+name: Security Scans
+
+on:
+  workflow_call:
+    inputs:
+      working_directory:
+        description: 'Working directory to scan'
+        type: string
+        required: false
+        default: '.'
+      run_tfsec:
+        description: 'Run tfsec scanner'
+        type: boolean
+        required: false
+        default: true
+      run_checkov:
+        description: 'Run Checkov scanner'
+        type: boolean
+        required: false
+        default: true
+      run_tflint:
+        description: 'Run TFLint'
+        type: boolean
+        required: false
+        default: true
+      soft_fail:
+        description: 'Continue on findings'
+        type: boolean
+        required: false
+        default: true
+    outputs:
+      tfsec_result:
+        description: 'tfsec scan result'
+        value: ${{ jobs.tfsec.outputs.result }}
+      checkov_result:
+        description: 'Checkov scan result'
+        value: ${{ jobs.checkov.outputs.result }}
+      tflint_result:
+        description: 'TFLint result'
+        value: ${{ jobs.tflint.outputs.result }}
+
+jobs:
+  tfsec:
+    name: 'tfsec'
+    runs-on: ubuntu-latest
+    if: inputs.run_tfsec
+    outputs:
+      result: ${{ steps.scan.outcome }}
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run tfsec
+        id: scan
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: ${{ inputs.working_directory }}
+          soft_fail: ${{ inputs.soft_fail }}
+          format: sarif
+          out: tfsec-results.sarif
+        continue-on-error: true
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: tfsec-results.sarif
+        continue-on-error: true
+
+      - name: Summary
+        run: echo "## 🔒 tfsec scan completed" >> $GITHUB_STEP_SUMMARY
+
+  checkov:
+    name: 'Checkov'
+    runs-on: ubuntu-latest
+    if: inputs.run_checkov
+    outputs:
+      result: ${{ steps.scan.outcome }}
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Checkov
+        id: scan
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: ${{ inputs.working_directory }}
+          framework: terraform
+          soft_fail: ${{ inputs.soft_fail }}
+          output_format: cli,sarif
+          output_file_path: console,checkov-results.sarif
+        continue-on-error: true
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: checkov-results.sarif
+        continue-on-error: true
+
+      - name: Summary
+        run: echo "## 🛡️ Checkov scan completed" >> $GITHUB_STEP_SUMMARY
+
+  tflint:
+    name: 'TFLint'
+    runs-on: ubuntu-latest
+    if: inputs.run_tflint
+    outputs:
+      result: ${{ steps.lint.outcome }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: latest
+
+      - name: Init TFLint
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          cat > .tflint.hcl << 'EOF'
+          plugin "azurerm" {
+            enabled = true
+            version = "0.27.0"
+            source  = "github.com/terraform-linters/tflint-ruleset-azurerm"
+          }
+          EOF
+          tflint --init
+
+      - name: Run TFLint
+        id: lint
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          echo "## 📏 TFLint Results" >> $GITHUB_STEP_SUMMARY
+          tflint --format=compact --recursive 2>&1 | tee tflint_output.txt || true
+          if [ -s tflint_output.txt ]; then
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat tflint_output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ No issues found" >> $GITHUB_STEP_SUMMARY
+          fi
+        continue-on-error: true

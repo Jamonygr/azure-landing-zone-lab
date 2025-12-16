@@ -13,6 +13,177 @@ The pipeline is defined in [`.github/workflows/terraform.yml`](../../.github/wor
 └─────────────┘    └───────────┘    └──────────────────┘    └─────────┘    └─────────┘    └─────────┘
 ```
 
+---
+
+## Initial Setup (One-Time Configuration)
+
+Before using the pipeline, you must complete these one-time setup steps.
+
+### Step 1: Authenticate with Azure
+
+```bash
+# Login to Azure CLI
+az login
+
+# Set your subscription
+az account set --subscription "<SUBSCRIPTION_ID>"
+
+# Verify
+az account show --query "{Name:name, ID:id}" -o table
+```
+
+### Step 2: Create Service Principal
+
+The pipeline needs a Service Principal with sufficient permissions to manage Azure resources.
+
+```bash
+# Create SP with Owner role
+az ad sp create-for-rbac \
+  --name "terraform-alz-pipeline" \
+  --role Owner \
+  --scopes /subscriptions/<SUBSCRIPTION_ID> \
+  --sdk-auth
+```
+
+**Save the output** - you'll need these values:
+```json
+{
+  "clientId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "clientSecret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "subscriptionId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "tenantId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+}
+```
+
+> **Why Owner role?** The landing zone creates role assignments, policy assignments, and role definitions which require:
+> - `Microsoft.Authorization/roleAssignments/write`
+> - `Microsoft.Authorization/policyAssignments/write`
+> - `Microsoft.Authorization/roleDefinitions/write`
+>
+> Only Owner (or custom combination of User Access Administrator + Contributor + Resource Policy Contributor) provides these.
+
+### Step 3: Create Terraform State Storage
+
+Terraform requires a remote backend to store state files. Create an Azure Storage Account:
+
+```powershell
+# Variables
+$RESOURCE_GROUP = "rg-terraform-state"
+$LOCATION = "westus2"
+$RANDOM_SUFFIX = Get-Random -Maximum 9999
+$STORAGE_ACCOUNT = "stterraformstate$RANDOM_SUFFIX"
+
+# Create resource group
+az group create --name $RESOURCE_GROUP --location $LOCATION
+
+# Create storage account with security best practices
+az storage account create `
+  --name $STORAGE_ACCOUNT `
+  --resource-group $RESOURCE_GROUP `
+  --location $LOCATION `
+  --sku Standard_LRS `
+  --kind StorageV2 `
+  --encryption-services blob `
+  --min-tls-version TLS1_2 `
+  --allow-blob-public-access false `
+  --https-only true
+
+# Create container for state files
+az storage container create `
+  --name tfstate `
+  --account-name $STORAGE_ACCOUNT
+
+# Output the storage account name (save this!)
+Write-Host "Storage Account: $STORAGE_ACCOUNT"
+```
+
+**Or using Bash:**
+```bash
+RESOURCE_GROUP="rg-terraform-state"
+LOCATION="westus2"
+STORAGE_ACCOUNT="stterraformstate$RANDOM"
+
+az group create --name $RESOURCE_GROUP --location $LOCATION
+
+az storage account create \
+  --name $STORAGE_ACCOUNT \
+  --resource-group $RESOURCE_GROUP \
+  --sku Standard_LRS \
+  --encryption-services blob \
+  --min-tls-version TLS1_2
+
+az storage container create \
+  --name tfstate \
+  --account-name $STORAGE_ACCOUNT
+
+echo "Storage Account: $STORAGE_ACCOUNT"
+```
+
+### Step 4: Configure GitHub Secrets
+
+Authenticate with GitHub CLI and set the required secrets:
+
+```bash
+# Authenticate with GitHub
+gh auth login
+
+# Set secrets (replace with your actual values)
+gh secret set AZURE_CLIENT_ID --body "<CLIENT_ID>"
+gh secret set AZURE_CLIENT_SECRET --body "<CLIENT_SECRET>"
+gh secret set AZURE_SUBSCRIPTION_ID --body "<SUBSCRIPTION_ID>"
+gh secret set AZURE_TENANT_ID --body "<TENANT_ID>"
+gh secret set TF_STATE_RG --body "rg-terraform-state"
+gh secret set TF_STATE_SA --body "<STORAGE_ACCOUNT_NAME>"
+
+# Set AZURE_CREDENTIALS as JSON object
+gh secret set AZURE_CREDENTIALS --body '{
+  "clientId": "<CLIENT_ID>",
+  "clientSecret": "<CLIENT_SECRET>",
+  "subscriptionId": "<SUBSCRIPTION_ID>",
+  "tenantId": "<TENANT_ID>"
+}'
+```
+
+### Step 5: Verify Setup
+
+```bash
+# List configured secrets
+gh secret list
+
+# Test the pipeline with a plan
+gh workflow run "Terraform Pipeline" -f action=plan -f environment=lab
+gh run watch
+```
+
+### Setup Summary
+
+After completing setup, you will have:
+
+```
+Azure Subscription
+├── Service Principal: terraform-alz-pipeline
+│   └── Role: Owner at subscription scope
+│
+└── Resource Group: rg-terraform-state
+    └── Storage Account: stterraformstateXXXX
+        └── Container: tfstate
+            ├── lab.terraform.tfstate
+            ├── dev.terraform.tfstate
+            └── prod.terraform.tfstate (when used)
+
+GitHub Repository
+└── Secrets
+    ├── AZURE_CLIENT_ID
+    ├── AZURE_CLIENT_SECRET
+    ├── AZURE_SUBSCRIPTION_ID
+    ├── AZURE_TENANT_ID
+    ├── AZURE_CREDENTIALS (JSON)
+    ├── TF_STATE_RG
+    └── TF_STATE_SA
+```
+
+---
+
 ## Pipeline Stages
 
 | Stage | Purpose | Blocks Deploy? |
@@ -77,17 +248,72 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 }
 ```
 
-## Service Principal Setup
+## Service Principal & Authentication
 
-### Create Service Principal
+### How Authentication Works
 
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  GitHub Actions │────▶│  Azure Login    │────▶│  Azure APIs     │
+│  (Runner)       │     │  (az login)     │     │  (ARM)          │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+        │                       │                       │
+        │ AZURE_CREDENTIALS     │ OAuth Token           │ API Calls
+        │ (from secrets)        │                       │
+        ▼                       ▼                       ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Service Principal                            │
+│                    terraform-alz-pipeline                       │
+│                                                                 │
+│  Client ID:     xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx           │
+│  Object ID:     yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy           │
+│  Tenant ID:     zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz           │
+│                                                                 │
+│  Assigned Roles:                                                │
+│  └── Owner @ /subscriptions/<subscription-id>                   │
+│      ├── Microsoft.Resources/*         (create resources)      │
+│      ├── Microsoft.Authorization/*     (role assignments)      │
+│      └── Microsoft.Authorization/*     (policy assignments)    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Authentication Flow in Pipeline
+
+1. **GitHub Runner starts** - Spins up Ubuntu container
+2. **Azure Login action** - Uses `AZURE_CREDENTIALS` secret to authenticate
+3. **Token acquired** - Azure AD issues OAuth token for the Service Principal
+4. **Terraform uses token** - AzureRM provider uses the authenticated session
+5. **API calls made** - All Azure resource operations use the SP identity
+
+### Service Principal Management
+
+**View your Service Principal:**
 ```bash
-# Create SP with Owner role (required for role assignments and policies)
-az ad sp create-for-rbac \
-  --name "terraform-alz-pipeline" \
-  --role Owner \
-  --scopes /subscriptions/<SUBSCRIPTION_ID> \
-  --sdk-auth
+# List all SPs with "terraform" in name
+az ad sp list --display-name "terraform" --query "[].{Name:displayName, AppId:appId}" -o table
+
+# Get details
+az ad sp show --id <APP_ID>
+```
+
+**Check role assignments:**
+```bash
+az role assignment list --assignee <APP_ID> -o table
+```
+
+**Rotate the secret:**
+```bash
+# Create new secret (old ones remain valid until expiry)
+az ad sp credential reset --id <APP_ID> --append
+
+# Update GitHub secret
+gh secret set AZURE_CLIENT_SECRET --body "<NEW_SECRET>"
+gh secret set AZURE_CREDENTIALS --body '{"clientId":"...","clientSecret":"<NEW_SECRET>",...}'
+```
+
+**Delete the Service Principal:**
+```bash
+az ad sp delete --id <APP_ID>
 ```
 
 ### Required Permissions
@@ -104,9 +330,53 @@ The Service Principal needs these permissions:
 
 ## Backend Configuration
 
-The pipeline uses Azure Storage for remote Terraform state:
+The pipeline uses Azure Storage for remote Terraform state, enabling:
+- **Shared state** - Multiple team members can work together
+- **State locking** - Prevents concurrent modifications
+- **Encryption at rest** - State files are encrypted in Azure Storage
+- **Versioning** - Blob versioning provides state history
+
+### How State Storage Works
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Azure Storage Account                            │
+│                    (stterraformstateXXXX)                          │
+├─────────────────────────────────────────────────────────────────────┤
+│  Container: tfstate                                                 │
+│  ├── lab.terraform.tfstate      ← Lab environment state            │
+│  ├── dev.terraform.tfstate      ← Dev environment state            │
+│  └── prod.terraform.tfstate     ← Prod environment state           │
+│                                                                     │
+│  Each state file contains:                                          │
+│  • Resource IDs and attributes                                      │
+│  • Dependencies between resources                                   │
+│  • Outputs from the deployment                                      │
+│  • Provider metadata                                                │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Backend Configuration in Code
+
+The backend is configured in [`backend.tf`](../../backend.tf):
 
 ```hcl
+terraform {
+  backend "azurerm" {
+    container_name = "tfstate"
+    # These are set via -backend-config in the pipeline:
+    # resource_group_name  = "rg-terraform-state"
+    # storage_account_name = "stterraformstateXXXX"
+    # key                  = "lab.terraform.tfstate"
+  }
+}
+```
+
+### Pipeline Backend Initialization
+
+The pipeline initializes the backend dynamically using secrets:
+
+```bash
 terraform init \
   -backend-config="resource_group_name=$TF_STATE_RG" \
   -backend-config="storage_account_name=$TF_STATE_SA" \
@@ -114,26 +384,50 @@ terraform init \
   -backend-config="key=<environment>.terraform.tfstate"
 ```
 
-### Create Backend Storage
+This allows the same code to deploy to different environments with isolated state files.
 
-```powershell
-# PowerShell
-$RESOURCE_GROUP = "rg-terraform-state"
-$LOCATION = "westus2"
-$STORAGE_ACCOUNT = "stterraformstate$(Get-Random -Maximum 9999)"
+### State File Isolation
 
-az group create --name $RESOURCE_GROUP --location $LOCATION
+Each environment has its own state file, providing:
 
-az storage account create `
-  --name $STORAGE_ACCOUNT `
-  --resource-group $RESOURCE_GROUP `
-  --sku Standard_LRS `
-  --encryption-services blob `
-  --min-tls-version TLS1_2
+| Benefit | Description |
+|---------|-------------|
+| **Isolation** | Changes to lab don't affect prod state |
+| **Parallel deploys** | Deploy to multiple environments simultaneously |
+| **Independent lifecycle** | Destroy lab without affecting dev |
+| **Separate locking** | No contention between environments |
 
-az storage container create `
-  --name tfstate `
-  --account-name $STORAGE_ACCOUNT
+### State Locking
+
+Terraform uses blob leases for state locking:
+
+```
+User A: terraform apply (acquires lock)
+User B: terraform apply → ERROR: state blob is already locked
+User A: apply completes (releases lock)
+User B: can now run apply
+```
+
+If a lock gets stuck (e.g., pipeline cancellation), force unlock:
+
+```bash
+terraform force-unlock -force <LOCK_ID>
+```
+
+### Local Backend (Development)
+
+For local development without the pipeline:
+
+```bash
+# Initialize with local backend (no Azure storage)
+terraform init
+
+# Or reconfigure to use Azure storage
+terraform init \
+  -backend-config="resource_group_name=rg-terraform-state" \
+  -backend-config="storage_account_name=stterraformstateXXXX" \
+  -backend-config="key=lab.terraform.tfstate" \
+  -reconfigure
 ```
 
 ## Environment Files
