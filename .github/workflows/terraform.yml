@@ -397,31 +397,10 @@ jobs:
           confirm: ${{ github.event.inputs.destroy_confirm }}
 
   # =========================================================================
-  # STAGE 10: TERRATEST (NEW)
-  # =========================================================================
-  terratest:
-    name: '🔟 Terratest'
-    runs-on: ubuntu-latest
-    needs: apply
-    if: |
-      always() &&
-      needs.apply.result == 'success' &&
-      github.event.inputs.run_tests == 'true'
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: ./.github/actions/terratest
-        with:
-          test_directory: tests
-          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
-          environment: ${{ env.ENVIRONMENT }}
-          timeout: '30m'
-
-  # =========================================================================
-  # STAGE 11: METRICS (NEW)
+  # STAGE 10: METRICS
   # =========================================================================
   metrics:
-    name: '📊 Metrics'
+    name: '🔟 Metrics'
     runs-on: ubuntu-latest
     needs: [apply, plan]
     if: always() && needs.apply.result == 'success'
@@ -437,3 +416,24 @@ jobs:
           add_count: ${{ needs.plan.outputs.add || '0' }}
           change_count: ${{ needs.plan.outputs.change || '0' }}
           destroy_count: ${{ needs.plan.outputs.destroy || '0' }}
+
+  # =========================================================================
+  # STAGE 11: TERRATEST
+  # =========================================================================
+  terratest:
+    name: '1️⃣1️⃣ Terratest'
+    runs-on: ubuntu-latest
+    needs: [apply, metrics]
+    if: |
+      always() &&
+      needs.apply.result == 'success' &&
+      github.event.inputs.run_tests == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/terratest
+        with:
+          test_directory: tests
+          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+          environment: ${{ env.ENVIRONMENT }}
+          timeout: '10m'
