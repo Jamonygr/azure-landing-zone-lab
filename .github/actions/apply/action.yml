@@ -47,6 +47,14 @@ runs:
       with:
         creds: ${{ inputs.azure_credentials }}
 
+    - name: Set ARM Environment Variables
+      shell: bash
+      run: |
+        echo "ARM_CLIENT_ID=$(echo '${{ inputs.azure_credentials }}' | jq -r '.clientId')" >> $GITHUB_ENV
+        echo "ARM_CLIENT_SECRET=$(echo '${{ inputs.azure_credentials }}' | jq -r '.clientSecret')" >> $GITHUB_ENV
+        echo "ARM_SUBSCRIPTION_ID=$(echo '${{ inputs.azure_credentials }}' | jq -r '.subscriptionId')" >> $GITHUB_ENV
+        echo "ARM_TENANT_ID=$(echo '${{ inputs.azure_credentials }}' | jq -r '.tenantId')" >> $GITHUB_ENV
+
     - name: Terraform Init
       shell: bash
       working-directory: ${{ inputs.working_directory }}
