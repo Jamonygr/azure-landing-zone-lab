@@ -1,7 +1,5 @@
 # Level 2: Reusable Workflow - Plan
-# Called by main pipeline, NOT visible as separate workflow in GitHub
-
-name: _plan
+# Called by main pipeline only via workflow_call
 
 on:
   workflow_call:
