@@ -3,6 +3,7 @@
 # =============================================================================
 # Azure Storage backend for remote state management
 # Configure via -backend-config flags in CI/CD or uncomment and fill values
+# Updated: 2025-12-16 - Pipeline trigger
 # =============================================================================
 
 terraform {
