@@ -22,10 +22,8 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working_directory }}
       run: |
-        # Ensure terraform is initialized (for graph command)
-        if [ ! -d ".terraform" ]; then
-          terraform init -backend=false
-        fi
+        # Force re-initialize with backend disabled to avoid backend conflicts
+        terraform init -backend=false -reconfigure
         
         terraform graph > graph.dot
         dot -T${{ inputs.output_format }} graph.dot -o terraform-graph.${{ inputs.output_format }}
