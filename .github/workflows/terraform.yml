@@ -272,13 +272,14 @@ jobs:
         id: plan
         run: |
           set +e
+          set -o pipefail
           terraform plan \
             -var-file="${{ steps.env.outputs.varfile }}" \
             -out=tfplan \
             -detailed-exitcode \
             -no-color 2>&1 | tee plan_output.txt
           
-          EXITCODE=$?
+          EXITCODE=${PIPESTATUS[0]}
           
           if [ $EXITCODE -eq 0 ]; then
             echo "has_changes=false" >> $GITHUB_OUTPUT
