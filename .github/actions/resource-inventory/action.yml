@@ -1,0 +1,77 @@
+name: 'Resource Inventory'
+description: 'Export deployed resources to JSON/CSV'
+
+inputs:
+  working_directory:
+    description: 'Working directory'
+    required: false
+    default: '.'
+  format:
+    description: 'Output format (json, csv)'
+    required: false
+    default: 'json'
+  environment:
+    description: 'Environment name'
+    required: true
+
+outputs:
+  resource_count:
+    description: 'Number of resources'
+    value: ${{ steps.inventory.outputs.count }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Generate Inventory
+      id: inventory
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        echo "## 📦 Resource Inventory - ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        
+        # Get state list
+        terraform state list > /tmp/resources.txt 2>/dev/null || echo "" > /tmp/resources.txt
+        
+        COUNT=$(wc -l < /tmp/resources.txt | tr -d ' ')
+        echo "count=$COUNT" >> $GITHUB_OUTPUT
+        
+        if [ "${{ inputs.format }}" == "json" ]; then
+          # Create JSON inventory
+          echo '{"environment": "${{ inputs.environment }}", "timestamp": "'$(date -Iseconds)'", "resources": [' > inventory.json
+          while IFS= read -r resource; do
+            if [ -n "$resource" ]; then
+              TYPE=$(echo "$resource" | cut -d'.' -f1)
+              NAME=$(echo "$resource" | cut -d'.' -f2-)
+              echo '{"type": "'$TYPE'", "name": "'$NAME'"},' >> inventory.json
+            fi
+          done < /tmp/resources.txt
+          # Remove trailing comma and close JSON
+          sed -i '$ s/,$//' inventory.json
+          echo ']}' >> inventory.json
+        else
+          # Create CSV inventory
+          echo "type,name,environment" > inventory.csv
+          while IFS= read -r resource; do
+            if [ -n "$resource" ]; then
+              TYPE=$(echo "$resource" | cut -d'.' -f1)
+              NAME=$(echo "$resource" | cut -d'.' -f2-)
+              echo "$TYPE,$NAME,${{ inputs.environment }}" >> inventory.csv
+            fi
+          done < /tmp/resources.txt
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Total resources: **$COUNT**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Resource Type | Count |" >> $GITHUB_STEP_SUMMARY
+        echo "|---------------|-------|" >> $GITHUB_STEP_SUMMARY
+        cat /tmp/resources.txt | cut -d'.' -f1 | sort | uniq -c | sort -rn | head -10 | while read count type; do
+          echo "| $type | $count |" >> $GITHUB_STEP_SUMMARY
+        done
+
+    - name: Upload Inventory
+      uses: actions/upload-artifact@v4
+      with:
+        name: resource-inventory-${{ inputs.environment }}
+        path: ${{ inputs.working_directory }}/inventory.${{ inputs.format }}
+        retention-days: 90

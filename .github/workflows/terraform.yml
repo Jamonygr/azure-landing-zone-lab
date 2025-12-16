@@ -1,7 +1,7 @@
 # =============================================================================
-# TERRAFORM PIPELINE - Azure Landing Zone
+# TERRAFORM PIPELINE - Azure Landing Zone (Extended)
 # =============================================================================
-# 8 jobs matching original visual, using hidden composite actions for code reuse
+# Full-featured pipeline with security, cost estimation, testing, and more
 # =============================================================================
 
 name: 'Terraform Pipeline'
@@ -31,13 +31,18 @@ on:
         description: 'Type DESTROY to confirm'
         required: false
         type: string
+      run_tests:
+        description: 'Run Terratest after apply'
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: terraform-${{ github.ref }}-${{ github.event.inputs.environment || 'lab' }}
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
   security-events: write
   id-token: write
@@ -90,10 +95,10 @@ jobs:
           echo "## ✅ Validation Passed" >> $GITHUB_STEP_SUMMARY
 
   # =========================================================================
-  # STAGE 3: SECURITY - TFSEC (parallel)
+  # STAGE 3: SECURITY - TFSEC
   # =========================================================================
   security-tfsec:
-    name: '3️⃣ Security - tfsec'
+    name: '3️⃣ tfsec'
     runs-on: ubuntu-latest
     needs: validate
     steps:
@@ -115,10 +120,10 @@ jobs:
       - run: echo "## 🔒 tfsec scan completed" >> $GITHUB_STEP_SUMMARY
 
   # =========================================================================
-  # STAGE 3: SECURITY - CHECKOV (parallel)
+  # STAGE 3: SECURITY - CHECKOV
   # =========================================================================
   security-checkov:
-    name: '3️⃣ Security - Checkov'
+    name: '3️⃣ Checkov'
     runs-on: ubuntu-latest
     needs: validate
     steps:
@@ -140,6 +145,20 @@ jobs:
         continue-on-error: true
 
       - run: echo "## 🛡️ Checkov scan completed" >> $GITHUB_STEP_SUMMARY
+
+  # =========================================================================
+  # STAGE 3: SECRET SCANNING (NEW)
+  # =========================================================================
+  secret-scan:
+    name: '3️⃣ Secret Scan'
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/secret-scan
 
   # =========================================================================
   # STAGE 4: TFLINT
@@ -168,12 +187,111 @@ jobs:
         continue-on-error: true
 
   # =========================================================================
-  # STAGE 5: PLAN (uses composite action)
+  # STAGE 4: POLICY CHECK (NEW)
+  # =========================================================================
+  policy-check:
+    name: '4️⃣ Policy (OPA)'
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Init for Policy Check
+        run: terraform init -backend=false
+
+      - uses: ./.github/actions/policy-check
+        with:
+          policy_dir: policies
+          soft_fail: 'true'
+
+  # =========================================================================
+  # STAGE 4: TERRAFORM DOCS (NEW)
+  # =========================================================================
+  terraform-docs:
+    name: '4️⃣ Docs'
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/terraform-docs
+        with:
+          recursive: 'true'
+
+  # =========================================================================
+  # STAGE 5: GRAPH VISUALIZATION (NEW)
+  # =========================================================================
+  graph:
+    name: '5️⃣ Graph'
+    runs-on: ubuntu-latest
+    needs: [security-tfsec, security-checkov, secret-scan, tflint, policy-check]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Init
+        run: terraform init -backend=false
+
+      - uses: ./.github/actions/graph
+        with:
+          output_format: svg
+
+  # =========================================================================
+  # STAGE 5: MODULE VERSION CHECK (NEW)
+  # =========================================================================
+  module-versions:
+    name: '5️⃣ Versions'
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Init
+        run: terraform init -backend=false
+
+      - uses: ./.github/actions/module-version
+
+  # =========================================================================
+  # STAGE 6: COST ESTIMATION (NEW)
+  # =========================================================================
+  cost-estimate:
+    name: '6️⃣ Cost'
+    runs-on: ubuntu-latest
+    needs: [graph, module-versions]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Init
+        run: terraform init -backend=false
+
+      - uses: ./.github/actions/cost-estimate
+        with:
+          api_key: ${{ secrets.INFRACOST_API_KEY }}
+          var_file: environments/${{ env.ENVIRONMENT }}.tfvars
+        continue-on-error: true
+
+  # =========================================================================
+  # STAGE 7: PLAN
   # =========================================================================
   plan:
-    name: '5️⃣ Plan'
+    name: '7️⃣ Plan'
     runs-on: ubuntu-latest
-    needs: [security-tfsec, security-checkov, tflint]
+    needs: [graph, module-versions]
     outputs:
       has_changes: ${{ steps.plan.outputs.has_changes }}
       add: ${{ steps.plan.outputs.add }}
@@ -195,19 +313,35 @@ jobs:
           environment: ${{ env.ENVIRONMENT }}
 
   # =========================================================================
-  # STAGE 6: APPLY (uses composite action)
+  # STAGE 8: APPLY
   # =========================================================================
   apply:
-    name: '6️⃣ Apply'
+    name: '8️⃣ Apply'
     runs-on: ubuntu-latest
-    needs: plan
+    needs: [plan, cost-estimate]
     if: |
+      always() &&
+      needs.plan.result == 'success' &&
       github.event_name == 'workflow_dispatch' && 
       github.event.inputs.action == 'apply' &&
       needs.plan.outputs.has_changes == 'true'
     environment: ${{ github.event.inputs.environment }}
+    outputs:
+      start_time: ${{ steps.timer.outputs.start }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Start Timer
+        id: timer
+        run: echo "start=$(date +%s)" >> $GITHUB_OUTPUT
+
+      - name: State Backup
+        uses: ./.github/actions/state-backup
+        with:
+          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+          storage_account: ${{ secrets.TF_STATE_SA }}
+          resource_group: ${{ secrets.TF_STATE_RG }}
+          state_key: ${{ env.ENVIRONMENT }}.terraform.tfstate
 
       - name: Apply
         uses: ./.github/actions/apply
@@ -220,18 +354,38 @@ jobs:
           environment: ${{ env.ENVIRONMENT }}
           plan_artifact: tfplan-${{ env.ENVIRONMENT }}-${{ github.sha }}
 
+      - name: Resource Inventory
+        uses: ./.github/actions/resource-inventory
+        with:
+          environment: ${{ env.ENVIRONMENT }}
+          format: json
+
+      - name: Change Log
+        uses: ./.github/actions/changelog
+        with:
+          environment: ${{ env.ENVIRONMENT }}
+
   # =========================================================================
-  # STAGE 7: DESTROY (uses composite action)
+  # STAGE 9: DESTROY (with Approval Gate)
   # =========================================================================
   destroy:
-    name: '7️⃣ Destroy'
+    name: '9️⃣ Destroy'
     runs-on: ubuntu-latest
+    needs: plan
     if: |
       github.event_name == 'workflow_dispatch' && 
       github.event.inputs.action == 'destroy'
     environment: ${{ github.event.inputs.environment }}-destroy
     steps:
       - uses: actions/checkout@v4
+
+      - name: State Backup Before Destroy
+        uses: ./.github/actions/state-backup
+        with:
+          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+          storage_account: ${{ secrets.TF_STATE_SA }}
+          resource_group: ${{ secrets.TF_STATE_RG }}
+          state_key: ${{ env.ENVIRONMENT }}.terraform.tfstate
 
       - name: Destroy
         uses: ./.github/actions/destroy
@@ -244,3 +398,45 @@ jobs:
           var_file: environments/${{ env.ENVIRONMENT }}.tfvars
           environment: ${{ env.ENVIRONMENT }}
           confirm: ${{ github.event.inputs.destroy_confirm }}
+
+  # =========================================================================
+  # STAGE 10: TERRATEST (NEW)
+  # =========================================================================
+  terratest:
+    name: '🔟 Terratest'
+    runs-on: ubuntu-latest
+    needs: apply
+    if: |
+      always() &&
+      needs.apply.result == 'success' &&
+      github.event.inputs.run_tests == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/terratest
+        with:
+          test_directory: tests
+          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+          environment: ${{ env.ENVIRONMENT }}
+          timeout: '30m'
+
+  # =========================================================================
+  # STAGE 11: METRICS (NEW)
+  # =========================================================================
+  metrics:
+    name: '📊 Metrics'
+    runs-on: ubuntu-latest
+    needs: [apply, plan]
+    if: always() && needs.apply.result == 'success'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/metrics
+        with:
+          environment: ${{ env.ENVIRONMENT }}
+          action: ${{ github.event.inputs.action || 'plan' }}
+          start_time: ${{ needs.apply.outputs.start_time || github.run_id }}
+          status: ${{ needs.apply.result }}
+          add_count: ${{ needs.plan.outputs.add || '0' }}
+          change_count: ${{ needs.plan.outputs.change || '0' }}
+          destroy_count: ${{ needs.plan.outputs.destroy || '0' }}

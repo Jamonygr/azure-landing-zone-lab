@@ -1,0 +1,88 @@
+name: 'Terratest'
+description: 'Run Terratest integration tests'
+
+inputs:
+  test_directory:
+    description: 'Directory containing tests'
+    required: false
+    default: 'tests'
+  go_version:
+    description: 'Go version'
+    required: false
+    default: '1.21'
+  timeout:
+    description: 'Test timeout'
+    required: false
+    default: '30m'
+  azure_credentials:
+    description: 'Azure credentials JSON'
+    required: true
+  environment:
+    description: 'Environment name'
+    required: true
+
+outputs:
+  passed:
+    description: 'Whether tests passed'
+    value: ${{ steps.test.outputs.passed }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.go_version }}
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ inputs.azure_credentials }}
+
+    - name: Set ARM Environment Variables
+      shell: bash
+      run: |
+        echo "ARM_CLIENT_ID=$(echo '${{ inputs.azure_credentials }}' | jq -r '.clientId')" >> $GITHUB_ENV
+        echo "ARM_CLIENT_SECRET=$(echo '${{ inputs.azure_credentials }}' | jq -r '.clientSecret')" >> $GITHUB_ENV
+        echo "ARM_SUBSCRIPTION_ID=$(echo '${{ inputs.azure_credentials }}' | jq -r '.subscriptionId')" >> $GITHUB_ENV
+        echo "ARM_TENANT_ID=$(echo '${{ inputs.azure_credentials }}' | jq -r '.tenantId')" >> $GITHUB_ENV
+
+    - name: Run Terratest
+      id: test
+      shell: bash
+      working-directory: ${{ inputs.test_directory }}
+      run: |
+        echo "## 🧪 Terratest Results - ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f "go.mod" ]; then
+          go mod download
+          
+          set +e
+          go test -v -timeout ${{ inputs.timeout }} ./... 2>&1 | tee test_output.txt
+          EXITCODE=$?
+          set -e
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ $EXITCODE -eq 0 ]; then
+            echo "✅ All tests passed!" >> $GITHUB_STEP_SUMMARY
+            echo "passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Some tests failed" >> $GITHUB_STEP_SUMMARY
+            echo "passed=false" >> $GITHUB_OUTPUT
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            grep -E "FAIL|PASS|---" test_output.txt >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "⚠️ No tests found in ${{ inputs.test_directory }}" >> $GITHUB_STEP_SUMMARY
+          echo "passed=true" >> $GITHUB_OUTPUT
+        fi
+      continue-on-error: true
+
+    - name: Upload Test Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: terratest-results-${{ inputs.environment }}
+        path: ${{ inputs.test_directory }}/test_output.txt
+        retention-days: 30

@@ -1,0 +1,63 @@
+name: 'Terraform Docs'
+description: 'Auto-generate Terraform documentation'
+
+inputs:
+  working_directory:
+    description: 'Working directory'
+    required: false
+    default: '.'
+  output_file:
+    description: 'Output file for docs'
+    required: false
+    default: 'TERRAFORM.md'
+  config_file:
+    description: 'terraform-docs config file'
+    required: false
+    default: '.terraform-docs.yml'
+  recursive:
+    description: 'Generate docs for modules recursively'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup terraform-docs
+      shell: bash
+      run: |
+        curl -sSLo terraform-docs.tar.gz https://github.com/terraform-docs/terraform-docs/releases/download/v0.17.0/terraform-docs-v0.17.0-linux-amd64.tar.gz
+        tar -xzf terraform-docs.tar.gz
+        chmod +x terraform-docs
+        sudo mv terraform-docs /usr/local/bin/
+
+    - name: Generate Documentation
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        echo "## 📚 Terraform Documentation" >> $GITHUB_STEP_SUMMARY
+        
+        # Generate root module docs
+        terraform-docs markdown table . > ${{ inputs.output_file }} 2>/dev/null || true
+        
+        # Generate docs for each module
+        if [ "${{ inputs.recursive }}" == "true" ]; then
+          for dir in modules/*/; do
+            if [ -d "$dir" ]; then
+              MODULE_NAME=$(basename "$dir")
+              terraform-docs markdown table "$dir" > "${dir}README.md" 2>/dev/null || true
+              echo "- Generated docs for module: $MODULE_NAME" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Documentation generated successfully" >> $GITHUB_STEP_SUMMARY
+
+    - name: Upload Docs Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: terraform-docs
+        path: |
+          ${{ inputs.working_directory }}/${{ inputs.output_file }}
+          ${{ inputs.working_directory }}/modules/**/README.md
+        retention-days: 30

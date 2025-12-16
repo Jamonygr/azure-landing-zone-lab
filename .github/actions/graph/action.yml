@@ -1,0 +1,36 @@
+name: 'Graph Visualization'
+description: 'Generate Terraform dependency graph'
+
+inputs:
+  working_directory:
+    description: 'Working directory'
+    required: false
+    default: '.'
+  output_format:
+    description: 'Output format (svg, png, pdf)'
+    required: false
+    default: 'svg'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Graphviz
+      shell: bash
+      run: sudo apt-get install -y graphviz
+
+    - name: Generate Graph
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        terraform graph > graph.dot
+        dot -T${{ inputs.output_format }} graph.dot -o terraform-graph.${{ inputs.output_format }}
+        
+        echo "## 🗺️ Infrastructure Graph" >> $GITHUB_STEP_SUMMARY
+        echo "Graph generated successfully. Download from artifacts." >> $GITHUB_STEP_SUMMARY
+
+    - name: Upload Graph
+      uses: actions/upload-artifact@v4
+      with:
+        name: terraform-graph
+        path: ${{ inputs.working_directory }}/terraform-graph.${{ inputs.output_format }}
+        retention-days: 30

@@ -1,0 +1,62 @@
+name: 'Cost Estimation'
+description: 'Estimate infrastructure costs using Infracost'
+
+inputs:
+  api_key:
+    description: 'Infracost API key'
+    required: true
+  working_directory:
+    description: 'Working directory'
+    required: false
+    default: '.'
+  var_file:
+    description: 'Terraform var file'
+    required: true
+  currency:
+    description: 'Currency for cost display'
+    required: false
+    default: 'USD'
+
+outputs:
+  monthly_cost:
+    description: 'Estimated monthly cost'
+    value: ${{ steps.cost.outputs.monthly_cost }}
+  diff:
+    description: 'Cost difference from baseline'
+    value: ${{ steps.cost.outputs.diff }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Infracost
+      uses: infracost/actions/setup@v3
+      with:
+        api-key: ${{ inputs.api_key }}
+
+    - name: Generate Cost Breakdown
+      id: cost
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        infracost breakdown \
+          --path . \
+          --terraform-var-file=${{ inputs.var_file }} \
+          --format json \
+          --out-file /tmp/infracost.json
+        
+        MONTHLY=$(jq -r '.totalMonthlyCost' /tmp/infracost.json)
+        echo "monthly_cost=$MONTHLY" >> $GITHUB_OUTPUT
+        
+        echo "## 💰 Cost Estimation" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        infracost breakdown \
+          --path . \
+          --terraform-var-file=${{ inputs.var_file }} \
+          --format table >> $GITHUB_STEP_SUMMARY
+
+    - name: Post to PR
+      if: github.event_name == 'pull_request'
+      uses: infracost/actions/comment@v1
+      with:
+        path: /tmp/infracost.json
+        behavior: update

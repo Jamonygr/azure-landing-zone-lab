@@ -1,0 +1,63 @@
+name: 'Change Log'
+description: 'Generate changelog from Terraform plan'
+
+inputs:
+  working_directory:
+    description: 'Working directory'
+    required: false
+    default: '.'
+  environment:
+    description: 'Environment name'
+    required: true
+
+outputs:
+  changes_summary:
+    description: 'Summary of changes'
+    value: ${{ steps.changelog.outputs.summary }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Generate Changelog
+      id: changelog
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        TIMESTAMP=$(date -Iseconds)
+        COMMIT_SHA="${GITHUB_SHA:0:7}"
+        
+        echo "## 📝 Change Log - ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Deployment:** $TIMESTAMP" >> $GITHUB_STEP_SUMMARY
+        echo "**Commit:** $COMMIT_SHA" >> $GITHUB_STEP_SUMMARY
+        echo "**Actor:** $GITHUB_ACTOR" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Parse plan output if exists
+        if [ -f plan_output.txt ]; then
+          echo "### Resources Changed" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          grep -E "^  #|will be created|will be updated|will be destroyed" plan_output.txt | head -50 >> $GITHUB_STEP_SUMMARY || echo "No changes" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Create changelog entry
+        cat > changelog-entry.md << EOF
+        ## [$COMMIT_SHA] - $(date +%Y-%m-%d)
+
+        **Environment:** ${{ inputs.environment }}
+        **Actor:** $GITHUB_ACTOR
+        **Run:** $GITHUB_RUN_ID
+
+        ### Changes
+        $(grep -E "will be created|will be updated|will be destroyed" plan_output.txt 2>/dev/null | head -20 || echo "- No infrastructure changes")
+        EOF
+        
+        echo "summary=Deployment $COMMIT_SHA to ${{ inputs.environment }}" >> $GITHUB_OUTPUT
+
+    - name: Upload Changelog
+      uses: actions/upload-artifact@v4
+      with:
+        name: changelog-${{ inputs.environment }}-${{ github.run_id }}
+        path: ${{ inputs.working_directory }}/changelog-entry.md
+        retention-days: 365

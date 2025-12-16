@@ -1,0 +1,40 @@
+name: 'Secret Scanning'
+description: 'Scan for leaked secrets using Gitleaks'
+
+inputs:
+  scan_depth:
+    description: 'Number of commits to scan'
+    required: false
+    default: '0'
+  config_path:
+    description: 'Path to gitleaks config'
+    required: false
+    default: '.gitleaks.toml'
+
+outputs:
+  leaks_found:
+    description: 'Whether leaks were found'
+    value: ${{ steps.scan.outputs.leaks_found }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Gitleaks
+      id: scan
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      continue-on-error: true
+
+    - name: Report Results
+      shell: bash
+      run: |
+        if [ "${{ steps.scan.outcome }}" == "failure" ]; then
+          echo "## 🚨 Secret Scan - LEAKS DETECTED" >> $GITHUB_STEP_SUMMARY
+          echo "leaks_found=true" >> $GITHUB_OUTPUT
+          echo "⚠️ Potential secrets found in code. Review and rotate immediately!" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "## ✅ Secret Scan - Clean" >> $GITHUB_STEP_SUMMARY
+          echo "leaks_found=false" >> $GITHUB_OUTPUT
+          echo "No secrets detected in code." >> $GITHUB_STEP_SUMMARY
+        fi

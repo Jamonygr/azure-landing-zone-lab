@@ -1,0 +1,70 @@
+name: 'Policy Check'
+description: 'Run OPA/Conftest policy checks'
+
+inputs:
+  policy_dir:
+    description: 'Directory containing OPA policies'
+    required: false
+    default: 'policies'
+  working_directory:
+    description: 'Terraform working directory'
+    required: false
+    default: '.'
+  soft_fail:
+    description: 'Continue on policy violations'
+    required: false
+    default: 'true'
+
+outputs:
+  violations:
+    description: 'Number of policy violations'
+    value: ${{ steps.policy.outputs.violations }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Conftest
+      shell: bash
+      run: |
+        wget -q https://github.com/open-policy-agent/conftest/releases/download/v0.46.0/conftest_0.46.0_Linux_x86_64.tar.gz
+        tar xzf conftest_0.46.0_Linux_x86_64.tar.gz
+        sudo mv conftest /usr/local/bin/
+
+    - name: Generate Terraform Plan JSON
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        if [ -f tfplan ]; then
+          terraform show -json tfplan > tfplan.json
+        else
+          echo '{}' > tfplan.json
+        fi
+
+    - name: Run Policy Check
+      id: policy
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        echo "## 📋 Policy Check Results" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -d "${{ inputs.policy_dir }}" ]; then
+          set +e
+          RESULT=$(conftest test tfplan.json --policy ${{ inputs.policy_dir }} --output table 2>&1)
+          EXITCODE=$?
+          set -e
+          
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "$RESULT" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          
+          VIOLATIONS=$(echo "$RESULT" | grep -c "FAIL" || echo "0")
+          echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT
+          
+          if [ $EXITCODE -ne 0 ] && [ "${{ inputs.soft_fail }}" != "true" ]; then
+            exit 1
+          fi
+        else
+          echo "No policies found in ${{ inputs.policy_dir }}" >> $GITHUB_STEP_SUMMARY
+          echo "violations=0" >> $GITHUB_OUTPUT
+        fi
+      continue-on-error: ${{ inputs.soft_fail == 'true' }}

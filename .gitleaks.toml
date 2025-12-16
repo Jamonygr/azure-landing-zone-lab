@@ -1,0 +1,66 @@
+# Gitleaks configuration
+# https://github.com/gitleaks/gitleaks
+
+title = "Azure Landing Zone Lab - Gitleaks Config"
+
+[extend]
+useDefault = true
+
+# Custom rules
+[[rules]]
+id = "azure-subscription-id"
+description = "Azure Subscription ID"
+regex = '''[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'''
+keywords = ["subscription"]
+entropy = 3.0
+
+[[rules]]
+id = "azure-storage-key"
+description = "Azure Storage Account Key"
+regex = '''(?i)(DefaultEndpointsProtocol|AccountKey|SharedAccessSignature)'''
+keywords = ["storage", "account", "key"]
+
+[[rules]]
+id = "terraform-state-secrets"
+description = "Terraform State Secrets"
+regex = '''(?i)(password|secret|key|token).*[=:].*["\'][^"\']{8,}["\']'''
+path = '''\.tfstate$'''
+
+# Allowlist - paths to ignore
+[allowlist]
+description = "Global allowlist"
+paths = [
+    '''\.terraform/''',
+    '''\.terraform\.lock\.hcl$''',
+    '''terraform\.tfstate$''',
+    '''terraform\.tfstate\.backup$''',
+    '''\.git/''',
+    '''node_modules/''',
+    '''vendor/''',
+    '''tests/.*_test\.go$''',
+    '''wiki/.*\.md$''',
+]
+
+# Regex patterns to ignore
+regexes = [
+    '''EXAMPLE''',
+    '''example\.com''',
+    '''localhost''',
+    '''127\.0\.0\.1''',
+    '''0\.0\.0\.0''',
+    '''<.*>''',  # Placeholder values
+    '''xxxxxxxx''',  # Masked values
+]
+
+# Specific commits to ignore
+commits = []
+
+# Stop words - common false positives
+stopwords = [
+    "example",
+    "sample",
+    "test",
+    "fake",
+    "mock",
+    "dummy",
+]

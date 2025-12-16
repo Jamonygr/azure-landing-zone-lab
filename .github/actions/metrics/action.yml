@@ -1,0 +1,84 @@
+name: 'Metrics Collection'
+description: 'Collect and report deployment metrics'
+
+inputs:
+  environment:
+    description: 'Environment name'
+    required: true
+  action:
+    description: 'Action performed (plan, apply, destroy)'
+    required: true
+  start_time:
+    description: 'Start timestamp'
+    required: true
+  status:
+    description: 'Deployment status (success, failure)'
+    required: true
+  resource_count:
+    description: 'Number of resources'
+    required: false
+    default: '0'
+  add_count:
+    description: 'Resources added'
+    required: false
+    default: '0'
+  change_count:
+    description: 'Resources changed'
+    required: false
+    default: '0'
+  destroy_count:
+    description: 'Resources destroyed'
+    required: false
+    default: '0'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Calculate Metrics
+      shell: bash
+      run: |
+        END_TIME=$(date +%s)
+        START_TIME=${{ inputs.start_time }}
+        DURATION=$((END_TIME - START_TIME))
+        MINUTES=$((DURATION / 60))
+        SECONDS=$((DURATION % 60))
+        
+        echo "## 📊 Deployment Metrics" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Environment | ${{ inputs.environment }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Action | ${{ inputs.action }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Status | ${{ inputs.status }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Duration | ${MINUTES}m ${SECONDS}s |" >> $GITHUB_STEP_SUMMARY
+        echo "| Resources | ${{ inputs.resource_count }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Added | ${{ inputs.add_count }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Changed | ${{ inputs.change_count }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Destroyed | ${{ inputs.destroy_count }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Actor | $GITHUB_ACTOR |" >> $GITHUB_STEP_SUMMARY
+        echo "| Run ID | $GITHUB_RUN_ID |" >> $GITHUB_STEP_SUMMARY
+        
+        # Create metrics JSON
+        cat > metrics.json << EOF
+        {
+          "timestamp": "$(date -Iseconds)",
+          "environment": "${{ inputs.environment }}",
+          "action": "${{ inputs.action }}",
+          "status": "${{ inputs.status }}",
+          "duration_seconds": $DURATION,
+          "resource_count": ${{ inputs.resource_count }},
+          "add_count": ${{ inputs.add_count }},
+          "change_count": ${{ inputs.change_count }},
+          "destroy_count": ${{ inputs.destroy_count }},
+          "actor": "$GITHUB_ACTOR",
+          "run_id": "$GITHUB_RUN_ID",
+          "commit": "$GITHUB_SHA"
+        }
+        EOF
+
+    - name: Upload Metrics
+      uses: actions/upload-artifact@v4
+      with:
+        name: metrics-${{ inputs.environment }}-${{ github.run_id }}
+        path: metrics.json
+        retention-days: 365

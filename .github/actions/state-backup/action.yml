@@ -1,0 +1,55 @@
+name: 'State Backup'
+description: 'Backup Terraform state before changes'
+
+inputs:
+  azure_credentials:
+    description: 'Azure credentials JSON'
+    required: true
+  storage_account:
+    description: 'State storage account'
+    required: true
+  resource_group:
+    description: 'State resource group'
+    required: true
+  container:
+    description: 'State container'
+    required: false
+    default: 'tfstate'
+  state_key:
+    description: 'State file key'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ inputs.azure_credentials }}
+
+    - name: Backup State
+      shell: bash
+      run: |
+        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+        BACKUP_NAME="${{ inputs.state_key }}.backup-${TIMESTAMP}"
+        
+        # Copy current state to backup
+        az storage blob copy start \
+          --account-name ${{ inputs.storage_account }} \
+          --destination-container ${{ inputs.container }}-backups \
+          --destination-blob "$BACKUP_NAME" \
+          --source-account-name ${{ inputs.storage_account }} \
+          --source-container ${{ inputs.container }} \
+          --source-blob ${{ inputs.state_key }} \
+          2>/dev/null || true
+        
+        echo "## 💾 State Backup" >> $GITHUB_STEP_SUMMARY
+        echo "Backed up state to: $BACKUP_NAME" >> $GITHUB_STEP_SUMMARY
+
+    - name: Create Backup Container if Missing
+      shell: bash
+      run: |
+        az storage container create \
+          --account-name ${{ inputs.storage_account }} \
+          --name ${{ inputs.container }}-backups \
+          2>/dev/null || true

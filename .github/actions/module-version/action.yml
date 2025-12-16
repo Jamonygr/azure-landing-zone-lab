@@ -1,0 +1,62 @@
+name: 'Module Version Check'
+description: 'Check and manage module versions'
+
+inputs:
+  working_directory:
+    description: 'Working directory'
+    required: false
+    default: '.'
+
+outputs:
+  terraform_version:
+    description: 'Terraform version'
+    value: ${{ steps.versions.outputs.terraform }}
+  provider_versions:
+    description: 'Provider versions JSON'
+    value: ${{ steps.versions.outputs.providers }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check Versions
+      id: versions
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        echo "## 📦 Module & Provider Versions" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Get Terraform version
+        TF_VERSION=$(terraform version -json | jq -r '.terraform_version')
+        echo "terraform=$TF_VERSION" >> $GITHUB_OUTPUT
+        
+        echo "### Terraform" >> $GITHUB_STEP_SUMMARY
+        echo "Version: \`$TF_VERSION\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Get provider versions from lock file
+        echo "### Providers" >> $GITHUB_STEP_SUMMARY
+        echo "| Provider | Version |" >> $GITHUB_STEP_SUMMARY
+        echo "|----------|---------|" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f ".terraform.lock.hcl" ]; then
+          grep -A1 'provider "' .terraform.lock.hcl | grep -E 'version|provider' | paste - - | while read line; do
+            PROVIDER=$(echo "$line" | grep -oP 'provider "\K[^"]+')
+            VERSION=$(echo "$line" | grep -oP 'version\s*=\s*"\K[^"]+')
+            echo "| $PROVIDER | $VERSION |" >> $GITHUB_STEP_SUMMARY
+          done
+        else
+          echo "| (lock file not found) | - |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Check for module sources
+        echo "### Modules" >> $GITHUB_STEP_SUMMARY
+        echo "| Module | Source |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|--------|" >> $GITHUB_STEP_SUMMARY
+        
+        grep -rh 'source\s*=' modules/*/main.tf 2>/dev/null | head -20 | while read line; do
+          SOURCE=$(echo "$line" | grep -oP 'source\s*=\s*"\K[^"]+' || echo "-")
+          echo "| local | $SOURCE |" >> $GITHUB_STEP_SUMMARY
+        done || echo "| (no external modules) | - |" >> $GITHUB_STEP_SUMMARY

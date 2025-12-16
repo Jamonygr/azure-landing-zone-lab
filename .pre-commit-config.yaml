@@ -1,0 +1,79 @@
+# Pre-commit configuration for Terraform
+# Install: pip install pre-commit && pre-commit install
+
+repos:
+  # Terraform formatting
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.83.6
+    hooks:
+      - id: terraform_fmt
+        name: Terraform Format
+        description: Rewrites Terraform files to canonical format
+
+      - id: terraform_validate
+        name: Terraform Validate
+        description: Validates Terraform configuration
+
+      - id: terraform_docs
+        name: Terraform Docs
+        description: Auto-generate documentation
+        args:
+          - --hook-config=--path-to-file=TERRAFORM.md
+          - --hook-config=--add-to-existing-file=true
+          - --hook-config=--create-file-if-not-exist=true
+
+      - id: terraform_tflint
+        name: TFLint
+        description: Terraform linter
+        args:
+          - --args=--config=__GIT_WORKING_DIR__/.tflint.hcl
+
+      - id: terraform_tfsec
+        name: tfsec
+        description: Security scanner
+
+      - id: terraform_checkov
+        name: Checkov
+        description: Policy as code
+
+  # General pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+
+      - id: end-of-file-fixer
+        name: Fix end of files
+
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+
+      - id: check-yaml
+        name: Check YAML syntax
+        args: ['--allow-multiple-documents']
+
+      - id: check-json
+        name: Check JSON syntax
+
+      - id: detect-private-key
+        name: Detect private keys
+
+      - id: no-commit-to-branch
+        name: Prevent commits to main
+        args: ['--branch', 'main']
+
+  # Secret scanning
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.1
+    hooks:
+      - id: gitleaks
+        name: Detect secrets
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.38.0
+    hooks:
+      - id: markdownlint
+        name: Markdown lint
+        args: ['--fix']
