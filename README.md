@@ -623,23 +623,39 @@ terraform destroy
 
 ## 🔄 CI/CD Pipeline
 
-This project includes a complete GitHub Actions pipeline for automated deployments.
+This project includes a complete **GitHub Actions pipeline** for automated Terraform deployments with **8 visible job stages**.
 
-### Pipeline Stages
+### Pipeline Architecture
+
+The pipeline uses a **2-level template structure** for maintainability:
 
 ```
-Format → Validate → Security Scans → TFLint → Plan → Apply/Destroy
+┌─────────────────────────────────────────────────────────────────────┐
+│              ORCHESTRATOR: terraform.yml (8 jobs)                   │
+│  1️⃣ Format → 2️⃣ Validate → 3️⃣ tfsec/Checkov → 4️⃣ TFLint → 5️⃣ Plan    │
+│                                    ↓                                │
+│                        6️⃣ Apply  /  7️⃣ Destroy                       │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│              COMPOSITE ACTIONS (Hidden in .github/actions/)         │
+│       plan/action.yml  •  apply/action.yml  •  destroy/action.yml   │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-| Stage | Purpose |
-|-------|---------|
-| **Format Check** | Ensures `terraform fmt` compliance |
-| **Validate** | Runs `terraform validate` |
-| **Security Scans** | tfsec + Checkov (parallel) |
-| **TFLint** | Azure-specific linting |
-| **Plan** | Shows infrastructure changes |
-| **Apply** | Deploys to Azure |
-| **Destroy** | Tears down environment (manual only) |
+### Pipeline Jobs
+
+| Job | Name | Purpose | Blocks Deploy? |
+|-----|------|---------|----------------|
+| 1 | **Format Check** | `terraform fmt` compliance | ✅ Yes |
+| 2 | **Validate** | `terraform validate` | ✅ Yes |
+| 3a | **Security - tfsec** | Static security analysis | ⚠️ Soft fail |
+| 3b | **Security - Checkov** | Policy-as-code scanning | ⚠️ Soft fail |
+| 4 | **TFLint** | Azure-specific linting | ⚠️ Soft fail |
+| 5 | **Plan** | Shows infrastructure changes | ✅ Yes |
+| 6 | **Apply** | Deploys to Azure (manual) | - |
+| 7 | **Destroy** | Tears down environment (manual) | - |
 
 ### Triggers
 
@@ -647,50 +663,66 @@ Format → Validate → Security Scans → TFLint → Plan → Apply/Destroy
 |-------|--------|
 | **Push to `main`** | Auto-apply if changes detected |
 | **Pull Request** | Plan only with PR comment |
-| **Manual** | Choose action/environment in GitHub Actions |
+| **Manual** | Choose action/environment in GitHub Actions UI |
 
-### Manual Deployment
+### Remote State Storage
 
-```bash
-# Via GitHub CLI
-gh workflow run "Terraform Pipeline" -f action=apply -f environment=lab
+Terraform state is stored in Azure Blob Storage for team collaboration and state locking:
 
-# Watch the run
-gh run watch
+```
+Azure Storage Account
+└── Container: tfstate
+    ├── lab.terraform.tfstate
+    ├── dev.terraform.tfstate
+    └── prod.terraform.tfstate
 ```
 
 ### Required GitHub Secrets
 
 | Secret | Description |
 |--------|-------------|
-| `AZURE_CLIENT_ID` | Service Principal Client ID |
+| `AZURE_CLIENT_ID` | Service Principal App ID |
 | `AZURE_CLIENT_SECRET` | Service Principal Secret |
 | `AZURE_SUBSCRIPTION_ID` | Target Azure Subscription |
 | `AZURE_TENANT_ID` | Azure AD Tenant ID |
-| `AZURE_CREDENTIALS` | JSON credentials for Azure Login |
-| `TF_STATE_RG` | Resource group for Terraform state |
-| `TF_STATE_SA` | Storage account for Terraform state |
+| `AZURE_CREDENTIALS` | JSON credentials object (see below) |
+| `TF_STATE_RG` | Resource group for state storage |
+| `TF_STATE_SA` | Storage account for state storage |
 
-### Create Service Principal
+**AZURE_CREDENTIALS format:**
+```json
+{
+  "clientId": "<AZURE_CLIENT_ID>",
+  "clientSecret": "<AZURE_CLIENT_SECRET>",
+  "subscriptionId": "<AZURE_SUBSCRIPTION_ID>",
+  "tenantId": "<AZURE_TENANT_ID>"
+}
+```
+
+### Quick Commands
 
 ```bash
+# Create Service Principal with Owner role
 az ad sp create-for-rbac \
   --name "terraform-alz-pipeline" \
   --role Owner \
   --scopes /subscriptions/<SUBSCRIPTION_ID> \
   --sdk-auth
-```
 
-### Destroy Environment
+# Deploy infrastructure
+gh workflow run "Terraform Pipeline" -f action=apply -f environment=lab
 
-```bash
+# Destroy infrastructure
 gh workflow run "Terraform Pipeline" \
   -f action=destroy \
   -f environment=lab \
   -f destroy_confirm=DESTROY
+
+# Watch pipeline progress
+gh run watch
 ```
 
-> 📖 **Full documentation**: See [wiki/reference/pipeline.md](wiki/reference/pipeline.md)
+> 📖 **Full documentation**: See [wiki/reference/pipeline.md](wiki/reference/pipeline.md) and [wiki/reference/pipeline-templates.md](wiki/reference/pipeline-templates.md)
 
 ---
 
