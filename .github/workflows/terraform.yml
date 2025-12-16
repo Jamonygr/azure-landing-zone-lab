@@ -1,30 +1,39 @@
 # =============================================================================
-# TERRAFORM UNIFIED PIPELINE
+# LEVEL 3: ORCHESTRATOR PIPELINE - Main Terraform Workflow
 # =============================================================================
-# Single pipeline with all stages: Validate → Security → Plan → Apply/Destroy
+# This is the main entry point that orchestrates all reusable workflows
+# Level 1: Composite Actions (in .github/actions/)
+# Level 2: Reusable Workflows (reusable-*.yml)
+# Level 3: This orchestrator (terraform-orchestrator.yml)
 # =============================================================================
 
-name: Terraform Pipeline
+name: 'Terraform - ALZ Pipeline'
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - '**.tf'
       - '**.tfvars'
-      - 'modules/**'
-      - 'landing-zones/**'
-      - 'environments/**'
+      - '.github/workflows/**'
   pull_request:
-    branches: [main]
+    branches:
+      - main
     paths:
       - '**.tf'
       - '**.tfvars'
-      - 'modules/**'
-      - 'landing-zones/**'
-      - 'environments/**'
   workflow_dispatch:
     inputs:
+      environment:
+        description: 'Target Environment'
+        required: true
+        default: 'lab'
+        type: choice
+        options:
+          - dev
+          - lab
+          - prod
       action:
         description: 'Action to perform'
         required: true
@@ -34,521 +43,131 @@ on:
           - plan
           - apply
           - destroy
-      environment:
-        description: 'Target environment'
-        required: true
-        default: 'lab'
-        type: choice
-        options:
-          - lab
-          - dev
-          - prod
       destroy_confirm:
         description: 'Type DESTROY to confirm destruction'
         required: false
         type: string
 
-concurrency:
-  group: terraform-${{ github.ref }}-${{ github.event.inputs.environment || 'lab' }}
-  cancel-in-progress: false
-
 env:
   TF_VERSION: '1.9.0'
-  TF_IN_AUTOMATION: 'true'
-  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-  TF_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  WORKING_DIR: '.'
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+  id-token: write
 
 jobs:
-  # ============================================================================
-  # STAGE 1: FORMAT CHECK
-  # ============================================================================
-  format:
-    name: '1️⃣ Format Check'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Terraform Format Check
-        id: fmt
-        run: |
-          if ! terraform fmt -check -recursive -diff; then
-            echo "## ❌ Format Check Failed" >> $GITHUB_STEP_SUMMARY
-            echo "Run \`terraform fmt -recursive\` locally to fix." >> $GITHUB_STEP_SUMMARY
-            exit 1
-          fi
-          echo "## ✅ Format Check Passed" >> $GITHUB_STEP_SUMMARY
-
-  # ============================================================================
-  # STAGE 2: VALIDATE
-  # ============================================================================
+  # ===========================================================================
+  # Stage 1: Validate
+  # ===========================================================================
   validate:
-    name: '2️⃣ Validate'
-    runs-on: ubuntu-latest
-    needs: format
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    name: 'Validate'
+    uses: ./.github/workflows/reusable-validate.yml
+    with:
+      terraform_version: '1.9.0'
+      working_directory: '.'
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Terraform Init
-        run: terraform init -backend=false
-
-      - name: Terraform Validate
-        run: |
-          terraform validate
-          echo "## ✅ Validation Passed" >> $GITHUB_STEP_SUMMARY
-
-  # ============================================================================
-  # STAGE 3: SECURITY SCANS (parallel)
-  # ============================================================================
-  security-tfsec:
-    name: '3️⃣ Security - tfsec'
-    runs-on: ubuntu-latest
+  # ===========================================================================
+  # Stage 2: Security Scans
+  # ===========================================================================
+  security:
+    name: 'Security'
     needs: validate
-    permissions:
-      security-events: write
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    uses: ./.github/workflows/reusable-security.yml
+    with:
+      working_directory: '.'
+      run_tfsec: true
+      run_checkov: true
+      run_tflint: true
+      soft_fail: true
 
-      - name: Run tfsec
-        uses: aquasecurity/tfsec-action@v1.0.3
-        with:
-          soft_fail: true
-          format: sarif
-          out: tfsec-results.sarif
-
-      - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: tfsec-results.sarif
-        continue-on-error: true
-
-      - name: Summary
-        run: echo "## 🔒 tfsec scan completed" >> $GITHUB_STEP_SUMMARY
-
-  security-checkov:
-    name: '3️⃣ Security - Checkov'
-    runs-on: ubuntu-latest
-    needs: validate
-    permissions:
-      security-events: write
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Run Checkov
-        uses: bridgecrewio/checkov-action@v12
-        with:
-          directory: .
-          framework: terraform
-          soft_fail: true
-          output_format: cli,sarif
-          output_file_path: console,checkov-results.sarif
-
-      - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: checkov-results.sarif
-        continue-on-error: true
-
-      - name: Summary
-        run: echo "## 🛡️ Checkov scan completed" >> $GITHUB_STEP_SUMMARY
-
-  # ============================================================================
-  # STAGE 4: TFLINT
-  # ============================================================================
-  tflint:
-    name: '4️⃣ TFLint'
-    runs-on: ubuntu-latest
-    needs: validate
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
-        with:
-          tflint_version: latest
-
-      - name: Init TFLint
-        run: |
-          cat > .tflint.hcl << 'EOF'
-          plugin "azurerm" {
-            enabled = true
-            version = "0.27.0"
-            source  = "github.com/terraform-linters/tflint-ruleset-azurerm"
-          }
-          EOF
-          tflint --init
-
-      - name: Run TFLint
-        run: |
-          echo "## 📏 TFLint Results" >> $GITHUB_STEP_SUMMARY
-          tflint --format=compact --recursive 2>&1 | tee tflint_output.txt || true
-          if [ -s tflint_output.txt ]; then
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat tflint_output.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          else
-            echo "✅ No issues found" >> $GITHUB_STEP_SUMMARY
-          fi
-        continue-on-error: true
-
-  # ============================================================================
-  # STAGE 5: TERRAFORM PLAN
-  # ============================================================================
+  # ===========================================================================
+  # Stage 3: Plan
+  # ===========================================================================
   plan:
-    name: '5️⃣ Terraform Plan'
-    runs-on: ubuntu-latest
-    needs: [security-tfsec, security-checkov, tflint]
-    if: |
-      always() && 
-      needs.security-tfsec.result != 'failure' && 
-      needs.security-checkov.result != 'failure' &&
-      (github.event.inputs.action != 'destroy' || github.event.inputs.action == '')
-    permissions:
-      contents: read
-      pull-requests: write
-      id-token: write
-    outputs:
-      has_changes: ${{ steps.plan.outputs.has_changes }}
-      add: ${{ steps.summary.outputs.add }}
-      change: ${{ steps.summary.outputs.change }}
-      destroy: ${{ steps.summary.outputs.destroy }}
+    name: 'Plan'
+    needs: security
+    uses: ./.github/workflows/reusable-plan.yml
+    with:
+      terraform_version: '1.9.0'
+      working_directory: '.'
+      environment: ${{ github.event.inputs.environment || 'lab' }}
+      var_file: 'environments/${{ github.event.inputs.environment || ''lab'' }}.tfvars'
+    secrets:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      TF_STATE_RG: ${{ secrets.TF_STATE_RG }}
+      TF_STATE_SA: ${{ secrets.TF_STATE_SA }}
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-          terraform_wrapper: false
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Terraform Init
-        run: |
-          terraform init \
-            -backend-config="resource_group_name=${{ secrets.TF_STATE_RG }}" \
-            -backend-config="storage_account_name=${{ secrets.TF_STATE_SA }}" \
-            -backend-config="container_name=tfstate" \
-            -backend-config="key=${{ github.event.inputs.environment || 'lab' }}.terraform.tfstate"
-
-      - name: Select Environment File
-        id: env
-        run: |
-          ENV="${{ github.event.inputs.environment || 'lab' }}"
-          if [ -f "environments/${ENV}.tfvars" ]; then
-            echo "varfile=environments/${ENV}.tfvars" >> $GITHUB_OUTPUT
-          else
-            echo "varfile=terraform.tfvars" >> $GITHUB_OUTPUT
-          fi
-          echo "environment=$ENV" >> $GITHUB_OUTPUT
-
-      - name: Terraform Plan
-        id: plan
-        run: |
-          set +e
-          set -o pipefail
-          terraform plan \
-            -var-file="${{ steps.env.outputs.varfile }}" \
-            -out=tfplan \
-            -detailed-exitcode \
-            -no-color 2>&1 | tee plan_output.txt
-          
-          EXITCODE=${PIPESTATUS[0]}
-          
-          if [ $EXITCODE -eq 0 ]; then
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-          elif [ $EXITCODE -eq 2 ]; then
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-          else
-            cat plan_output.txt
-            exit 1
-          fi
-
-      - name: Parse Plan Output
-        id: summary
-        run: |
-          ADD=$(grep -oP '\d+(?= to add)' plan_output.txt || echo "0")
-          CHANGE=$(grep -oP '\d+(?= to change)' plan_output.txt || echo "0")
-          DESTROY=$(grep -oP '\d+(?= to destroy)' plan_output.txt || echo "0")
-          
-          echo "add=$ADD" >> $GITHUB_OUTPUT
-          echo "change=$CHANGE" >> $GITHUB_OUTPUT
-          echo "destroy=$DESTROY" >> $GITHUB_OUTPUT
-
-      - name: Plan Summary
-        run: |
-          echo "## 📋 Terraform Plan - ${{ steps.env.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [ "${{ steps.plan.outputs.has_changes }}" == "false" ]; then
-            echo "✅ **No changes detected**" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "| Action | Count |" >> $GITHUB_STEP_SUMMARY
-            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-            echo "| ➕ Add | ${{ steps.summary.outputs.add }} |" >> $GITHUB_STEP_SUMMARY
-            echo "| 🔄 Change | ${{ steps.summary.outputs.change }} |" >> $GITHUB_STEP_SUMMARY
-            echo "| ➖ Destroy | ${{ steps.summary.outputs.destroy }} |" >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: Upload Plan Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan-${{ steps.env.outputs.environment }}-${{ github.sha }}
-          path: |
-            tfplan
-            plan_output.txt
-          retention-days: 5
-
-      - name: Comment on PR
-        uses: actions/github-script@v7
-        if: github.event_name == 'pull_request'
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
-            const plan = fs.readFileSync('plan_output.txt', 'utf8');
-            const truncated = plan.length > 60000 ? plan.substring(0, 60000) + '\n...(truncated)' : plan;
-            
-            const body = `## 📋 Terraform Plan - ${{ steps.env.outputs.environment }}
-            
-            | Action | Count |
-            |--------|-------|
-            | ➕ Add | ${{ steps.summary.outputs.add }} |
-            | 🔄 Change | ${{ steps.summary.outputs.change }} |
-            | ➖ Destroy | ${{ steps.summary.outputs.destroy }} |
-            
-            <details><summary>Show Plan</summary>
-            
-            \`\`\`hcl
-            ${truncated}
-            \`\`\`
-            </details>
-            
-            *Workflow: [View Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})*`;
-            
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number
-            });
-            const existing = comments.find(c => c.user.type === 'Bot' && c.body.includes('Terraform Plan'));
-            
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body: body
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body: body
-              });
-            }
-
-  # ============================================================================
-  # STAGE 6: TERRAFORM APPLY
-  # ============================================================================
+  # ===========================================================================
+  # Stage 4: Apply (only on workflow_dispatch with action=apply)
+  # ===========================================================================
   apply:
-    name: '6️⃣ Terraform Apply'
-    runs-on: ubuntu-latest
+    name: 'Apply'
     needs: plan
     if: |
-      needs.plan.outputs.has_changes == 'true' && 
-      (github.event_name == 'push' || github.event.inputs.action == 'apply')
-    environment:
-      name: ${{ github.event.inputs.environment || 'lab' }}
-      url: https://portal.azure.com
-    permissions:
-      contents: read
-      id-token: write
+      github.event_name == 'workflow_dispatch' && 
+      github.event.inputs.action == 'apply' &&
+      needs.plan.outputs.has_changes == 'true'
+    uses: ./.github/workflows/reusable-apply.yml
+    with:
+      terraform_version: '1.9.0'
+      working_directory: '.'
+      environment: ${{ github.event.inputs.environment }}
+      plan_artifact: 'tfplan-${{ github.event.inputs.environment }}-${{ github.sha }}'
+      add_count: ${{ needs.plan.outputs.add }}
+      change_count: ${{ needs.plan.outputs.change }}
+      destroy_count: ${{ needs.plan.outputs.destroy }}
+    secrets:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      TF_STATE_RG: ${{ secrets.TF_STATE_RG }}
+      TF_STATE_SA: ${{ secrets.TF_STATE_SA }}
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-          terraform_wrapper: false
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Terraform Init
-        run: |
-          terraform init \
-            -backend-config="resource_group_name=${{ secrets.TF_STATE_RG }}" \
-            -backend-config="storage_account_name=${{ secrets.TF_STATE_SA }}" \
-            -backend-config="container_name=tfstate" \
-            -backend-config="key=${{ github.event.inputs.environment || 'lab' }}.terraform.tfstate"
-
-      - name: Download Plan
-        uses: actions/download-artifact@v4
-        with:
-          name: tfplan-${{ github.event.inputs.environment || 'lab' }}-${{ github.sha }}
-
-      - name: Terraform Apply
-        run: |
-          terraform apply -auto-approve tfplan 2>&1 | tee apply_output.txt
-          
-          if [ ${PIPESTATUS[0]} -ne 0 ]; then
-            echo "## ❌ Apply Failed" >> $GITHUB_STEP_SUMMARY
-            exit 1
-          fi
-
-      - name: Apply Summary
-        run: |
-          echo "## ✅ Terraform Apply Complete" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** \`${{ github.event.inputs.environment || 'lab' }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Deployed by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Action | Count |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| ➕ Added | ${{ needs.plan.outputs.add }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🔄 Changed | ${{ needs.plan.outputs.change }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| ➖ Destroyed | ${{ needs.plan.outputs.destroy }} |" >> $GITHUB_STEP_SUMMARY
-
-      - name: Show Outputs
-        run: |
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Outputs" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          terraform output -no-color >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No outputs" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-
-  # ============================================================================
-  # STAGE 7: TERRAFORM DESTROY (Manual only)
-  # ============================================================================
-  destroy-check:
-    name: '7️⃣ Destroy - Validate'
-    runs-on: ubuntu-latest
-    needs: [security-tfsec, security-checkov]
-    if: github.event.inputs.action == 'destroy'
-    steps:
-      - name: Validate Confirmation
-        if: github.event.inputs.destroy_confirm != 'DESTROY'
-        run: |
-          echo "## ❌ Destruction NOT Confirmed" >> $GITHUB_STEP_SUMMARY
-          echo "You must type **DESTROY** to confirm." >> $GITHUB_STEP_SUMMARY
-          echo "You entered: \`${{ github.event.inputs.destroy_confirm }}\`" >> $GITHUB_STEP_SUMMARY
-          exit 1
-
-      - name: Confirmation Valid
-        run: |
-          echo "## ⚠️ Destruction Confirmed" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-
+  # ===========================================================================
+  # Stage 5: Destroy (only on workflow_dispatch with action=destroy)
+  # ===========================================================================
   destroy:
-    name: '7️⃣ Destroy - Execute'
-    runs-on: ubuntu-latest
-    needs: destroy-check
-    environment:
-      name: ${{ github.event.inputs.environment }}-destroy
-    permissions:
-      contents: read
-      id-token: write
+    name: 'Destroy'
+    if: |
+      github.event_name == 'workflow_dispatch' && 
+      github.event.inputs.action == 'destroy'
+    uses: ./.github/workflows/reusable-destroy.yml
+    with:
+      terraform_version: '1.9.0'
+      working_directory: '.'
+      environment: ${{ github.event.inputs.environment }}
+      var_file: 'environments/${{ github.event.inputs.environment }}.tfvars'
+      destroy_confirm: ${{ github.event.inputs.destroy_confirm }}
+    secrets:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      TF_STATE_RG: ${{ secrets.TF_STATE_RG }}
+      TF_STATE_SA: ${{ secrets.TF_STATE_SA }}
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-          terraform_wrapper: false
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Terraform Init
-        run: |
-          terraform init \
-            -backend-config="resource_group_name=${{ secrets.TF_STATE_RG }}" \
-            -backend-config="storage_account_name=${{ secrets.TF_STATE_SA }}" \
-            -backend-config="container_name=tfstate" \
-            -backend-config="key=${{ github.event.inputs.environment }}.terraform.tfstate"
-
-      - name: Select Environment File
-        id: env
-        run: |
-          ENV="${{ github.event.inputs.environment }}"
-          if [ -f "environments/${ENV}.tfvars" ]; then
-            echo "varfile=environments/${ENV}.tfvars" >> $GITHUB_OUTPUT
-          else
-            echo "varfile=terraform.tfvars" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Terraform Destroy
-        run: |
-          terraform destroy \
-            -var-file="${{ steps.env.outputs.varfile }}" \
-            -auto-approve 2>&1 | tee destroy_output.txt
-          
-          if [ ${PIPESTATUS[0]} -ne 0 ]; then
-            echo "## ❌ Destroy Failed" >> $GITHUB_STEP_SUMMARY
-            exit 1
-          fi
-
-      - name: Destroy Summary
-        run: |
-          echo "## 💥 Environment Destroyed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** \`${{ github.event.inputs.environment }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Destroyed by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
-
-  # ============================================================================
-  # FINAL: PIPELINE SUMMARY
-  # ============================================================================
+  # ===========================================================================
+  # Summary Job
+  # ===========================================================================
   summary:
-    name: '📊 Pipeline Summary'
+    name: 'Pipeline Summary'
     runs-on: ubuntu-latest
-    needs: [format, validate, security-tfsec, security-checkov, tflint, plan, apply]
+    needs: [validate, security, plan]
     if: always()
     steps:
       - name: Generate Summary
         run: |
-          echo "# 🏗️ Terraform Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "# 🚀 Azure Landing Zone Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Pipeline Status" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| 1️⃣ Format | ${{ needs.format.result == 'success' && '✅' || needs.format.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 2️⃣ Validate | ${{ needs.validate.result == 'success' && '✅' || needs.validate.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 3️⃣ tfsec | ${{ needs.security-tfsec.result == 'success' && '✅' || needs.security-tfsec.result == 'skipped' && '⏭️' || '⚠️' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 3️⃣ Checkov | ${{ needs.security-checkov.result == 'success' && '✅' || needs.security-checkov.result == 'skipped' && '⏭️' || '⚠️' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 4️⃣ TFLint | ${{ needs.tflint.result == 'success' && '✅' || needs.tflint.result == 'skipped' && '⏭️' || '⚠️' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 5️⃣ Plan | ${{ needs.plan.result == 'success' && '✅' || needs.plan.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 6️⃣ Apply | ${{ needs.apply.result == 'success' && '✅' || needs.apply.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Validate | ${{ needs.validate.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | ${{ needs.security.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Plan | ${{ needs.plan.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Trigger:** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** \`${{ github.event.inputs.environment || 'lab' }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Actor:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "## Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** \`${{ github.event.inputs.environment || 'lab' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Action:** \`${{ github.event.inputs.action || 'plan' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
