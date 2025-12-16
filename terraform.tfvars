@@ -12,77 +12,77 @@
 # ┌───────────────────────────────────────────────────────────────────────────┐
 # │ CORE INFRASTRUCTURE                                      Est. Cost/Month │
 # ├───────────────────────────────────────────────────────────────────────────┤
-deploy_firewall              = true   # Azure Firewall             ~$300
-deploy_vpn_gateway           = false  # VPN Gateway                ~$140
-deploy_application_gateway   = true   # App Gateway + WAF          ~$20
-deploy_nat_gateway           = true   # NAT Gateway                ~$5
-deploy_load_balancer         = true   # Load Balancer + IIS VMs    ~$35
+deploy_firewall            = true  # Azure Firewall             ~$300
+deploy_vpn_gateway         = false # VPN Gateway                ~$140
+deploy_application_gateway = true  # App Gateway + WAF          ~$20
+deploy_nat_gateway         = true  # NAT Gateway                ~$5
+deploy_load_balancer       = true  # Load Balancer + IIS VMs    ~$35
 # └───────────────────────────────────────────────────────────────────────────┘
 
 # ┌───────────────────────────────────────────────────────────────────────────┐
 # │ LANDING ZONES                                                             │
 # ├───────────────────────────────────────────────────────────────────────────┤
-deploy_workload_prod         = true   # Production workload VNet   ~FREE
-deploy_workload_dev          = true   # Development workload VNet  ~FREE
-deploy_onprem_simulation     = false  # Simulated on-premises      ~$30
-deploy_secondary_dc          = false  # Second domain controller   ~$30
+deploy_workload_prod     = true  # Production workload VNet   ~FREE
+deploy_workload_dev      = true  # Development workload VNet  ~FREE
+deploy_onprem_simulation = false # Simulated on-premises      ~$30
+deploy_secondary_dc      = false # Second domain controller   ~$30
 # └───────────────────────────────────────────────────────────────────────────┘
 
 # ┌───────────────────────────────────────────────────────────────────────────┐
 # │ COMPUTE & CONTAINERS                                                      │
 # ├───────────────────────────────────────────────────────────────────────────┤
-deploy_aks                   = false  # Azure Kubernetes Service   ~$70+
-deploy_container_apps        = false  # Container Apps             ~$0-20
-deploy_functions             = false  # Azure Functions            ~FREE
+deploy_aks            = false # Azure Kubernetes Service   ~$70+
+deploy_container_apps = false # Container Apps             ~$0-20
+deploy_functions      = false # Azure Functions            ~FREE
 # └───────────────────────────────────────────────────────────────────────────┘
 
 # ┌───────────────────────────────────────────────────────────────────────────┐
 # │ PAAS SERVICES                                                             │
 # ├───────────────────────────────────────────────────────────────────────────┤
-deploy_app_service           = true   # App Service                ~$15
-deploy_static_web_app        = true   # Static Web App             FREE
-deploy_logic_apps            = true   # Logic Apps                 ~FREE
-deploy_event_grid            = true   # Event Grid                 FREE
-deploy_service_bus           = true   # Service Bus                ~$0.05
-deploy_cosmos_db             = true   # Cosmos DB Serverless       ~$0-5
+deploy_app_service    = true # App Service                ~$15
+deploy_static_web_app = true # Static Web App             FREE
+deploy_logic_apps     = true # Logic Apps                 ~FREE
+deploy_event_grid     = true # Event Grid                 FREE
+deploy_service_bus    = true # Service Bus                ~$0.05
+deploy_cosmos_db      = true # Cosmos DB Serverless       ~$0-5
 # └───────────────────────────────────────────────────────────────────────────┘
 
 # ┌───────────────────────────────────────────────────────────────────────────┐
 # │ DATA & SECURITY                                                           │
 # ├───────────────────────────────────────────────────────────────────────────┤
-deploy_keyvault              = true   # Key Vault                  ~FREE
-deploy_storage               = true   # Storage Account            ~$1
-deploy_sql                   = true   # Azure SQL Database         ~$5
-deploy_backup                = false  # Recovery Services Vault    ~$10+
-deploy_private_endpoints     = true   # Private Endpoints          ~FREE
-deploy_private_dns_zones     = true   # Private DNS Zones          ~FREE
+deploy_keyvault          = true  # Key Vault                  ~FREE
+deploy_storage           = true  # Storage Account            ~$1
+deploy_sql               = true  # Azure SQL Database         ~$5
+deploy_backup            = false # Recovery Services Vault    ~$10+
+deploy_private_endpoints = true  # Private Endpoints          ~FREE
+deploy_private_dns_zones = true  # Private DNS Zones          ~FREE
 # └───────────────────────────────────────────────────────────────────────────┘
 
 # ┌───────────────────────────────────────────────────────────────────────────┐
 # │ MONITORING & OBSERVABILITY                                                │
 # ├───────────────────────────────────────────────────────────────────────────┤
-deploy_log_analytics         = true   # Log Analytics              ~FREE(30d)
-deploy_workbooks             = true   # Azure Workbooks            FREE
-deploy_connection_monitor    = true   # Connection Monitor         ~$1
-deploy_cost_management       = true   # Budget Alerts              FREE
-enable_vnet_flow_logs        = false  # VNet Flow Logs             ~$1-5
-enable_traffic_analytics     = false  # Traffic Analytics          ~$3
+deploy_log_analytics      = true  # Log Analytics              ~FREE(30d)
+deploy_workbooks          = true  # Azure Workbooks            FREE
+deploy_connection_monitor = true  # Connection Monitor         ~$1
+deploy_cost_management    = true  # Budget Alerts              FREE
+enable_vnet_flow_logs     = false # VNet Flow Logs             ~$1-5
+enable_traffic_analytics  = false # Traffic Analytics          ~$3
 # └───────────────────────────────────────────────────────────────────────────┘
 
 # ┌───────────────────────────────────────────────────────────────────────────┐
 # │ GOVERNANCE & COMPLIANCE                                                   │
 # ├───────────────────────────────────────────────────────────────────────────┤
-deploy_azure_policy          = true   # Azure Policy               FREE
-deploy_management_groups     = true   # Management Groups          FREE
-deploy_rbac_custom_roles     = true   # Custom RBAC Roles          FREE
-deploy_regulatory_compliance = true   # HIPAA/PCI-DSS Policies     FREE
+deploy_azure_policy          = true # Azure Policy               FREE
+deploy_management_groups     = true # Management Groups          FREE
+deploy_rbac_custom_roles     = true # Custom RBAC Roles          FREE
+deploy_regulatory_compliance = true # HIPAA/PCI-DSS Policies     FREE
 # └───────────────────────────────────────────────────────────────────────────┘
 
 # ┌───────────────────────────────────────────────────────────────────────────┐
 # │ AUTOMATION                                                                │
 # ├───────────────────────────────────────────────────────────────────────────┤
-enable_auto_shutdown         = true   # VM Auto-Shutdown 7PM       SAVES $$$
-enable_scheduled_startstop   = true   # Scheduled Start/Stop       ~$1
+enable_auto_shutdown       = true # VM Auto-Shutdown 7PM       SAVES $$$
+enable_scheduled_startstop = true # Scheduled Start/Stop       ~$1
 # └───────────────────────────────────────────────────────────────────────────┘
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -105,10 +105,10 @@ repository_url  = "https://gitlab.com/your-repo/azure-landing-zone-lab"
 # AUTHENTICATION (CHANGE THESE!)
 # =============================================================================
 admin_username     = "azureadmin"
-admin_password     = "P@ssw0rd123!Lab"            # Change this!
+admin_password     = "P@ssw0rd123!Lab" # Change this!
 sql_admin_login    = "sqladmin"
-sql_admin_password = "SqlP@ssw0rd123!"            # Change this!
-vpn_shared_key     = "AzureLabVPN2024!SecureKey"  # Change this!
+sql_admin_password = "SqlP@ssw0rd123!"           # Change this!
+vpn_shared_key     = "AzureLabVPN2024!SecureKey" # Change this!
 
 # =============================================================================
 # NETWORK ADDRESS SCHEME
@@ -176,7 +176,7 @@ enable_bgp      = false
 hub_bgp_asn     = 65515
 
 # Application Gateway Settings
-appgw_waf_mode = "Detection"  # Use "Prevention" in production
+appgw_waf_mode = "Detection" # Use "Prevention" in production
 
 # Load Balancer Settings
 lb_type             = "public"
@@ -195,7 +195,7 @@ sql_vm_size = "Standard_B2s"
 
 # Jumpbox Settings
 enable_jumpbox_public_ip   = true
-allowed_jumpbox_source_ips = ["0.0.0.0/0"]  # Tighten to your IP!
+allowed_jumpbox_source_ips = ["0.0.0.0/0"] # Tighten to your IP!
 
 # Log Analytics Settings
 log_retention_days = 30
@@ -235,4 +235,4 @@ policy_required_tags = {
 # Regulatory Compliance
 enable_hipaa_compliance     = true
 enable_pci_dss_compliance   = true
-compliance_enforcement_mode = "DoNotEnforce"  # Audit mode only
+compliance_enforcement_mode = "DoNotEnforce" # Audit mode only

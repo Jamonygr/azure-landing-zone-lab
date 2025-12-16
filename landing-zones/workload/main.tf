@@ -36,7 +36,7 @@ module "app_subnet" {
   address_prefixes     = [var.app_subnet_prefix]
   service_endpoints    = ["Microsoft.KeyVault", "Microsoft.Storage", "Microsoft.Sql"]
 
-  depends_on = [module.web_subnet]  # Serialize subnet creation
+  depends_on = [module.web_subnet] # Serialize subnet creation
 }
 
 # Data Tier Subnet
@@ -49,7 +49,7 @@ module "data_subnet" {
   address_prefixes     = [var.data_subnet_prefix]
   service_endpoints    = ["Microsoft.Sql", "Microsoft.Storage"]
 
-  depends_on = [module.app_subnet]  # Serialize subnet creation
+  depends_on = [module.app_subnet] # Serialize subnet creation
 }
 
 # Web Tier NSG
@@ -63,7 +63,7 @@ module "web_nsg" {
   associate_with_subnet = true
   tags                  = var.tags
 
-  depends_on = [module.data_subnet]  # Wait for all subnets before NSG associations
+  depends_on = [module.data_subnet] # Wait for all subnets before NSG associations
 
   security_rules = [
     {
@@ -120,7 +120,7 @@ module "app_nsg" {
   associate_with_subnet = true
   tags                  = var.tags
 
-  depends_on = [module.web_nsg]  # Serialize NSG associations
+  depends_on = [module.web_nsg] # Serialize NSG associations
 
   security_rules = [
     {
@@ -167,7 +167,7 @@ module "data_nsg" {
   associate_with_subnet = true
   tags                  = var.tags
 
-  depends_on = [module.app_nsg]  # Serialize NSG associations
+  depends_on = [module.app_nsg] # Serialize NSG associations
 
   security_rules = [
     {
@@ -213,9 +213,9 @@ module "workload_route_table" {
   resource_group_name = var.resource_group_name
   location            = var.location
   # Exclude web subnet when public LB is deployed to avoid asymmetric routing
-  subnet_ids          = var.deploy_load_balancer && var.lb_type == "public" ? [module.app_subnet.id, module.data_subnet.id] : [module.web_subnet.id, module.app_subnet.id, module.data_subnet.id]
-  tags                = var.tags
-  depends_on          = [module.web_nsg, module.app_nsg, module.data_nsg] # Serialize subnet updates
+  subnet_ids = var.deploy_load_balancer && var.lb_type == "public" ? [module.app_subnet.id, module.data_subnet.id] : [module.web_subnet.id, module.app_subnet.id, module.data_subnet.id]
+  tags       = var.tags
+  depends_on = [module.web_nsg, module.app_nsg, module.data_nsg] # Serialize subnet updates
 
   routes = [
     {
@@ -374,16 +374,16 @@ module "functions" {
   source = "../../modules/functions"
   count  = var.deploy_functions ? 1 : 0
 
-  name_suffix         = "${var.workload_name}-${var.environment}-${var.location_short}"
-  resource_group_name = var.resource_group_name
-  location            = var.paas_alternative_location
-  os_type             = "Linux"
-  runtime             = "python"
-  runtime_version     = "3.11"
-  sku_name            = "Y1"
-  enable_app_insights = true
+  name_suffix                = "${var.workload_name}-${var.environment}-${var.location_short}"
+  resource_group_name        = var.resource_group_name
+  location                   = var.paas_alternative_location
+  os_type                    = "Linux"
+  runtime                    = "python"
+  runtime_version            = "3.11"
+  sku_name                   = "Y1"
+  enable_app_insights        = true
   log_analytics_workspace_id = var.log_analytics_workspace_id
-  tags                = var.tags
+  tags                       = var.tags
 }
 
 # Static Web App (Free tier - FREE)
@@ -438,10 +438,10 @@ module "service_bus" {
   source = "../../modules/service-bus"
   count  = var.deploy_service_bus ? 1 : 0
 
-  name_suffix                = "${var.workload_name}-${var.environment}-${var.location_short}"
-  resource_group_name        = var.resource_group_name
-  location                   = var.location
-  sku                        = "Basic"
+  name_suffix         = "${var.workload_name}-${var.environment}-${var.location_short}"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  sku                 = "Basic"
   queues = {
     "workload-queue" = {}
   }
@@ -479,12 +479,12 @@ module "cosmos_db" {
   source = "../../modules/cosmos-db"
   count  = var.deploy_cosmos_db ? 1 : 0
 
-  name_suffix                = "${var.workload_name}-${var.environment}-${var.location_short}"
-  resource_group_name        = var.resource_group_name
-  location                   = length(var.cosmos_location) > 0 ? var.cosmos_location : var.paas_alternative_location
-  kind                       = "GlobalDocumentDB"
-  enable_serverless          = true
-  consistency_level          = "Session"
+  name_suffix         = "${var.workload_name}-${var.environment}-${var.location_short}"
+  resource_group_name = var.resource_group_name
+  location            = length(var.cosmos_location) > 0 ? var.cosmos_location : var.paas_alternative_location
+  kind                = "GlobalDocumentDB"
+  enable_serverless   = true
+  consistency_level   = "Session"
   sql_databases = [
     { name = "workload-db" }
   ]

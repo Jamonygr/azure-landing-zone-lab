@@ -51,7 +51,7 @@ resource "azurerm_linux_function_app" "this" {
   https_only = true
 
   site_config {
-    application_insights_key             = var.enable_app_insights ? azurerm_application_insights.function[0].instrumentation_key : null
+    application_insights_key               = var.enable_app_insights ? azurerm_application_insights.function[0].instrumentation_key : null
     application_insights_connection_string = var.enable_app_insights ? azurerm_application_insights.function[0].connection_string : null
 
     application_stack {
@@ -93,7 +93,7 @@ resource "azurerm_windows_function_app" "this" {
   https_only = true
 
   site_config {
-    application_insights_key             = var.enable_app_insights ? azurerm_application_insights.function[0].instrumentation_key : null
+    application_insights_key               = var.enable_app_insights ? azurerm_application_insights.function[0].instrumentation_key : null
     application_insights_connection_string = var.enable_app_insights ? azurerm_application_insights.function[0].connection_string : null
 
     application_stack {

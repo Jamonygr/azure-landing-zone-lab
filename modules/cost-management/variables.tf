@@ -75,12 +75,12 @@ variable "budget_end_date" {
 variable "alert_thresholds" {
   description = "List of budget alert thresholds and their configuration"
   type = list(object({
-    threshold         = number
-    threshold_type    = optional(string, "Actual") # Actual or Forecasted
-    operator          = optional(string, "GreaterThanOrEqualTo")
-    contact_emails    = optional(list(string), [])
-    contact_roles     = optional(list(string), ["Owner"])
-    contact_groups    = optional(list(string), [])
+    threshold      = number
+    threshold_type = optional(string, "Actual") # Actual or Forecasted
+    operator       = optional(string, "GreaterThanOrEqualTo")
+    contact_emails = optional(list(string), [])
+    contact_roles  = optional(list(string), ["Owner"])
+    contact_groups = optional(list(string), [])
   }))
   default = [
     {

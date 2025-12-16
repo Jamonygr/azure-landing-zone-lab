@@ -87,14 +87,14 @@ output "all_management_groups" {
       "root" = azurerm_management_group.root.id
     },
     var.create_platform_mg ? {
-      "platform"             = azurerm_management_group.platform[0].id
-      "platform-identity"    = azurerm_management_group.platform_identity[0].id
-      "platform-management"  = azurerm_management_group.platform_management[0].id
+      "platform"              = azurerm_management_group.platform[0].id
+      "platform-identity"     = azurerm_management_group.platform_identity[0].id
+      "platform-management"   = azurerm_management_group.platform_management[0].id
       "platform-connectivity" = azurerm_management_group.platform_connectivity[0].id
     } : {},
     var.create_landing_zones_mg ? {
-      "landing-zones"      = azurerm_management_group.landing_zones[0].id
-      "landing-zones-corp" = azurerm_management_group.landing_zones_corp[0].id
+      "landing-zones"        = azurerm_management_group.landing_zones[0].id
+      "landing-zones-corp"   = azurerm_management_group.landing_zones_corp[0].id
       "landing-zones-online" = azurerm_management_group.landing_zones_online[0].id
     } : {},
     var.create_sandbox_mg ? {

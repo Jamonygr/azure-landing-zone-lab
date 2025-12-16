@@ -97,12 +97,12 @@ variable "log_analytics_workspace_id" {
 variable "exemptions" {
   description = "List of policy exemptions"
   type = list(object({
-    name                = string
-    display_name        = string
-    description         = string
-    policy_assignment_id = string
-    exemption_category  = string # Waiver or Mitigated
-    expires_on          = optional(string)
+    name                            = string
+    display_name                    = string
+    description                     = string
+    policy_assignment_id            = string
+    exemption_category              = string # Waiver or Mitigated
+    expires_on                      = optional(string)
     policy_definition_reference_ids = optional(list(string))
   }))
   default = []

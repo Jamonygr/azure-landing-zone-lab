@@ -34,7 +34,7 @@ module "firewall_subnet" {
   virtual_network_name = module.hub_vnet.name
   address_prefixes     = [var.firewall_subnet_prefix]
 
-  depends_on = [module.gateway_subnet]  # Serialize subnet creation to avoid Azure API conflicts
+  depends_on = [module.gateway_subnet] # Serialize subnet creation to avoid Azure API conflicts
 }
 
 # Management Subnet (for jump boxes, etc.)
@@ -47,7 +47,7 @@ module "hub_mgmt_subnet" {
   address_prefixes     = [var.hub_mgmt_subnet_prefix]
   service_endpoints    = ["Microsoft.KeyVault", "Microsoft.Storage", "Microsoft.Sql"]
 
-  depends_on = [module.firewall_subnet]  # Serialize subnet creation to avoid Azure API conflicts
+  depends_on = [module.firewall_subnet] # Serialize subnet creation to avoid Azure API conflicts
 }
 
 # Azure Firewall
@@ -63,7 +63,7 @@ module "firewall" {
   dns_proxy_enabled   = true
   tags                = var.tags
 
-  depends_on = [module.hub_mgmt_subnet]  # Ensure all subnets created before deploying firewall
+  depends_on = [module.hub_mgmt_subnet] # Ensure all subnets created before deploying firewall
 }
 
 # VPN Gateway
@@ -80,7 +80,7 @@ module "vpn_gateway" {
   bgp_asn             = var.hub_bgp_asn
   tags                = var.tags
 
-  depends_on = [module.firewall]  # Deploy VPN Gateway after Firewall to avoid concurrent subnet ops
+  depends_on = [module.firewall] # Deploy VPN Gateway after Firewall to avoid concurrent subnet ops
 }
 
 # NSG for Management Subnet
@@ -94,7 +94,7 @@ module "hub_mgmt_nsg" {
   associate_with_subnet = true
   tags                  = var.tags
 
-  depends_on = [module.vpn_gateway]  # Wait for VPN Gateway to complete before modifying subnets
+  depends_on = [module.vpn_gateway] # Wait for VPN Gateway to complete before modifying subnets
 
   security_rules = [
     {
@@ -276,16 +276,16 @@ module "application_gateway" {
   resource_group_name = var.resource_group_name
   location            = var.location
   subnet_id           = module.appgw_subnet[0].id
-  zones               = []  # Set to [] for lab to reduce costs
+  zones               = [] # Set to [] for lab to reduce costs
 
   sku_name = "WAF_v2"
   sku_tier = "WAF_v2"
-  capacity = 1  # Minimum for lab
+  capacity = 1 # Minimum for lab
 
   # Backend pool for workload web servers (always created, IPs added via null_resource)
   backend_pools = {
     "workload-web-servers" = {
-      ip_addresses = var.lb_backend_ips  # Empty initially, populated by null_resource
+      ip_addresses = var.lb_backend_ips # Empty initially, populated by null_resource
     }
   }
 
@@ -301,7 +301,7 @@ module "application_gateway" {
   # Use default listener (port 80) - route to workload backend pool
   http_listeners = {}
   routing_rules  = {}
-  
+
   # Override the default routing rule to use our workload pool and settings
   default_backend_pool_name          = "workload-web-servers"
   default_backend_http_settings_name = "http-80"

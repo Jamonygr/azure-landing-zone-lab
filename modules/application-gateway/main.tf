@@ -149,13 +149,13 @@ resource "azurerm_application_gateway" "this" {
   dynamic "request_routing_rule" {
     for_each = var.routing_rules
     content {
-      name                       = request_routing_rule.key
-      priority                   = request_routing_rule.value.priority
-      rule_type                  = request_routing_rule.value.rule_type
-      http_listener_name         = request_routing_rule.value.http_listener_name
-      backend_address_pool_name  = lookup(request_routing_rule.value, "backend_address_pool_name", null)
-      backend_http_settings_name = lookup(request_routing_rule.value, "backend_http_settings_name", null)
-      url_path_map_name          = lookup(request_routing_rule.value, "url_path_map_name", null)
+      name                        = request_routing_rule.key
+      priority                    = request_routing_rule.value.priority
+      rule_type                   = request_routing_rule.value.rule_type
+      http_listener_name          = request_routing_rule.value.http_listener_name
+      backend_address_pool_name   = lookup(request_routing_rule.value, "backend_address_pool_name", null)
+      backend_http_settings_name  = lookup(request_routing_rule.value, "backend_http_settings_name", null)
+      url_path_map_name           = lookup(request_routing_rule.value, "url_path_map_name", null)
       redirect_configuration_name = lookup(request_routing_rule.value, "redirect_configuration_name", null)
     }
   }

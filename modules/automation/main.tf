@@ -6,7 +6,7 @@
 # Calculate a future start time for schedules (tomorrow at 8AM or 7PM)
 locals {
   # Get tomorrow's date at the specified time
-  base_date       = formatdate("YYYY-MM-DD", timeadd(timestamp(), "24h"))
+  base_date           = formatdate("YYYY-MM-DD", timeadd(timestamp(), "24h"))
   start_schedule_time = "${local.base_date}T08:00:00Z"
   stop_schedule_time  = "${local.base_date}T19:00:00Z"
 }

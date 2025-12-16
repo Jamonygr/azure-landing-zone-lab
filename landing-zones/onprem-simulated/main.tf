@@ -34,7 +34,7 @@ module "onprem_servers_subnet" {
   virtual_network_name = module.onprem_vnet.name
   address_prefixes     = [var.servers_subnet_prefix]
 
-  depends_on = [module.onprem_gateway_subnet]  # Serialize subnet creation
+  depends_on = [module.onprem_gateway_subnet] # Serialize subnet creation
 }
 
 # NSG for Servers
@@ -48,7 +48,7 @@ module "onprem_nsg" {
   associate_with_subnet = true
   tags                  = var.tags
 
-  depends_on = [module.onprem_servers_subnet]  # Wait for subnets before NSG association
+  depends_on = [module.onprem_servers_subnet] # Wait for subnets before NSG association
 
   security_rules = [
     {
@@ -98,7 +98,7 @@ module "onprem_vpn_gateway" {
   bgp_asn             = var.onprem_bgp_asn
   tags                = var.tags
 
-  depends_on = [module.onprem_nsg]  # Deploy VPN Gateway after NSG to avoid concurrent subnet ops
+  depends_on = [module.onprem_nsg] # Deploy VPN Gateway after NSG to avoid concurrent subnet ops
 }
 
 # =============================================================================

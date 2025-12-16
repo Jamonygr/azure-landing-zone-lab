@@ -76,13 +76,13 @@ variable "destination_endpoints" {
 variable "test_configurations" {
   description = "Test configurations for different protocols"
   type = list(object({
-    name              = string
-    protocol          = string # Tcp, Icmp, Http
-    frequency_seconds = optional(number, 60)
-    port              = optional(number)
-    trace_route       = optional(bool, true)
-    method            = optional(string, "Get")
-    prefer_https      = optional(bool, false)
+    name               = string
+    protocol           = string # Tcp, Icmp, Http
+    frequency_seconds  = optional(number, 60)
+    port               = optional(number)
+    trace_route        = optional(bool, true)
+    method             = optional(string, "Get")
+    prefer_https       = optional(bool, false)
     valid_status_codes = optional(list(string), ["200"])
   }))
   default = [

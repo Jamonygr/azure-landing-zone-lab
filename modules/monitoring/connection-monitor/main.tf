@@ -80,10 +80,10 @@ resource "azurerm_network_connection_monitor" "monitor" {
       dynamic "http_configuration" {
         for_each = test_configuration.value.protocol == "Http" ? [1] : []
         content {
-          port                         = lookup(test_configuration.value, "port", 80)
-          method                       = lookup(test_configuration.value, "method", "Get")
-          prefer_https                 = lookup(test_configuration.value, "prefer_https", false)
-          valid_status_code_ranges     = lookup(test_configuration.value, "valid_status_codes", ["200"])
+          port                     = lookup(test_configuration.value, "port", 80)
+          method                   = lookup(test_configuration.value, "method", "Get")
+          prefer_https             = lookup(test_configuration.value, "prefer_https", false)
+          valid_status_code_ranges = lookup(test_configuration.value, "valid_status_codes", ["200"])
         }
       }
     }

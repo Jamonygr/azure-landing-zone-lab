@@ -197,12 +197,12 @@ module "management" {
   resource_group_name = azurerm_resource_group.management.name
   tags                = local.common_tags
 
-  mgmt_address_space      = var.management_address_space
-  jumpbox_subnet_prefix   = var.management_jumpbox_subnet_prefix
-  dns_servers             = module.identity.dns_servers
-  hub_address_prefix      = var.hub_address_space[0]
-  vpn_client_address_pool = var.vpn_client_address_pool
-  onprem_address_prefix   = var.onprem_address_space[0]
+  mgmt_address_space         = var.management_address_space
+  jumpbox_subnet_prefix      = var.management_jumpbox_subnet_prefix
+  dns_servers                = module.identity.dns_servers
+  hub_address_prefix         = var.hub_address_space[0]
+  vpn_client_address_pool    = var.vpn_client_address_pool
+  onprem_address_prefix      = var.onprem_address_space[0]
   allowed_jumpbox_source_ips = var.allowed_jumpbox_source_ips
 
   vm_size                  = var.vm_size
@@ -858,7 +858,7 @@ module "monitoring_diagnostics" {
   enable_storage_diagnostics  = var.deploy_storage
   # NSG diagnostics disabled - requires known keys at plan time
   # To enable, use -target to apply NSGs first, then run apply again
-  nsg_ids = []
+  nsg_ids                = []
   enable_nsg_diagnostics = false
 
   depends_on = [
@@ -1324,12 +1324,12 @@ module "connection_monitor" {
   source = "./modules/monitoring/connection-monitor"
   count  = var.deploy_connection_monitor && var.deploy_log_analytics ? 1 : 0
 
-  monitor_name        = "cmon-${local.environment}-${local.location_short}"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.management.name
+  monitor_name           = "cmon-${local.environment}-${local.location_short}"
+  location               = var.location
+  resource_group_name    = azurerm_resource_group.management.name
   create_network_watcher = var.create_network_watcher
   network_watcher_name   = var.network_watcher_name
-  tags                = local.common_tags
+  tags                   = local.common_tags
 
   log_analytics_workspace_id = module.management.log_analytics_workspace_id
 
@@ -1404,7 +1404,7 @@ module "automation" {
   ]
 
   # Schedule configuration
-  timezone            = var.startstop_timezone
+  timezone              = var.startstop_timezone
   enable_start_schedule = true
   enable_stop_schedule  = true
 
@@ -1423,9 +1423,9 @@ module "rbac" {
   count  = var.deploy_rbac_custom_roles ? 1 : 0
 
   # Role definitions
-  deploy_network_operator_role   = true
-  deploy_backup_operator_role    = true
-  deploy_monitoring_reader_role  = true
+  deploy_network_operator_role  = true
+  deploy_backup_operator_role   = true
+  deploy_monitoring_reader_role = true
 }
 
 # =============================================================================
@@ -1441,15 +1441,15 @@ module "azure_policy" {
   environment = local.environment
 
   # Policy configuration
-  enable_allowed_locations_policy = true
-  allowed_locations               = var.policy_allowed_locations
-  enable_require_tag_policy       = true
-  required_tags                   = var.policy_required_tags
-  enable_inherit_tag_policy       = false # Disabled - policy definition deprecated
+  enable_allowed_locations_policy    = true
+  allowed_locations                  = var.policy_allowed_locations
+  enable_require_tag_policy          = true
+  required_tags                      = var.policy_required_tags
+  enable_inherit_tag_policy          = false # Disabled - policy definition deprecated
   enable_audit_public_network_access = true
-  enable_require_https_storage    = true
-  enable_audit_unattached_disks   = false # Disabled - policy definition deprecated
-  enable_require_nsg_on_subnet    = true
+  enable_require_https_storage       = true
+  enable_audit_unattached_disks      = false # Disabled - policy definition deprecated
+  enable_require_nsg_on_subnet       = true
 }
 
 # =============================================================================
@@ -1485,11 +1485,11 @@ module "cost_management" {
   environment         = local.environment
   location            = var.location
 
-  enable_budget   = true
-  budget_amount   = var.cost_budget_amount
-  budget_name     = "monthly-budget-${var.project}"
+  enable_budget = true
+  budget_amount = var.cost_budget_amount
+  budget_name   = "monthly-budget-${var.project}"
 
-  enable_action_group          = length(var.cost_alert_emails) > 0
+  enable_action_group = length(var.cost_alert_emails) > 0
   action_group_email_receivers = [for i, email in var.cost_alert_emails : {
     name          = "cost-alert-${i + 1}"
     email_address = email
@@ -1513,10 +1513,10 @@ module "regulatory_compliance_workload_prod" {
   location    = var.location
   environment = local.environment
 
-  enable_hipaa              = var.enable_hipaa_compliance
-  hipaa_enforcement_mode    = var.compliance_enforcement_mode
-  enable_pci_dss            = var.enable_pci_dss_compliance
-  pci_dss_enforcement_mode  = var.compliance_enforcement_mode
+  enable_hipaa             = var.enable_hipaa_compliance
+  hipaa_enforcement_mode   = var.compliance_enforcement_mode
+  enable_pci_dss           = var.enable_pci_dss_compliance
+  pci_dss_enforcement_mode = var.compliance_enforcement_mode
 
   log_analytics_workspace_id = var.deploy_log_analytics ? module.management.log_analytics_workspace_id : null
 }

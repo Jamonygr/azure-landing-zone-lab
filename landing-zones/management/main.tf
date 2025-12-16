@@ -37,7 +37,7 @@ module "jumpbox_nsg" {
   associate_with_subnet = true
   tags                  = var.tags
 
-  depends_on = [module.jumpbox_subnet]  # Wait for subnet before NSG association
+  depends_on = [module.jumpbox_subnet] # Wait for subnet before NSG association
 
   security_rules = concat(
     length(var.allowed_jumpbox_source_ips) > 0 ? [
@@ -52,47 +52,47 @@ module "jumpbox_nsg" {
         destination_address_prefix = "*"
       }
     ] : [],
-  [
-    {
-      name                       = "AllowRDPFromVPN"
-      priority                   = 150
-      direction                  = "Inbound"
-      access                     = "Allow"
-      protocol                   = "Tcp"
-      destination_port_range     = "3389"
-      source_address_prefix      = var.vpn_client_address_pool
-      destination_address_prefix = "*"
-    },
-    {
-      name                       = "AllowRDPFromHub"
-      priority                   = 160
-      direction                  = "Inbound"
-      access                     = "Allow"
-      protocol                   = "Tcp"
-      destination_port_range     = "3389"
-      source_address_prefix      = var.hub_address_prefix
-      destination_address_prefix = "*"
-    },
-    {
-      name                       = "AllowRDPFromOnPrem"
-      priority                   = 170
-      direction                  = "Inbound"
-      access                     = "Allow"
-      protocol                   = "Tcp"
-      destination_port_range     = "3389"
-      source_address_prefix      = var.onprem_address_prefix
-      destination_address_prefix = "*"
-    },
-    {
-      name                       = "DenyAllInbound"
-      priority                   = 4096
-      direction                  = "Inbound"
-      access                     = "Deny"
-      protocol                   = "*"
-      destination_port_range     = "*"
-      source_address_prefix      = "*"
-      destination_address_prefix = "*"
-    }
+    [
+      {
+        name                       = "AllowRDPFromVPN"
+        priority                   = 150
+        direction                  = "Inbound"
+        access                     = "Allow"
+        protocol                   = "Tcp"
+        destination_port_range     = "3389"
+        source_address_prefix      = var.vpn_client_address_pool
+        destination_address_prefix = "*"
+      },
+      {
+        name                       = "AllowRDPFromHub"
+        priority                   = 160
+        direction                  = "Inbound"
+        access                     = "Allow"
+        protocol                   = "Tcp"
+        destination_port_range     = "3389"
+        source_address_prefix      = var.hub_address_prefix
+        destination_address_prefix = "*"
+      },
+      {
+        name                       = "AllowRDPFromOnPrem"
+        priority                   = 170
+        direction                  = "Inbound"
+        access                     = "Allow"
+        protocol                   = "Tcp"
+        destination_port_range     = "3389"
+        source_address_prefix      = var.onprem_address_prefix
+        destination_address_prefix = "*"
+      },
+      {
+        name                       = "DenyAllInbound"
+        priority                   = 4096
+        direction                  = "Inbound"
+        access                     = "Deny"
+        protocol                   = "*"
+        destination_port_range     = "*"
+        source_address_prefix      = "*"
+        destination_address_prefix = "*"
+      }
   ])
 }
 

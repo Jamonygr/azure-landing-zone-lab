@@ -133,7 +133,7 @@ variable "enable_auto_shutdown" {
 variable "allowed_rdp_source_ips" {
   description = "List of IP addresses/CIDR ranges allowed to RDP to management VM. Use your public IP for security."
   type        = list(string)
-  default     = []  # Empty means no RDP from internet - must be explicitly set
+  default     = [] # Empty means no RDP from internet - must be explicitly set
 }
 
 variable "deploy_vpn_gateway" {

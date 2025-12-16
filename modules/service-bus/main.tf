@@ -40,10 +40,10 @@ resource "azurerm_servicebus_topic" "this" {
   name         = each.key
   namespace_id = azurerm_servicebus_namespace.this.id
 
-  max_size_in_megabytes   = lookup(each.value, "max_size_in_megabytes", 1024)
-  default_message_ttl     = lookup(each.value, "default_message_ttl", null)
-  partitioning_enabled    = var.sku != "Premium" ? lookup(each.value, "enable_partitioning", false) : false
-  support_ordering        = lookup(each.value, "support_ordering", false)
+  max_size_in_megabytes         = lookup(each.value, "max_size_in_megabytes", 1024)
+  default_message_ttl           = lookup(each.value, "default_message_ttl", null)
+  partitioning_enabled          = var.sku != "Premium" ? lookup(each.value, "enable_partitioning", false) : false
+  support_ordering              = lookup(each.value, "support_ordering", false)
   max_message_size_in_kilobytes = var.sku == "Premium" ? lookup(each.value, "max_message_size_in_kilobytes", 1024) : null
 }
 

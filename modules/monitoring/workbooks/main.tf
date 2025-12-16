@@ -38,17 +38,17 @@ resource "azurerm_application_insights_workbook" "vm_performance" {
       {
         type = 3
         content = {
-          version    = "KqlItem/1.0"
-          query      = <<-EOT
+          version                 = "KqlItem/1.0"
+          query                   = <<-EOT
             Perf
             | where ObjectName == "Processor" and CounterName == "% Processor Time"
             | summarize AvgCPU = avg(CounterValue) by Computer, bin(TimeGenerated, 5m)
             | render timechart
           EOT
-          size       = 0
-          title      = "CPU Utilization by VM"
-          queryType  = 0
-          resourceType = "microsoft.operationalinsights/workspaces"
+          size                    = 0
+          title                   = "CPU Utilization by VM"
+          queryType               = 0
+          resourceType            = "microsoft.operationalinsights/workspaces"
           crossComponentResources = [var.log_analytics_workspace_id]
         }
         name = "cpu-chart"
@@ -56,17 +56,17 @@ resource "azurerm_application_insights_workbook" "vm_performance" {
       {
         type = 3
         content = {
-          version    = "KqlItem/1.0"
-          query      = <<-EOT
+          version                 = "KqlItem/1.0"
+          query                   = <<-EOT
             Perf
             | where ObjectName == "Memory" and CounterName == "% Committed Bytes In Use"
             | summarize AvgMemory = avg(CounterValue) by Computer, bin(TimeGenerated, 5m)
             | render timechart
           EOT
-          size       = 0
-          title      = "Memory Utilization by VM"
-          queryType  = 0
-          resourceType = "microsoft.operationalinsights/workspaces"
+          size                    = 0
+          title                   = "Memory Utilization by VM"
+          queryType               = 0
+          resourceType            = "microsoft.operationalinsights/workspaces"
           crossComponentResources = [var.log_analytics_workspace_id]
         }
         name = "memory-chart"
@@ -74,18 +74,18 @@ resource "azurerm_application_insights_workbook" "vm_performance" {
       {
         type = 3
         content = {
-          version    = "KqlItem/1.0"
-          query      = <<-EOT
+          version                 = "KqlItem/1.0"
+          query                   = <<-EOT
             Perf
             | where ObjectName == "LogicalDisk" and CounterName == "% Free Space"
             | where InstanceName != "_Total"
             | summarize AvgFreeSpace = avg(CounterValue) by Computer, InstanceName
             | order by AvgFreeSpace asc
           EOT
-          size       = 0
-          title      = "Disk Free Space"
-          queryType  = 0
-          resourceType = "microsoft.operationalinsights/workspaces"
+          size                    = 0
+          title                   = "Disk Free Space"
+          queryType               = 0
+          resourceType            = "microsoft.operationalinsights/workspaces"
           crossComponentResources = [var.log_analytics_workspace_id]
         }
         name = "disk-table"
@@ -117,17 +117,17 @@ resource "azurerm_application_insights_workbook" "network_traffic" {
       {
         type = 3
         content = {
-          version    = "KqlItem/1.0"
-          query      = <<-EOT
+          version                 = "KqlItem/1.0"
+          query                   = <<-EOT
             Perf
             | where ObjectName == "Network Adapter" and CounterName == "Bytes Total/sec"
             | summarize TotalBytes = sum(CounterValue) by Computer, bin(TimeGenerated, 5m)
             | render timechart
           EOT
-          size       = 0
-          title      = "Network Throughput by VM"
-          queryType  = 0
-          resourceType = "microsoft.operationalinsights/workspaces"
+          size                    = 0
+          title                   = "Network Throughput by VM"
+          queryType               = 0
+          resourceType            = "microsoft.operationalinsights/workspaces"
           crossComponentResources = [var.log_analytics_workspace_id]
         }
         name = "network-throughput"
@@ -135,17 +135,17 @@ resource "azurerm_application_insights_workbook" "network_traffic" {
       {
         type = 3
         content = {
-          version    = "KqlItem/1.0"
-          query      = <<-EOT
+          version                 = "KqlItem/1.0"
+          query                   = <<-EOT
             AzureNetworkAnalytics_CL
             | where TimeGenerated > ago(1h)
             | summarize FlowCount = count() by FlowStatus_s, bin(TimeGenerated, 5m)
             | render columnchart
           EOT
-          size       = 0
-          title      = "Network Flow Status"
-          queryType  = 0
-          resourceType = "microsoft.operationalinsights/workspaces"
+          size                    = 0
+          title                   = "Network Flow Status"
+          queryType               = 0
+          resourceType            = "microsoft.operationalinsights/workspaces"
           crossComponentResources = [var.log_analytics_workspace_id]
         }
         name = "flow-status"
@@ -177,17 +177,17 @@ resource "azurerm_application_insights_workbook" "firewall" {
       {
         type = 3
         content = {
-          version    = "KqlItem/1.0"
-          query      = <<-EOT
+          version                 = "KqlItem/1.0"
+          query                   = <<-EOT
             AzureDiagnostics
             | where Category == "AzureFirewallNetworkRule" or Category == "AzureFirewallApplicationRule"
             | summarize RuleHits = count() by Category, bin(TimeGenerated, 5m)
             | render timechart
           EOT
-          size       = 0
-          title      = "Firewall Rule Hits Over Time"
-          queryType  = 0
-          resourceType = "microsoft.operationalinsights/workspaces"
+          size                    = 0
+          title                   = "Firewall Rule Hits Over Time"
+          queryType               = 0
+          resourceType            = "microsoft.operationalinsights/workspaces"
           crossComponentResources = [var.log_analytics_workspace_id]
         }
         name = "rule-hits"
@@ -195,18 +195,18 @@ resource "azurerm_application_insights_workbook" "firewall" {
       {
         type = 3
         content = {
-          version    = "KqlItem/1.0"
-          query      = <<-EOT
+          version                 = "KqlItem/1.0"
+          query                   = <<-EOT
             AzureDiagnostics
             | where Category == "AzureFirewallNetworkRule" or Category == "AzureFirewallApplicationRule"
             | where msg_s contains "Deny"
             | summarize DeniedCount = count() by bin(TimeGenerated, 5m)
             | render timechart
           EOT
-          size       = 0
-          title      = "Denied Traffic Over Time"
-          queryType  = 0
-          resourceType = "microsoft.operationalinsights/workspaces"
+          size                    = 0
+          title                   = "Denied Traffic Over Time"
+          queryType               = 0
+          resourceType            = "microsoft.operationalinsights/workspaces"
           crossComponentResources = [var.log_analytics_workspace_id]
         }
         name = "denied-traffic"
@@ -214,8 +214,8 @@ resource "azurerm_application_insights_workbook" "firewall" {
       {
         type = 3
         content = {
-          version    = "KqlItem/1.0"
-          query      = <<-EOT
+          version                 = "KqlItem/1.0"
+          query                   = <<-EOT
             AzureDiagnostics
             | where Category == "AzureFirewallNetworkRule" or Category == "AzureFirewallApplicationRule"
             | where msg_s contains "Deny"
@@ -223,10 +223,10 @@ resource "azurerm_application_insights_workbook" "firewall" {
             | order by TimeGenerated desc
             | take 50
           EOT
-          size       = 0
-          title      = "Recent Denied Connections"
-          queryType  = 0
-          resourceType = "microsoft.operationalinsights/workspaces"
+          size                    = 0
+          title                   = "Recent Denied Connections"
+          queryType               = 0
+          resourceType            = "microsoft.operationalinsights/workspaces"
           crossComponentResources = [var.log_analytics_workspace_id]
         }
         name = "denied-details"

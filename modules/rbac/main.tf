@@ -29,18 +29,18 @@ resource "azurerm_role_definition" "network_operator" {
       "Microsoft.Network/azureFirewalls/read",
       "Microsoft.Network/vpnGateways/read",
       "Microsoft.Network/connections/read",
-      
+
       # Manage NSGs
       "Microsoft.Network/networkSecurityGroups/*",
-      
+
       # Manage Route Tables
       "Microsoft.Network/routeTables/*",
-      
+
       # View Network Watcher and diagnostics
       "Microsoft.Network/networkWatchers/read",
       "Microsoft.Network/networkWatchers/connectionMonitors/read",
       "Microsoft.Network/networkWatchers/flowLogs/read",
-      
+
       # Resource group read
       "Microsoft.Resources/subscriptions/resourceGroups/read"
     ]
@@ -71,15 +71,15 @@ resource "azurerm_role_definition" "backup_operator" {
       "Microsoft.RecoveryServices/Vaults/backupJobs/*",
       "Microsoft.RecoveryServices/Vaults/backupUsageSummaries/read",
       "Microsoft.RecoveryServices/Vaults/usages/read",
-      
+
       # Trigger backups
       "Microsoft.RecoveryServices/Vaults/backupFabrics/protectionContainers/protectedItems/backup/action",
       "Microsoft.RecoveryServices/Vaults/backupFabrics/protectionContainers/protectedItems/recoveryPoints/read",
       "Microsoft.RecoveryServices/Vaults/backupFabrics/protectionContainers/protectedItems/recoveryPoints/restore/action",
-      
+
       # Read VMs (for backup association)
       "Microsoft.Compute/virtualMachines/read",
-      
+
       # Resource group read
       "Microsoft.Resources/subscriptions/resourceGroups/read"
     ]
@@ -110,35 +110,35 @@ resource "azurerm_role_definition" "monitoring_reader" {
       "Microsoft.OperationalInsights/workspaces/query/read",
       "Microsoft.OperationalInsights/workspaces/analytics/query/action",
       "Microsoft.OperationalInsights/workspaces/search/action",
-      
+
       # Metrics
       "Microsoft.Insights/metrics/read",
       "Microsoft.Insights/metricDefinitions/read",
       "Microsoft.Insights/metricNamespaces/read",
-      
+
       # Alerts
       "Microsoft.Insights/alertRules/read",
       "Microsoft.Insights/scheduledQueryRules/read",
       "Microsoft.Insights/actionGroups/read",
       "Microsoft.AlertsManagement/alerts/read",
-      
+
       # Diagnostic Settings
       "Microsoft.Insights/diagnosticSettings/read",
       "Microsoft.Insights/diagnosticSettingsCategories/read",
-      
+
       # Activity Log
       "Microsoft.Insights/eventtypes/values/read",
       "Microsoft.Insights/activityLogAlerts/read",
-      
+
       # Workbooks
       "Microsoft.Insights/workbooks/read",
-      
+
       # Application Insights (if used)
       "Microsoft.Insights/components/read",
-      
+
       # Resource health
       "Microsoft.ResourceHealth/availabilityStatuses/read",
-      
+
       # Resource group read
       "Microsoft.Resources/subscriptions/resourceGroups/read"
     ]
@@ -153,22 +153,22 @@ resource "azurerm_role_definition" "monitoring_reader" {
 # =============================================================================
 
 resource "azurerm_role_assignment" "network_operator" {
-  for_each             = var.deploy_network_operator_role ? toset(var.network_operator_principals) : []
-  scope                = data.azurerm_subscription.current.id
-  role_definition_id   = azurerm_role_definition.network_operator[0].role_definition_resource_id
-  principal_id         = each.value
+  for_each           = var.deploy_network_operator_role ? toset(var.network_operator_principals) : []
+  scope              = data.azurerm_subscription.current.id
+  role_definition_id = azurerm_role_definition.network_operator[0].role_definition_resource_id
+  principal_id       = each.value
 }
 
 resource "azurerm_role_assignment" "backup_operator" {
-  for_each             = var.deploy_backup_operator_role ? toset(var.backup_operator_principals) : []
-  scope                = data.azurerm_subscription.current.id
-  role_definition_id   = azurerm_role_definition.backup_operator[0].role_definition_resource_id
-  principal_id         = each.value
+  for_each           = var.deploy_backup_operator_role ? toset(var.backup_operator_principals) : []
+  scope              = data.azurerm_subscription.current.id
+  role_definition_id = azurerm_role_definition.backup_operator[0].role_definition_resource_id
+  principal_id       = each.value
 }
 
 resource "azurerm_role_assignment" "monitoring_reader" {
-  for_each             = var.deploy_monitoring_reader_role ? toset(var.monitoring_reader_principals) : []
-  scope                = data.azurerm_subscription.current.id
-  role_definition_id   = azurerm_role_definition.monitoring_reader[0].role_definition_resource_id
-  principal_id         = each.value
+  for_each           = var.deploy_monitoring_reader_role ? toset(var.monitoring_reader_principals) : []
+  scope              = data.azurerm_subscription.current.id
+  role_definition_id = azurerm_role_definition.monitoring_reader[0].role_definition_resource_id
+  principal_id       = each.value
 }

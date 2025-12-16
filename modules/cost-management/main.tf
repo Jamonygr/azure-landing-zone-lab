@@ -6,10 +6,10 @@
 locals {
   # Calculate budget start date (first of current month if not provided)
   budget_start_date = var.budget_start_date != null ? var.budget_start_date : formatdate("YYYY-MM-01", timestamp())
-  
+
   # Calculate budget end date (5 years from start if not provided)
   budget_end_date = var.budget_end_date != null ? var.budget_end_date : timeadd("${local.budget_start_date}T00:00:00Z", "43800h") # ~5 years
-  
+
   # Extract subscription ID from scope
   subscription_id = can(regex("^/subscriptions/([^/]+)", var.scope)) ? regex("^/subscriptions/([^/]+)", var.scope)[0] : null
 }

@@ -37,7 +37,7 @@ module "dc_nsg" {
   associate_with_subnet = true
   tags                  = var.tags
 
-  depends_on = [module.dc_subnet]  # Ensure subnet is fully created before NSG association
+  depends_on = [module.dc_subnet] # Ensure subnet is fully created before NSG association
 
   security_rules = [
     # Allow AD DS Traffic
@@ -110,14 +110,14 @@ module "dc01" {
 
 # Network Watcher agent for Connection Monitor
 resource "azurerm_virtual_machine_extension" "dc01_network_watcher" {
-  name                 = "NetworkWatcherAgent"
-  virtual_machine_id   = module.dc01.id
-  publisher            = "Microsoft.Azure.NetworkWatcher"
-  type                 = "NetworkWatcherAgentWindows"
-  type_handler_version = "1.4"
+  name                       = "NetworkWatcherAgent"
+  virtual_machine_id         = module.dc01.id
+  publisher                  = "Microsoft.Azure.NetworkWatcher"
+  type                       = "NetworkWatcherAgentWindows"
+  type_handler_version       = "1.4"
   auto_upgrade_minor_version = true
-  settings             = jsonencode({})
-  tags                 = var.tags
+  settings                   = jsonencode({})
+  tags                       = var.tags
 }
 
 # Secondary Domain Controller VM (Optional)

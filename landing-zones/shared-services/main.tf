@@ -36,7 +36,7 @@ module "pe_subnet" {
   address_prefixes                          = [var.pe_subnet_prefix]
   private_endpoint_network_policies_enabled = false
 
-  depends_on = [module.app_subnet]  # Serialize subnet creation
+  depends_on = [module.app_subnet] # Serialize subnet creation
 }
 
 # NSG for Application Subnet
@@ -50,7 +50,7 @@ module "app_nsg" {
   associate_with_subnet = true
   tags                  = var.tags
 
-  depends_on = [module.pe_subnet]  # Wait for subnets to complete before NSG association
+  depends_on = [module.pe_subnet] # Wait for subnets to complete before NSG association
 
   security_rules = [
     {

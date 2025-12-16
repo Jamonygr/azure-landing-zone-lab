@@ -36,9 +36,9 @@ resource "azurerm_linux_web_app" "this" {
   https_only = true
 
   site_config {
-    always_on        = var.sku_name != "F1" && var.sku_name != "D1"
-    ftps_state       = "Disabled"
-    http2_enabled    = true
+    always_on           = var.sku_name != "F1" && var.sku_name != "D1"
+    ftps_state          = "Disabled"
+    http2_enabled       = true
     minimum_tls_version = "1.2"
 
     application_stack {
@@ -79,9 +79,9 @@ resource "azurerm_windows_web_app" "this" {
   https_only = true
 
   site_config {
-    always_on        = var.sku_name != "F1" && var.sku_name != "D1"
-    ftps_state       = "Disabled"
-    http2_enabled    = true
+    always_on           = var.sku_name != "F1" && var.sku_name != "D1"
+    ftps_state          = "Disabled"
+    http2_enabled       = true
     minimum_tls_version = "1.2"
 
     application_stack {
