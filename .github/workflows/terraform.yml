@@ -31,11 +31,6 @@ on:
         description: 'Type DESTROY to confirm'
         required: false
         type: string
-      run_tests:
-        description: 'Run Terratest after apply'
-        required: false
-        default: false
-        type: boolean
 
 concurrency:
   group: terraform-${{ github.ref }}-${{ github.event.inputs.environment || 'lab' }}
@@ -98,7 +93,7 @@ jobs:
   # STAGE 3: SECURITY - TFSEC
   # =========================================================================
   security-tfsec:
-    name: '3️⃣ tfsec'
+    name: '3️⃣ Security - tfsec'
     runs-on: ubuntu-latest
     needs: validate
     steps:
@@ -123,7 +118,7 @@ jobs:
   # STAGE 3: SECURITY - CHECKOV
   # =========================================================================
   security-checkov:
-    name: '3️⃣ Checkov'
+    name: '3️⃣ Security - Checkov'
     runs-on: ubuntu-latest
     needs: validate
     steps:
@@ -150,7 +145,7 @@ jobs:
   # STAGE 3: SECRET SCANNING (NEW)
   # =========================================================================
   secret-scan:
-    name: '3️⃣ Secret Scan'
+    name: '3️⃣ Security - Secrets'
     runs-on: ubuntu-latest
     needs: validate
     steps:
@@ -164,7 +159,7 @@ jobs:
   # STAGE 4: TFLINT
   # =========================================================================
   tflint:
-    name: '4️⃣ TFLint'
+    name: '4️⃣ Lint - TFLint'
     runs-on: ubuntu-latest
     needs: validate
     steps:
@@ -190,7 +185,7 @@ jobs:
   # STAGE 4: POLICY CHECK (NEW)
   # =========================================================================
   policy-check:
-    name: '4️⃣ Policy (OPA)'
+    name: '4️⃣ Lint - Policy'
     runs-on: ubuntu-latest
     needs: validate
     steps:
@@ -212,7 +207,7 @@ jobs:
   # STAGE 4: TERRAFORM DOCS (NEW)
   # =========================================================================
   terraform-docs:
-    name: '4️⃣ Docs'
+    name: '4️⃣ Lint - Docs'
     runs-on: ubuntu-latest
     needs: validate
     steps:
@@ -226,7 +221,7 @@ jobs:
   # STAGE 5: GRAPH VISUALIZATION (NEW)
   # =========================================================================
   graph:
-    name: '5️⃣ Graph'
+    name: '5️⃣ Analysis - Graph'
     runs-on: ubuntu-latest
     needs: [security-tfsec, security-checkov, secret-scan, tflint, policy-check]
     steps:
@@ -244,9 +239,9 @@ jobs:
   # STAGE 5: MODULE VERSION CHECK (NEW)
   # =========================================================================
   module-versions:
-    name: '5️⃣ Versions'
+    name: '5️⃣ Analysis - Versions'
     runs-on: ubuntu-latest
-    needs: validate
+    needs: [security-tfsec, security-checkov, secret-scan, tflint, policy-check]
     steps:
       - uses: actions/checkout@v4
 
@@ -263,7 +258,7 @@ jobs:
   # STAGE 6: COST ESTIMATION (NEW)
   # =========================================================================
   cost-estimate:
-    name: '6️⃣ Cost'
+    name: '6️⃣ Analysis - Cost'
     runs-on: ubuntu-latest
     needs: [graph, module-versions]
     steps:
@@ -416,24 +411,3 @@ jobs:
           add_count: ${{ needs.plan.outputs.add || '0' }}
           change_count: ${{ needs.plan.outputs.change || '0' }}
           destroy_count: ${{ needs.plan.outputs.destroy || '0' }}
-
-  # =========================================================================
-  # STAGE 11: TERRATEST
-  # =========================================================================
-  terratest:
-    name: '1️⃣1️⃣ Terratest'
-    runs-on: ubuntu-latest
-    needs: [apply, metrics]
-    if: |
-      always() &&
-      needs.apply.result == 'success' &&
-      github.event.inputs.run_tests == 'true'
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: ./.github/actions/terratest
-        with:
-          test_directory: tests
-          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
-          environment: ${{ env.ENVIRONMENT }}
-          timeout: '10m'
