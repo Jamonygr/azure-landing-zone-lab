@@ -1,7 +1,7 @@
 # =============================================================================
 # TERRAFORM PIPELINE - Azure Landing Zone
 # =============================================================================
-# Single visible pipeline using hidden composite actions in .github/actions/
+# 8 jobs matching original visual, using hidden composite actions for code reuse
 # =============================================================================
 
 name: 'Terraform Pipeline'
@@ -48,39 +48,132 @@ env:
 
 jobs:
   # =========================================================================
-  # Stage 1: Validate
+  # STAGE 1: FORMAT CHECK
   # =========================================================================
-  validate:
-    name: 'Validate'
+  format:
+    name: '1️⃣ Format Check'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate
-        uses: ./.github/actions/validate
+      - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
+      - name: Format Check
+        run: |
+          if ! terraform fmt -check -recursive -diff; then
+            echo "## ❌ Format Check Failed" >> $GITHUB_STEP_SUMMARY
+            echo "Run \`terraform fmt -recursive\` locally to fix." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "## ✅ Format Check Passed" >> $GITHUB_STEP_SUMMARY
+
   # =========================================================================
-  # Stage 2: Security Scans
+  # STAGE 2: VALIDATE
   # =========================================================================
-  security:
-    name: 'Security'
+  validate:
+    name: '2️⃣ Validate'
+    runs-on: ubuntu-latest
+    needs: format
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Validate
+        run: |
+          terraform init -backend=false
+          terraform validate
+          echo "## ✅ Validation Passed" >> $GITHUB_STEP_SUMMARY
+
+  # =========================================================================
+  # STAGE 3: SECURITY - TFSEC (parallel)
+  # =========================================================================
+  security-tfsec:
+    name: '3️⃣ Security - tfsec'
     runs-on: ubuntu-latest
     needs: validate
     steps:
       - uses: actions/checkout@v4
 
-      - name: Security Scan
-        uses: ./.github/actions/security
+      - uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          soft_fail: true
+          format: sarif
+          out: tfsec-results.sarif
+        continue-on-error: true
+
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: tfsec-results.sarif
+        continue-on-error: true
+
+      - run: echo "## 🔒 tfsec scan completed" >> $GITHUB_STEP_SUMMARY
 
   # =========================================================================
-  # Stage 3: Plan
+  # STAGE 3: SECURITY - CHECKOV (parallel)
+  # =========================================================================
+  security-checkov:
+    name: '3️⃣ Security - Checkov'
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          framework: terraform
+          soft_fail: true
+          output_format: cli,sarif
+          output_file_path: console,checkov-results.sarif
+        continue-on-error: true
+
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: checkov-results.sarif
+        continue-on-error: true
+
+      - run: echo "## 🛡️ Checkov scan completed" >> $GITHUB_STEP_SUMMARY
+
+  # =========================================================================
+  # STAGE 4: TFLINT
+  # =========================================================================
+  tflint:
+    name: '4️⃣ TFLint'
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: terraform-linters/setup-tflint@v4
+
+      - name: Run TFLint
+        run: |
+          cat > .tflint.hcl << 'EOF'
+          plugin "azurerm" {
+            enabled = true
+            version = "0.27.0"
+            source  = "github.com/terraform-linters/tflint-ruleset-azurerm"
+          }
+          EOF
+          tflint --init
+          echo "## 📏 TFLint Results" >> $GITHUB_STEP_SUMMARY
+          tflint --recursive || true
+        continue-on-error: true
+
+  # =========================================================================
+  # STAGE 5: PLAN (uses composite action)
   # =========================================================================
   plan:
-    name: 'Plan'
+    name: '5️⃣ Plan'
     runs-on: ubuntu-latest
-    needs: security
+    needs: [security-tfsec, security-checkov, tflint]
     outputs:
       has_changes: ${{ steps.plan.outputs.has_changes }}
       add: ${{ steps.plan.outputs.add }}
@@ -102,10 +195,10 @@ jobs:
           environment: ${{ env.ENVIRONMENT }}
 
   # =========================================================================
-  # Stage 4: Apply
+  # STAGE 6: APPLY (uses composite action)
   # =========================================================================
   apply:
-    name: 'Apply'
+    name: '6️⃣ Apply'
     runs-on: ubuntu-latest
     needs: plan
     if: |
@@ -128,10 +221,10 @@ jobs:
           plan_artifact: tfplan-${{ env.ENVIRONMENT }}-${{ github.sha }}
 
   # =========================================================================
-  # Stage 5: Destroy
+  # STAGE 7: DESTROY (uses composite action)
   # =========================================================================
   destroy:
-    name: 'Destroy'
+    name: '7️⃣ Destroy'
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'workflow_dispatch' && 
