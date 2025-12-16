@@ -1,0 +1,65 @@
+# Level 2: Reusable Workflow - Destroy
+# Called by main pipeline, NOT visible as separate workflow in GitHub
+
+name: _destroy
+
+on:
+  workflow_call:
+    inputs:
+      terraform_version:
+        type: string
+        default: '1.9.0'
+      environment:
+        type: string
+        required: true
+      var_file:
+        type: string
+        required: true
+      confirm:
+        type: string
+        required: true
+    secrets:
+      AZURE_CREDENTIALS:
+        required: true
+      TF_STATE_RG:
+        required: true
+      TF_STATE_SA:
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  destroy:
+    name: 'Terraform Destroy'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}-destroy
+    steps:
+      - name: Confirm
+        if: inputs.confirm != 'DESTROY'
+        run: |
+          echo "::error::Type DESTROY to confirm"
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/terraform-setup
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - uses: ./.github/actions/terraform-init
+        with:
+          backend_resource_group: ${{ secrets.TF_STATE_RG }}
+          backend_storage_account: ${{ secrets.TF_STATE_SA }}
+          backend_key: ${{ inputs.environment }}.terraform.tfstate
+
+      - uses: ./.github/actions/terraform-destroy
+        with:
+          var_file: ${{ inputs.var_file }}
+          confirm: ${{ inputs.confirm }}
+
+      - name: Summary
+        run: |
+          echo "## 💥 Destroyed - ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY

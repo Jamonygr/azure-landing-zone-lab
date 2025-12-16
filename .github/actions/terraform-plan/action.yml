@@ -1,21 +1,14 @@
-# =============================================================================
-# LEVEL 1: COMPOSITE ACTION - Terraform Plan
-# =============================================================================
-# Reusable action for running Terraform plan and capturing output
-# =============================================================================
-
 name: 'Terraform Plan'
-description: 'Run Terraform plan and capture changes'
-author: 'Azure Landing Zone Lab'
+description: 'Run Terraform plan with change detection'
 
 inputs:
-  var_file:
-    description: 'Path to variables file'
-    required: true
   working_directory:
-    description: 'Working directory for Terraform'
+    description: 'Working directory'
     required: false
     default: '.'
+  var_file:
+    description: 'Variables file path'
+    required: true
   plan_file:
     description: 'Output plan file name'
     required: false
@@ -23,16 +16,16 @@ inputs:
 
 outputs:
   has_changes:
-    description: 'Whether the plan has changes (true/false)'
+    description: 'Whether plan has changes'
     value: ${{ steps.plan.outputs.has_changes }}
   add:
-    description: 'Number of resources to add'
+    description: 'Resources to add'
     value: ${{ steps.summary.outputs.add }}
   change:
-    description: 'Number of resources to change'
+    description: 'Resources to change'
     value: ${{ steps.summary.outputs.change }}
   destroy:
-    description: 'Number of resources to destroy'
+    description: 'Resources to destroy'
     value: ${{ steps.summary.outputs.destroy }}
 
 runs:
@@ -50,21 +43,16 @@ runs:
           -out=${{ inputs.plan_file }} \
           -detailed-exitcode \
           -no-color 2>&1 | tee plan_output.txt
-        
         EXITCODE=${PIPESTATUS[0]}
-        
         if [ $EXITCODE -eq 0 ]; then
           echo "has_changes=false" >> $GITHUB_OUTPUT
-          echo "## ✅ No Changes Detected" >> $GITHUB_STEP_SUMMARY
         elif [ $EXITCODE -eq 2 ]; then
           echo "has_changes=true" >> $GITHUB_OUTPUT
         else
-          echo "## ❌ Plan Failed" >> $GITHUB_STEP_SUMMARY
-          cat plan_output.txt
           exit 1
         fi
 
-    - name: Parse Plan Output
+    - name: Parse Summary
       id: summary
       shell: bash
       working-directory: ${{ inputs.working_directory }}
@@ -72,16 +60,6 @@ runs:
         ADD=$(grep -oP '\d+(?= to add)' plan_output.txt || echo "0")
         CHANGE=$(grep -oP '\d+(?= to change)' plan_output.txt || echo "0")
         DESTROY=$(grep -oP '\d+(?= to destroy)' plan_output.txt || echo "0")
-        
         echo "add=$ADD" >> $GITHUB_OUTPUT
         echo "change=$CHANGE" >> $GITHUB_OUTPUT
         echo "destroy=$DESTROY" >> $GITHUB_OUTPUT
-        
-        if [ "${{ steps.plan.outputs.has_changes }}" == "true" ]; then
-          echo "## 📋 Plan Summary" >> $GITHUB_STEP_SUMMARY
-          echo "| Action | Count |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| ➕ Add | $ADD |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🔄 Change | $CHANGE |" >> $GITHUB_STEP_SUMMARY
-          echo "| ➖ Destroy | $DESTROY |" >> $GITHUB_STEP_SUMMARY
-        fi

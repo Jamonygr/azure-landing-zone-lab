@@ -1,25 +1,14 @@
-# =============================================================================
-# LEVEL 1: COMPOSITE ACTION - Terraform Setup
-# =============================================================================
-# Reusable action for setting up Terraform with Azure authentication
-# =============================================================================
-
 name: 'Terraform Setup'
-description: 'Setup Terraform with Azure authentication'
-author: 'Azure Landing Zone Lab'
+description: 'Setup Terraform and Azure authentication'
 
 inputs:
   terraform_version:
-    description: 'Terraform version to install'
+    description: 'Terraform version'
     required: false
     default: '1.9.0'
   azure_credentials:
     description: 'Azure credentials JSON'
     required: true
-  working_directory:
-    description: 'Working directory for Terraform'
-    required: false
-    default: '.'
 
 runs:
   using: 'composite'
@@ -34,12 +23,3 @@ runs:
       uses: azure/login@v2
       with:
         creds: ${{ inputs.azure_credentials }}
-
-    - name: Verify Azure Connection
-      shell: bash
-      working-directory: ${{ inputs.working_directory }}
-      run: |
-        echo "## 🔧 Terraform Setup" >> $GITHUB_STEP_SUMMARY
-        echo "- Terraform version: ${{ inputs.terraform_version }}" >> $GITHUB_STEP_SUMMARY
-        echo "- Azure CLI authenticated ✅" >> $GITHUB_STEP_SUMMARY
-        az account show --query "{Subscription:name, ID:id}" -o table

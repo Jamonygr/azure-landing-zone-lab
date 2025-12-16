@@ -1,0 +1,58 @@
+# Level 2: Reusable Workflow - Apply
+# Called by main pipeline, NOT visible as separate workflow in GitHub
+
+name: _apply
+
+on:
+  workflow_call:
+    inputs:
+      terraform_version:
+        type: string
+        default: '1.9.0'
+      environment:
+        type: string
+        required: true
+      plan_artifact:
+        type: string
+        required: true
+    secrets:
+      AZURE_CREDENTIALS:
+        required: true
+      TF_STATE_RG:
+        required: true
+      TF_STATE_SA:
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  apply:
+    name: 'Terraform Apply'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/terraform-setup
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - uses: ./.github/actions/terraform-init
+        with:
+          backend_resource_group: ${{ secrets.TF_STATE_RG }}
+          backend_storage_account: ${{ secrets.TF_STATE_SA }}
+          backend_key: ${{ inputs.environment }}.terraform.tfstate
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.plan_artifact }}
+
+      - uses: ./.github/actions/terraform-apply
+
+      - name: Summary
+        run: |
+          echo "## ✅ Applied - ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "Deployed by @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY

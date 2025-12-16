@@ -1,26 +1,15 @@
-# =============================================================================
-# LEVEL 1: COMPOSITE ACTION - Terraform Apply
-# =============================================================================
-# Reusable action for applying Terraform plan
-# =============================================================================
-
 name: 'Terraform Apply'
 description: 'Apply Terraform plan'
-author: 'Azure Landing Zone Lab'
 
 inputs:
+  working_directory:
+    description: 'Working directory'
+    required: false
+    default: '.'
   plan_file:
     description: 'Plan file to apply'
     required: false
     default: 'tfplan'
-  working_directory:
-    description: 'Working directory for Terraform'
-    required: false
-    default: '.'
-  environment:
-    description: 'Environment name for summary'
-    required: false
-    default: 'unknown'
 
 runs:
   using: 'composite'
@@ -28,24 +17,4 @@ runs:
     - name: Terraform Apply
       shell: bash
       working-directory: ${{ inputs.working_directory }}
-      run: |
-        set -o pipefail
-        terraform apply -auto-approve ${{ inputs.plan_file }} 2>&1 | tee apply_output.txt
-        
-        if [ ${PIPESTATUS[0]} -ne 0 ]; then
-          echo "## ❌ Apply Failed" >> $GITHUB_STEP_SUMMARY
-          exit 1
-        fi
-        
-        echo "## ✅ Terraform Apply Complete" >> $GITHUB_STEP_SUMMARY
-        echo "**Environment:** \`${{ inputs.environment }}\`" >> $GITHUB_STEP_SUMMARY
-
-    - name: Show Outputs
-      shell: bash
-      working-directory: ${{ inputs.working_directory }}
-      run: |
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Outputs" >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
-        terraform output -no-color >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No outputs defined" >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
+      run: terraform apply -auto-approve ${{ inputs.plan_file }}

@@ -1,28 +1,13 @@
-# =============================================================================
-# LEVEL 1: COMPOSITE ACTION - Security Scanning
-# =============================================================================
-# Reusable action for running security scans (tfsec, Checkov, TFLint)
-# =============================================================================
-
 name: 'Security Scan'
-description: 'Run security scans on Terraform code'
-author: 'Azure Landing Zone Lab'
+description: 'Run tfsec and Checkov security scans'
 
 inputs:
-  scanner:
-    description: 'Scanner to run (tfsec, checkov, tflint, all)'
-    required: false
-    default: 'all'
   working_directory:
-    description: 'Working directory to scan'
+    description: 'Directory to scan'
     required: false
     default: '.'
   soft_fail:
-    description: 'Continue on findings (true/false)'
-    required: false
-    default: 'true'
-  upload_sarif:
-    description: 'Upload SARIF to GitHub Security (true/false)'
+    description: 'Continue on findings'
     required: false
     default: 'true'
 
@@ -30,71 +15,16 @@ runs:
   using: 'composite'
   steps:
     - name: Run tfsec
-      if: inputs.scanner == 'tfsec' || inputs.scanner == 'all'
       uses: aquasecurity/tfsec-action@v1.0.3
       with:
         working_directory: ${{ inputs.working_directory }}
         soft_fail: ${{ inputs.soft_fail }}
-        format: sarif
-        out: tfsec-results.sarif
-      continue-on-error: true
-
-    - name: Upload tfsec SARIF
-      if: (inputs.scanner == 'tfsec' || inputs.scanner == 'all') && inputs.upload_sarif == 'true'
-      uses: github/codeql-action/upload-sarif@v3
-      with:
-        sarif_file: tfsec-results.sarif
       continue-on-error: true
 
     - name: Run Checkov
-      if: inputs.scanner == 'checkov' || inputs.scanner == 'all'
       uses: bridgecrewio/checkov-action@v12
       with:
         directory: ${{ inputs.working_directory }}
         framework: terraform
         soft_fail: ${{ inputs.soft_fail }}
-        output_format: cli,sarif
-        output_file_path: console,checkov-results.sarif
       continue-on-error: true
-
-    - name: Upload Checkov SARIF
-      if: (inputs.scanner == 'checkov' || inputs.scanner == 'all') && inputs.upload_sarif == 'true'
-      uses: github/codeql-action/upload-sarif@v3
-      with:
-        sarif_file: checkov-results.sarif
-      continue-on-error: true
-
-    - name: Setup TFLint
-      if: inputs.scanner == 'tflint' || inputs.scanner == 'all'
-      uses: terraform-linters/setup-tflint@v4
-      with:
-        tflint_version: latest
-
-    - name: Init TFLint
-      if: inputs.scanner == 'tflint' || inputs.scanner == 'all'
-      shell: bash
-      working-directory: ${{ inputs.working_directory }}
-      run: |
-        cat > .tflint.hcl << 'EOF'
-        plugin "azurerm" {
-          enabled = true
-          version = "0.27.0"
-          source  = "github.com/terraform-linters/tflint-ruleset-azurerm"
-        }
-        EOF
-        tflint --init
-
-    - name: Run TFLint
-      if: inputs.scanner == 'tflint' || inputs.scanner == 'all'
-      shell: bash
-      working-directory: ${{ inputs.working_directory }}
-      run: |
-        tflint --format=compact --recursive 2>&1 | tee tflint_output.txt || true
-      continue-on-error: true
-
-    - name: Security Summary
-      shell: bash
-      run: |
-        echo "## 🔒 Security Scan Complete" >> $GITHUB_STEP_SUMMARY
-        echo "- Scanner(s): \`${{ inputs.scanner }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Soft Fail: \`${{ inputs.soft_fail }}\`" >> $GITHUB_STEP_SUMMARY

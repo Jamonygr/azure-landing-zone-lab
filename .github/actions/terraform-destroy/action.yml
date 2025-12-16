@@ -1,43 +1,30 @@
-# =============================================================================
-# LEVEL 1: COMPOSITE ACTION - Terraform Destroy
-# =============================================================================
-# Reusable action for destroying Terraform infrastructure
-# =============================================================================
-
 name: 'Terraform Destroy'
 description: 'Destroy Terraform infrastructure'
-author: 'Azure Landing Zone Lab'
 
 inputs:
-  var_file:
-    description: 'Path to variables file'
-    required: true
   working_directory:
-    description: 'Working directory for Terraform'
+    description: 'Working directory'
     required: false
     default: '.'
-  environment:
-    description: 'Environment name for summary'
-    required: false
-    default: 'unknown'
+  var_file:
+    description: 'Variables file path'
+    required: true
+  confirm:
+    description: 'Must be DESTROY to confirm'
+    required: true
 
 runs:
   using: 'composite'
   steps:
+    - name: Validate Confirmation
+      shell: bash
+      run: |
+        if [ "${{ inputs.confirm }}" != "DESTROY" ]; then
+          echo "::error::Destruction not confirmed. Type DESTROY to confirm."
+          exit 1
+        fi
+
     - name: Terraform Destroy
       shell: bash
       working-directory: ${{ inputs.working_directory }}
-      run: |
-        set -o pipefail
-        terraform destroy \
-          -var-file="${{ inputs.var_file }}" \
-          -auto-approve 2>&1 | tee destroy_output.txt
-        
-        if [ ${PIPESTATUS[0]} -ne 0 ]; then
-          echo "## ❌ Destroy Failed" >> $GITHUB_STEP_SUMMARY
-          exit 1
-        fi
-        
-        echo "## 💥 Environment Destroyed" >> $GITHUB_STEP_SUMMARY
-        echo "**Environment:** \`${{ inputs.environment }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "**Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+      run: terraform destroy -var-file="${{ inputs.var_file }}" -auto-approve

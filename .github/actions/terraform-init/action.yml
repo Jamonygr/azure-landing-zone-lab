@@ -1,31 +1,24 @@
-# =============================================================================
-# LEVEL 1: COMPOSITE ACTION - Terraform Init
-# =============================================================================
-# Reusable action for initializing Terraform with remote backend
-# =============================================================================
-
 name: 'Terraform Init'
-description: 'Initialize Terraform with Azure remote backend'
-author: 'Azure Landing Zone Lab'
+description: 'Initialize Terraform with Azure backend'
 
 inputs:
-  resource_group:
-    description: 'Backend resource group name'
-    required: true
-  storage_account:
-    description: 'Backend storage account name'
-    required: true
-  container:
-    description: 'Backend container name'
-    required: false
-    default: 'tfstate'
-  state_key:
-    description: 'State file key (e.g., lab.terraform.tfstate)'
-    required: true
   working_directory:
-    description: 'Working directory for Terraform'
+    description: 'Working directory'
     required: false
     default: '.'
+  backend_resource_group:
+    description: 'Backend resource group'
+    required: true
+  backend_storage_account:
+    description: 'Backend storage account'
+    required: true
+  backend_container:
+    description: 'Backend container'
+    required: false
+    default: 'tfstate'
+  backend_key:
+    description: 'State file key'
+    required: true
 
 runs:
   using: 'composite'
@@ -35,12 +28,7 @@ runs:
       working-directory: ${{ inputs.working_directory }}
       run: |
         terraform init \
-          -backend-config="resource_group_name=${{ inputs.resource_group }}" \
-          -backend-config="storage_account_name=${{ inputs.storage_account }}" \
-          -backend-config="container_name=${{ inputs.container }}" \
-          -backend-config="key=${{ inputs.state_key }}"
-        
-        echo "## 📦 Backend Initialized" >> $GITHUB_STEP_SUMMARY
-        echo "- Resource Group: \`${{ inputs.resource_group }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Storage Account: \`${{ inputs.storage_account }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- State Key: \`${{ inputs.state_key }}\`" >> $GITHUB_STEP_SUMMARY
+          -backend-config="resource_group_name=${{ inputs.backend_resource_group }}" \
+          -backend-config="storage_account_name=${{ inputs.backend_storage_account }}" \
+          -backend-config="container_name=${{ inputs.backend_container }}" \
+          -backend-config="key=${{ inputs.backend_key }}"

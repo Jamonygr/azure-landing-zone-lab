@@ -1,56 +1,46 @@
 # =============================================================================
-# LEVEL 3: ORCHESTRATOR PIPELINE - Main Terraform Workflow
+# TERRAFORM PIPELINE - Azure Landing Zone
 # =============================================================================
-# This is the main entry point that orchestrates all reusable workflows
-# Level 1: Composite Actions (in .github/actions/)
-# Level 2: Reusable Workflows (reusable-*.yml)
-# Level 3: This orchestrator (terraform-orchestrator.yml)
+# This is the ONLY visible pipeline in GitHub Actions.
+# It orchestrates reusable workflows (Level 2) which use composite actions (Level 1).
+#
+# Architecture:
+#   Level 3: This file (terraform.yml) - Single entry point
+#   Level 2: _validate.yml, _security.yml, _plan.yml, _apply.yml, _destroy.yml
+#   Level 1: .github/actions/* - Composite actions
 # =============================================================================
 
-name: 'Terraform - ALZ Pipeline'
+name: 'Terraform Pipeline'
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - '**.tf'
-      - '**.tfvars'
-      - '.github/workflows/**'
+    branches: [main]
+    paths: ['**.tf', '**.tfvars', 'modules/**', 'landing-zones/**', 'environments/**']
   pull_request:
-    branches:
-      - main
-    paths:
-      - '**.tf'
-      - '**.tfvars'
+    branches: [main]
+    paths: ['**.tf', '**.tfvars']
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Target Environment'
+        description: 'Environment'
         required: true
         default: 'lab'
         type: choice
-        options:
-          - dev
-          - lab
-          - prod
+        options: [dev, lab, prod]
       action:
-        description: 'Action to perform'
+        description: 'Action'
         required: true
         default: 'plan'
         type: choice
-        options:
-          - plan
-          - apply
-          - destroy
+        options: [plan, apply, destroy]
       destroy_confirm:
-        description: 'Type DESTROY to confirm destruction'
+        description: 'Type DESTROY to confirm'
         required: false
         type: string
 
-env:
-  TF_VERSION: '1.9.0'
-  WORKING_DIR: '.'
+concurrency:
+  group: terraform-${{ github.ref }}-${{ github.event.inputs.environment || 'lab' }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -59,115 +49,71 @@ permissions:
   id-token: write
 
 jobs:
-  # ===========================================================================
-  # Stage 1: Validate
-  # ===========================================================================
+  # =========================================================================
+  # Stage 1: Validate (uses Level 2 reusable workflow)
+  # =========================================================================
   validate:
-    name: 'Validate'
-    uses: ./.github/workflows/reusable-validate.yml
+    uses: ./.github/workflows/_validate.yml
     with:
       terraform_version: '1.9.0'
-      working_directory: '.'
 
-  # ===========================================================================
-  # Stage 2: Security Scans
-  # ===========================================================================
+  # =========================================================================
+  # Stage 2: Security Scans (uses Level 2 reusable workflow)
+  # =========================================================================
   security:
-    name: 'Security'
     needs: validate
-    uses: ./.github/workflows/reusable-security.yml
+    uses: ./.github/workflows/_security.yml
     with:
-      working_directory: '.'
-      run_tfsec: true
-      run_checkov: true
-      run_tflint: true
       soft_fail: true
 
-  # ===========================================================================
-  # Stage 3: Plan
-  # ===========================================================================
+  # =========================================================================
+  # Stage 3: Plan (uses Level 2 reusable workflow → Level 1 composite actions)
+  # =========================================================================
   plan:
-    name: 'Plan'
     needs: security
-    uses: ./.github/workflows/reusable-plan.yml
+    uses: ./.github/workflows/_plan.yml
     with:
       terraform_version: '1.9.0'
-      working_directory: '.'
       environment: ${{ github.event.inputs.environment || 'lab' }}
-      var_file: 'environments/${{ github.event.inputs.environment || ''lab'' }}.tfvars'
+      var_file: environments/${{ github.event.inputs.environment || 'lab' }}.tfvars
     secrets:
       AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
       TF_STATE_RG: ${{ secrets.TF_STATE_RG }}
       TF_STATE_SA: ${{ secrets.TF_STATE_SA }}
 
-  # ===========================================================================
-  # Stage 4: Apply (only on workflow_dispatch with action=apply)
-  # ===========================================================================
+  # =========================================================================
+  # Stage 4: Apply (uses Level 2 reusable workflow → Level 1 composite actions)
+  # =========================================================================
   apply:
-    name: 'Apply'
     needs: plan
     if: |
       github.event_name == 'workflow_dispatch' && 
       github.event.inputs.action == 'apply' &&
       needs.plan.outputs.has_changes == 'true'
-    uses: ./.github/workflows/reusable-apply.yml
+    uses: ./.github/workflows/_apply.yml
     with:
       terraform_version: '1.9.0'
-      working_directory: '.'
       environment: ${{ github.event.inputs.environment }}
-      plan_artifact: 'tfplan-${{ github.event.inputs.environment }}-${{ github.sha }}'
-      add_count: ${{ needs.plan.outputs.add }}
-      change_count: ${{ needs.plan.outputs.change }}
-      destroy_count: ${{ needs.plan.outputs.destroy }}
+      plan_artifact: tfplan-${{ github.event.inputs.environment }}-${{ github.sha }}
     secrets:
       AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
       TF_STATE_RG: ${{ secrets.TF_STATE_RG }}
       TF_STATE_SA: ${{ secrets.TF_STATE_SA }}
 
-  # ===========================================================================
-  # Stage 5: Destroy (only on workflow_dispatch with action=destroy)
-  # ===========================================================================
+  # =========================================================================
+  # Stage 5: Destroy (uses Level 2 reusable workflow → Level 1 composite actions)
+  # =========================================================================
   destroy:
-    name: 'Destroy'
     if: |
       github.event_name == 'workflow_dispatch' && 
       github.event.inputs.action == 'destroy'
-    uses: ./.github/workflows/reusable-destroy.yml
+    uses: ./.github/workflows/_destroy.yml
     with:
       terraform_version: '1.9.0'
-      working_directory: '.'
       environment: ${{ github.event.inputs.environment }}
-      var_file: 'environments/${{ github.event.inputs.environment }}.tfvars'
-      destroy_confirm: ${{ github.event.inputs.destroy_confirm }}
+      var_file: environments/${{ github.event.inputs.environment }}.tfvars
+      confirm: ${{ github.event.inputs.destroy_confirm }}
     secrets:
       AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
       TF_STATE_RG: ${{ secrets.TF_STATE_RG }}
       TF_STATE_SA: ${{ secrets.TF_STATE_SA }}
-
-  # ===========================================================================
-  # Summary Job
-  # ===========================================================================
-  summary:
-    name: 'Pipeline Summary'
-    runs-on: ubuntu-latest
-    needs: [validate, security, plan]
-    if: always()
-    steps:
-      - name: Generate Summary
-        run: |
-          echo "# 🚀 Azure Landing Zone Pipeline Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Pipeline Status" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Validate | ${{ needs.validate.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Security | ${{ needs.security.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Plan | ${{ needs.plan.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Configuration" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment:** \`${{ github.event.inputs.environment || 'lab' }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Action:** \`${{ github.event.inputs.action || 'plan' }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
