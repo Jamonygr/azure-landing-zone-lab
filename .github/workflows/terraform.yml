@@ -1,13 +1,7 @@
 # =============================================================================
 # TERRAFORM PIPELINE - Azure Landing Zone
 # =============================================================================
-# This is the ONLY visible pipeline in GitHub Actions.
-# It orchestrates reusable workflows (Level 2) which use composite actions (Level 1).
-#
-# Architecture:
-#   Level 3: This file (terraform.yml) - Single entry point
-#   Level 2: _validate.yml, _security.yml, _plan.yml, _apply.yml, _destroy.yml
-#   Level 1: .github/actions/* - Composite actions
+# Single visible pipeline using hidden composite actions in .github/actions/
 # =============================================================================
 
 name: 'Terraform Pipeline'
@@ -48,72 +42,112 @@ permissions:
   security-events: write
   id-token: write
 
+env:
+  TF_VERSION: '1.9.0'
+  ENVIRONMENT: ${{ github.event.inputs.environment || 'lab' }}
+
 jobs:
   # =========================================================================
-  # Stage 1: Validate (uses Level 2 reusable workflow)
+  # Stage 1: Validate
   # =========================================================================
   validate:
-    uses: ./.github/workflows/_validate.yml
-    with:
-      terraform_version: '1.9.0'
+    name: 'Validate'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate
+        uses: ./.github/actions/validate
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
 
   # =========================================================================
-  # Stage 2: Security Scans (uses Level 2 reusable workflow)
+  # Stage 2: Security Scans
   # =========================================================================
   security:
+    name: 'Security'
+    runs-on: ubuntu-latest
     needs: validate
-    uses: ./.github/workflows/_security.yml
-    with:
-      soft_fail: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Security Scan
+        uses: ./.github/actions/security
 
   # =========================================================================
-  # Stage 3: Plan (uses Level 2 reusable workflow → Level 1 composite actions)
+  # Stage 3: Plan
   # =========================================================================
   plan:
+    name: 'Plan'
+    runs-on: ubuntu-latest
     needs: security
-    uses: ./.github/workflows/_plan.yml
-    with:
-      terraform_version: '1.9.0'
-      environment: ${{ github.event.inputs.environment || 'lab' }}
-      var_file: environments/${{ github.event.inputs.environment || 'lab' }}.tfvars
-    secrets:
-      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
-      TF_STATE_RG: ${{ secrets.TF_STATE_RG }}
-      TF_STATE_SA: ${{ secrets.TF_STATE_SA }}
+    outputs:
+      has_changes: ${{ steps.plan.outputs.has_changes }}
+      add: ${{ steps.plan.outputs.add }}
+      change: ${{ steps.plan.outputs.change }}
+      destroy: ${{ steps.plan.outputs.destroy }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Plan
+        id: plan
+        uses: ./.github/actions/plan
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+          backend_resource_group: ${{ secrets.TF_STATE_RG }}
+          backend_storage_account: ${{ secrets.TF_STATE_SA }}
+          state_key: ${{ env.ENVIRONMENT }}.terraform.tfstate
+          var_file: environments/${{ env.ENVIRONMENT }}.tfvars
+          environment: ${{ env.ENVIRONMENT }}
 
   # =========================================================================
-  # Stage 4: Apply (uses Level 2 reusable workflow → Level 1 composite actions)
+  # Stage 4: Apply
   # =========================================================================
   apply:
+    name: 'Apply'
+    runs-on: ubuntu-latest
     needs: plan
     if: |
       github.event_name == 'workflow_dispatch' && 
       github.event.inputs.action == 'apply' &&
       needs.plan.outputs.has_changes == 'true'
-    uses: ./.github/workflows/_apply.yml
-    with:
-      terraform_version: '1.9.0'
-      environment: ${{ github.event.inputs.environment }}
-      plan_artifact: tfplan-${{ github.event.inputs.environment }}-${{ github.sha }}
-    secrets:
-      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
-      TF_STATE_RG: ${{ secrets.TF_STATE_RG }}
-      TF_STATE_SA: ${{ secrets.TF_STATE_SA }}
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply
+        uses: ./.github/actions/apply
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+          backend_resource_group: ${{ secrets.TF_STATE_RG }}
+          backend_storage_account: ${{ secrets.TF_STATE_SA }}
+          state_key: ${{ env.ENVIRONMENT }}.terraform.tfstate
+          environment: ${{ env.ENVIRONMENT }}
+          plan_artifact: tfplan-${{ env.ENVIRONMENT }}-${{ github.sha }}
 
   # =========================================================================
-  # Stage 5: Destroy (uses Level 2 reusable workflow → Level 1 composite actions)
+  # Stage 5: Destroy
   # =========================================================================
   destroy:
+    name: 'Destroy'
+    runs-on: ubuntu-latest
     if: |
       github.event_name == 'workflow_dispatch' && 
       github.event.inputs.action == 'destroy'
-    uses: ./.github/workflows/_destroy.yml
-    with:
-      terraform_version: '1.9.0'
-      environment: ${{ github.event.inputs.environment }}
-      var_file: environments/${{ github.event.inputs.environment }}.tfvars
-      confirm: ${{ github.event.inputs.destroy_confirm }}
-    secrets:
-      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
-      TF_STATE_RG: ${{ secrets.TF_STATE_RG }}
-      TF_STATE_SA: ${{ secrets.TF_STATE_SA }}
+    environment: ${{ github.event.inputs.environment }}-destroy
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Destroy
+        uses: ./.github/actions/destroy
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+          backend_resource_group: ${{ secrets.TF_STATE_RG }}
+          backend_storage_account: ${{ secrets.TF_STATE_SA }}
+          state_key: ${{ env.ENVIRONMENT }}.terraform.tfstate
+          var_file: environments/${{ env.ENVIRONMENT }}.tfvars
+          environment: ${{ env.ENVIRONMENT }}
+          confirm: ${{ github.event.inputs.destroy_confirm }}

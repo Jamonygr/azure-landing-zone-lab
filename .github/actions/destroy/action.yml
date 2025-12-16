@@ -1,0 +1,82 @@
+name: 'Terraform Destroy'
+description: 'Destroy Terraform infrastructure'
+
+inputs:
+  terraform_version:
+    description: 'Terraform version'
+    required: false
+    default: '1.9.0'
+  working_directory:
+    description: 'Working directory'
+    required: false
+    default: '.'
+  azure_credentials:
+    description: 'Azure credentials JSON'
+    required: true
+  backend_resource_group:
+    description: 'Backend resource group'
+    required: true
+  backend_storage_account:
+    description: 'Backend storage account'
+    required: true
+  backend_container:
+    description: 'Backend container'
+    required: false
+    default: 'tfstate'
+  state_key:
+    description: 'State file key'
+    required: true
+  var_file:
+    description: 'Variables file'
+    required: true
+  environment:
+    description: 'Environment name'
+    required: true
+  confirm:
+    description: 'Must be DESTROY to confirm'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Validate Confirmation
+      shell: bash
+      run: |
+        if [ "${{ inputs.confirm }}" != "DESTROY" ]; then
+          echo "## ❌ Destruction NOT Confirmed" >> $GITHUB_STEP_SUMMARY
+          echo "Type **DESTROY** to confirm." >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        echo "## ⚠️ Destruction Confirmed" >> $GITHUB_STEP_SUMMARY
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ inputs.terraform_version }}
+        terraform_wrapper: false
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ inputs.azure_credentials }}
+
+    - name: Terraform Init
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        terraform init \
+          -backend-config="resource_group_name=${{ inputs.backend_resource_group }}" \
+          -backend-config="storage_account_name=${{ inputs.backend_storage_account }}" \
+          -backend-config="container_name=${{ inputs.backend_container }}" \
+          -backend-config="key=${{ inputs.state_key }}"
+
+    - name: Terraform Destroy
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: terraform destroy -var-file="${{ inputs.var_file }}" -auto-approve
+
+    - name: Summary
+      shell: bash
+      run: |
+        echo "## 💥 Destroyed - ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        echo "Destroyed by @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,75 @@
+name: 'Terraform Apply'
+description: 'Apply Terraform plan'
+
+inputs:
+  terraform_version:
+    description: 'Terraform version'
+    required: false
+    default: '1.9.0'
+  working_directory:
+    description: 'Working directory'
+    required: false
+    default: '.'
+  azure_credentials:
+    description: 'Azure credentials JSON'
+    required: true
+  backend_resource_group:
+    description: 'Backend resource group'
+    required: true
+  backend_storage_account:
+    description: 'Backend storage account'
+    required: true
+  backend_container:
+    description: 'Backend container'
+    required: false
+    default: 'tfstate'
+  state_key:
+    description: 'State file key'
+    required: true
+  environment:
+    description: 'Environment name'
+    required: true
+  plan_artifact:
+    description: 'Plan artifact name'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ inputs.terraform_version }}
+        terraform_wrapper: false
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ inputs.azure_credentials }}
+
+    - name: Terraform Init
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        terraform init \
+          -backend-config="resource_group_name=${{ inputs.backend_resource_group }}" \
+          -backend-config="storage_account_name=${{ inputs.backend_storage_account }}" \
+          -backend-config="container_name=${{ inputs.backend_container }}" \
+          -backend-config="key=${{ inputs.state_key }}"
+
+    - name: Download Plan
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.plan_artifact }}
+        path: ${{ inputs.working_directory }}
+
+    - name: Terraform Apply
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: terraform apply -auto-approve tfplan
+
+    - name: Summary
+      shell: bash
+      run: |
+        echo "## ✅ Applied - ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        echo "Deployed by @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,125 @@
+name: 'Terraform Plan'
+description: 'Initialize and plan Terraform changes'
+
+inputs:
+  terraform_version:
+    description: 'Terraform version'
+    required: false
+    default: '1.9.0'
+  working_directory:
+    description: 'Working directory'
+    required: false
+    default: '.'
+  azure_credentials:
+    description: 'Azure credentials JSON'
+    required: true
+  backend_resource_group:
+    description: 'Backend resource group'
+    required: true
+  backend_storage_account:
+    description: 'Backend storage account'
+    required: true
+  backend_container:
+    description: 'Backend container'
+    required: false
+    default: 'tfstate'
+  state_key:
+    description: 'State file key'
+    required: true
+  var_file:
+    description: 'Variables file'
+    required: true
+  environment:
+    description: 'Environment name'
+    required: true
+
+outputs:
+  has_changes:
+    description: 'Whether plan has changes'
+    value: ${{ steps.plan.outputs.has_changes }}
+  add:
+    description: 'Resources to add'
+    value: ${{ steps.summary.outputs.add }}
+  change:
+    description: 'Resources to change'
+    value: ${{ steps.summary.outputs.change }}
+  destroy:
+    description: 'Resources to destroy'
+    value: ${{ steps.summary.outputs.destroy }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ inputs.terraform_version }}
+        terraform_wrapper: false
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ inputs.azure_credentials }}
+
+    - name: Terraform Init
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        terraform init \
+          -backend-config="resource_group_name=${{ inputs.backend_resource_group }}" \
+          -backend-config="storage_account_name=${{ inputs.backend_storage_account }}" \
+          -backend-config="container_name=${{ inputs.backend_container }}" \
+          -backend-config="key=${{ inputs.state_key }}"
+
+    - name: Terraform Plan
+      id: plan
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        set +e
+        set -o pipefail
+        terraform plan \
+          -var-file="${{ inputs.var_file }}" \
+          -out=tfplan \
+          -detailed-exitcode \
+          -no-color 2>&1 | tee plan_output.txt
+        EXITCODE=${PIPESTATUS[0]}
+        if [ $EXITCODE -eq 0 ]; then
+          echo "has_changes=false" >> $GITHUB_OUTPUT
+        elif [ $EXITCODE -eq 2 ]; then
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+        else
+          exit 1
+        fi
+
+    - name: Parse Summary
+      id: summary
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        ADD=$(grep -oP '\d+(?= to add)' plan_output.txt || echo "0")
+        CHANGE=$(grep -oP '\d+(?= to change)' plan_output.txt || echo "0")
+        DESTROY=$(grep -oP '\d+(?= to destroy)' plan_output.txt || echo "0")
+        echo "add=$ADD" >> $GITHUB_OUTPUT
+        echo "change=$CHANGE" >> $GITHUB_OUTPUT
+        echo "destroy=$DESTROY" >> $GITHUB_OUTPUT
+        
+        echo "## 📋 Plan - ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ steps.plan.outputs.has_changes }}" == "false" ]; then
+          echo "✅ No changes" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| Action | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ➕ Add | $ADD |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔄 Change | $CHANGE |" >> $GITHUB_STEP_SUMMARY
+          echo "| ➖ Destroy | $DESTROY |" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Upload Plan
+      uses: actions/upload-artifact@v4
+      with:
+        name: tfplan-${{ inputs.environment }}-${{ github.sha }}
+        path: |
+          ${{ inputs.working_directory }}/tfplan
+          ${{ inputs.working_directory }}/plan_output.txt
+        retention-days: 5

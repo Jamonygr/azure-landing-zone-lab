@@ -1,0 +1,40 @@
+name: 'Validate'
+description: 'Format check and Terraform validate'
+
+inputs:
+  terraform_version:
+    description: 'Terraform version'
+    required: false
+    default: '1.9.0'
+  working_directory:
+    description: 'Working directory'
+    required: false
+    default: '.'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ inputs.terraform_version }}
+
+    - name: Format Check
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        echo "## 📝 Format Check" >> $GITHUB_STEP_SUMMARY
+        if terraform fmt -check -recursive -diff; then
+          echo "✅ All files formatted correctly" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Format issues found. Run \`terraform fmt -recursive\`" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+
+    - name: Validate
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        terraform init -backend=false
+        terraform validate
+        echo "## ✅ Validation Passed" >> $GITHUB_STEP_SUMMARY

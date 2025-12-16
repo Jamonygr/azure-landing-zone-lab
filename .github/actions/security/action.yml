@@ -1,0 +1,47 @@
+name: 'Security Scan'
+description: 'Run tfsec, Checkov, and TFLint security scans'
+
+inputs:
+  working_directory:
+    description: 'Directory to scan'
+    required: false
+    default: '.'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run tfsec
+      uses: aquasecurity/tfsec-action@v1.0.3
+      with:
+        working_directory: ${{ inputs.working_directory }}
+        soft_fail: true
+      continue-on-error: true
+
+    - name: Run Checkov
+      uses: bridgecrewio/checkov-action@v12
+      with:
+        directory: ${{ inputs.working_directory }}
+        framework: terraform
+        soft_fail: true
+      continue-on-error: true
+
+    - name: Setup TFLint
+      uses: terraform-linters/setup-tflint@v4
+      continue-on-error: true
+
+    - name: Run TFLint
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      continue-on-error: true
+      run: |
+        cat > .tflint.hcl << 'EOF'
+        plugin "azurerm" {
+          enabled = true
+          version = "0.27.0"
+          source  = "github.com/terraform-linters/tflint-ruleset-azurerm"
+        }
+        EOF
+        tflint --init
+        echo "## 📏 TFLint" >> $GITHUB_STEP_SUMMARY
+        tflint --recursive || true
+        echo "✅ Security scans completed" >> $GITHUB_STEP_SUMMARY
