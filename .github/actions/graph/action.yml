@@ -25,11 +25,22 @@ runs:
         # Remove any existing terraform state to start fresh
         rm -rf .terraform .terraform.lock.hcl
         
-        # Initialize with backend disabled
-        terraform init -backend=false
+        # Temporarily remove backend configuration to allow graph generation
+        if [ -f backend.tf ]; then
+          mv backend.tf backend.tf.bak
+        fi
         
+        # Initialize without any backend
+        terraform init
+        
+        # Generate the graph
         terraform graph > graph.dot
         dot -T${{ inputs.output_format }} graph.dot -o terraform-graph.${{ inputs.output_format }}
+        
+        # Restore backend file
+        if [ -f backend.tf.bak ]; then
+          mv backend.tf.bak backend.tf
+        fi
         
         echo "## 🗺️ Infrastructure Graph" >> $GITHUB_STEP_SUMMARY
         echo "Graph generated successfully. Download from artifacts." >> $GITHUB_STEP_SUMMARY
