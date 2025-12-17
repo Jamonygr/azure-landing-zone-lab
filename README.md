@@ -623,47 +623,29 @@ terraform destroy
 
 ## 🔄 CI/CD Pipeline
 
-This project includes a complete **GitHub Actions pipeline** for automated Terraform deployments with **8 visible job stages**.
+The GitHub Actions workflow (`.github/workflows/terraform.yml`) now has **15 visible jobs** that cover formatting, validation, security, linting, docs, analysis, cost estimation, plan/apply/destroy, and metrics. It orchestrates composite actions in `.github/actions/` for Terraform operations, state backup, inventories, changelog generation, graphs, and reporting.
 
-### Pipeline Architecture
+### Pipeline Stages
 
-The pipeline uses a **2-level template structure** for maintainability:
+- **1?? Format Check** → **2?? Validate**
+- **3?? Security - tfsec**, **3?? Security - Checkov**, **3?? Security - Secrets** (Gitleaks)
+- **4?? Lint - TFLint**, **4?? Lint - Policy** (Conftest), **4?? Lint - Docs** (terraform-docs)
+- **5?? Analysis - Graph**, **5?? Analysis - Versions**
+- **6?? Analysis - Cost** (Infracost, soft-fail)
+- **7?? Plan** (change detection + plan artifact)
+- **8?? Apply** (manual `action=apply`; includes state backup, resource inventory, changelog)
+- **9?? Destroy** (manual `action=destroy` + `DESTROY` confirm)
+- **📊 Metrics** (after successful Apply)
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│              ORCHESTRATOR: terraform.yml (8 jobs)                   │
-│  1️⃣ Format → 2️⃣ Validate → 3️⃣ tfsec/Checkov → 4️⃣ TFLint → 5️⃣ Plan    │
-│                                    ↓                                │
-│                        6️⃣ Apply  /  7️⃣ Destroy                       │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│              COMPOSITE ACTIONS (Hidden in .github/actions/)         │
-│       plan/action.yml  •  apply/action.yml  •  destroy/action.yml   │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### Pipeline Jobs
-
-| Job | Name | Purpose | Blocks Deploy? |
-|-----|------|---------|----------------|
-| 1 | **Format Check** | `terraform fmt` compliance | ✅ Yes |
-| 2 | **Validate** | `terraform validate` | ✅ Yes |
-| 3a | **Security - tfsec** | Static security analysis | ⚠️ Soft fail |
-| 3b | **Security - Checkov** | Policy-as-code scanning | ⚠️ Soft fail |
-| 4 | **TFLint** | Azure-specific linting | ⚠️ Soft fail |
-| 5 | **Plan** | Shows infrastructure changes | ✅ Yes |
-| 6 | **Apply** | Deploys to Azure (manual) | - |
-| 7 | **Destroy** | Tears down environment (manual) | - |
+Artifacts include the saved plan, terraform-docs output, dependency graph SVG, module/provider versions, cost report, changelog, resource inventory, and metrics JSON.
 
 ### Triggers
 
-| Event | Action |
-|-------|--------|
-| **Push to `main`** | Auto-apply if changes detected |
-| **Pull Request** | Plan only with PR comment |
-| **Manual** | Choose action/environment in GitHub Actions UI |
+- **Push to `main` (Terraform paths)**: runs format/validate → security/linters → docs/graph/version → cost → plan. Apply/Destroy never auto-run.
+- **Pull Request to `main`**: same checks plus plan for review; no PR comment is posted.
+- **Manual dispatch**: pick `action` (`plan|apply|destroy`) and `environment` (`lab|dev|prod`), plus `destroy_confirm=DESTROY` for destroys. Apply/Destroy only run via `workflow_dispatch`.
+
+> Concurrency: one run per branch + environment (`terraform-${ref}-${environment}`); newer runs wait rather than cancel.
 
 ### Remote State Storage
 
@@ -688,6 +670,7 @@ Azure Storage Account
 | `AZURE_CREDENTIALS` | JSON credentials object (see below) |
 | `TF_STATE_RG` | Resource group for state storage |
 | `TF_STATE_SA` | Storage account for state storage |
+| `INFRACOST_API_KEY` | (Optional) enables the cost estimation stage |
 
 **AZURE_CREDENTIALS format:**
 ```json
@@ -709,10 +692,10 @@ az ad sp create-for-rbac \
   --scopes /subscriptions/<SUBSCRIPTION_ID> \
   --sdk-auth
 
-# Deploy infrastructure
+# Deploy infrastructure (manual apply)
 gh workflow run "Terraform Pipeline" -f action=apply -f environment=lab
 
-# Destroy infrastructure
+# Destroy infrastructure (requires confirmation)
 gh workflow run "Terraform Pipeline" \
   -f action=destroy \
   -f environment=lab \

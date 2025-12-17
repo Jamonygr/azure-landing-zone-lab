@@ -31,6 +31,7 @@ The fastest way to change the footprint is the **MASTER CONTROL PANEL** at the t
 
 | Topic | What you will learn |
 |-------|---------------------|
+| [Book-style guide](book.md) | A-to-Z walkthrough of the codebase, Terraform logic, and pipeline in narrative form. |
 | [Architecture overview](architecture/overview.md) | How the root module orchestrates resource groups, landing zones, and shared resources. |
 | [Network topology](architecture/network-topology.md) | Address spaces, subnets, peering, and routing choices. |
 | [Security model](architecture/security-model.md) | How firewall, NSGs, and diagnostics layer together. |
