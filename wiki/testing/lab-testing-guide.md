@@ -1,26 +1,57 @@
 # Lab testing guide
 
-Use this checklist after a deploy to prove the lab works end to end and to see how each landing zone connects. Follow the steps in order; every step explains what you are validating and what success looks like.
+Use this checklist after a deploy to prove the lab works end to end and to see how each landing zone connects. Follow the steps in order; every step validates the **5-pillar Azure Landing Zone architecture** and confirms that hub, identity, governance, security, and management all function correctly.
 
 ## What you will learn
 
 - A recommended config that lights up the main scenarios without guessing feature flags.
-- The order of checks that confirm hub, identity, management, shared services, workload, and hybrid connectivity all function.
+- The order of checks that confirm all 5 pillars function correctly.
 - Copy/paste commands from your terminal or jumpbox, plus what to expect from each.
+
+## 5-Pillar testing overview
+
+| Pillar | What to Test | Key Outputs |
+|--------|--------------|-------------|
+| **1. Networking** | Hub VNet, Firewall routing, VPN connectivity | `hub_firewall_public_ip`, `hub_vpn_gateway_public_ip` |
+| **2. Identity** | DC reachability, DNS resolution | `domain_controller_ips` |
+| **3. Governance** | Policy assignments, cost budgets | Azure Portal verification |
+| **4. Security** | Key Vault, Storage, SQL connectivity | `keyvault_uri`, `storage_account_name`, `sql_server_fqdn` |
+| **5. Management** | Jumpbox access, Log Analytics, Backup | `jumpbox_public_ip`, `log_analytics_workspace_id` |
 
 ## Recommended lab settings for testing
 
 Add (or confirm) these flags in `terraform.tfvars` so the tests have something to hit. Turn features off again when you want to save cost.
 
 ```hcl
+# Pillar 1: Networking
 deploy_firewall           = true
 deploy_vpn_gateway        = true
-deploy_onprem_simulation  = true
-deploy_workload_prod      = true
-deploy_load_balancer      = true   # Needed for web tests/NAT RDP
+deploy_application_gateway = true
+
+# Pillar 2: Identity
+deploy_secondary_dc       = false  # Keep false to shorten deploy time
+
+# Pillar 3: Governance
+deploy_management_groups  = true
+deploy_azure_policy       = true
+deploy_cost_management    = true
+
+# Pillar 4: Security
+deploy_keyvault           = true
+deploy_storage            = true
+deploy_sql                = true
+deploy_private_endpoints  = true
+
+# Pillar 5: Management
 enable_jumpbox_public_ip  = true   # Or connect through the VPN client
 deploy_log_analytics      = true
-deploy_secondary_dc       = false  # Optional; keep false to shorten deploy time
+deploy_backup             = true
+deploy_workbooks          = true
+
+# Workloads
+deploy_workload_prod      = true
+deploy_load_balancer      = true
+deploy_onprem_simulation  = true
 ```
 
 ## Test flow at a glance
