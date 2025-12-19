@@ -1,59 +1,173 @@
 # Variables reference
 
-This page summarizes the root input variables you set in `terraform.tfvars`. For full definitions and defaults, see `variables.tf`.
+This page summarizes the root input variables you set in `terraform.tfvars`. The variables are organized by the 5-pillar architecture. For full definitions and defaults, see `variables.tf`.
 
 ## Context and basics
 
-- `subscription_id` – Azure subscription to deploy into (required).  
-- `project`, `environment` – naming prefixes; default to `azlab` and `lab`.  
-- `location` – Azure region (for example, `westus2`).  
-- `owner`, `repository_url` – used in tags for traceability.
+| Variable | Type | Description | Default |
+|----------|------|-------------|---------|
+| `subscription_id` | string | Azure subscription to deploy into | **Required** |
+| `project` | string | Project name for resource naming | `azlab` |
+| `environment` | string | Environment identifier | `lab` |
+| `location` | string | Azure region | `West Europe` |
+| `owner` | string | Owner tag value | `Lab-User` |
+| `repository_url` | string | Git repository URL for tags | GitHub URL |
 
 ## Authentication and credentials
 
-- `admin_username` / `admin_password` – local admin for VMs.  
-- `sql_admin_login` / `sql_admin_password` – SQL admin credentials.  
-- `vpn_shared_key` – pre-shared key for VPN tunnels (required if VPN is on).
+| Variable | Type | Description | Sensitive |
+|----------|------|-------------|-----------|
+| `admin_username` | string | Local admin for VMs | No |
+| `admin_password` | string | VM admin password | Yes |
+| `sql_admin_login` | string | SQL Server admin username | No |
+| `sql_admin_password` | string | SQL Server admin password | Yes |
+| `vpn_shared_key` | string | Pre-shared key for VPN tunnels | Yes |
 
 ## Network address spaces
 
-- Hub: `hub_address_space`, `hub_gateway_subnet_prefix`, `hub_firewall_subnet_prefix`, `hub_mgmt_subnet_prefix`, `hub_appgw_subnet_prefix`.  
-- Identity: `identity_address_space`, `identity_dc_subnet_prefix`, `dc01_ip_address`, `dc02_ip_address`.  
-- Management: `management_address_space`, `management_jumpbox_subnet_prefix`.  
-- Shared services: `shared_address_space`, `shared_app_subnet_prefix`, `shared_pe_subnet_prefix`.  
-- Workloads: `workload_prod_address_space` and `workload_dev_address_space` with web/app/data prefixes, plus `aks_subnet_prefix`.  
-- On-premises simulation: `onprem_address_space`, `onprem_gateway_subnet_prefix`, `onprem_servers_subnet_prefix`, `onprem_bgp_asn`.
+### Hub (Pillar 1: Networking)
+- `hub_address_space` – Hub VNet CIDR (default: `10.0.0.0/16`)
+- `hub_gateway_subnet_prefix` – VPN Gateway subnet (default: `10.0.0.0/24`)
+- `hub_firewall_subnet_prefix` – Azure Firewall subnet (default: `10.0.1.0/24`)
+- `hub_mgmt_subnet_prefix` – Hub management subnet (default: `10.0.2.0/24`)
+- `hub_appgw_subnet_prefix` – Application Gateway subnet (default: `10.0.3.0/24`)
+- `vpn_client_address_pool` – P2S VPN client pool (default: `172.16.0.0/24`)
 
-## Feature flags (major switches)
+### Identity (Pillar 2: Identity Management)
+- `identity_address_space` – Identity VNet CIDR (default: `10.1.0.0/16`)
+- `identity_dc_subnet_prefix` – DC subnet (default: `10.1.1.0/24`)
+- `dc01_ip_address` – DC01 static IP (default: `10.1.1.4`)
+- `dc02_ip_address` – DC02 static IP (default: `10.1.1.5`)
 
-- Platform: `deploy_firewall`, `deploy_vpn_gateway`, `deploy_onprem_simulation`.  
-- Identity: `deploy_secondary_dc`.  
-- Management: `enable_jumpbox_public_ip`, `allowed_jumpbox_source_ips` (CIDRs allowed to RDP when the jumpbox has a public IP), `deploy_log_analytics`.  
-- Shared services: `deploy_keyvault`, `deploy_storage`, `deploy_sql`.  
-- Workloads: `deploy_workload_prod`, `deploy_workload_dev`, `deploy_load_balancer`, `deploy_application_gateway`, `deploy_aks`.  
-- PaaS options: `deploy_functions`, `deploy_static_web_app`, `deploy_logic_apps`, `deploy_event_grid`, `deploy_service_bus`, `deploy_app_service`, `deploy_cosmos_db`, and `paas_alternative_location`. (`deploy_container_apps` exists as a placeholder flag but is not currently wired to a module.)
+### Management (Pillar 5: Management)
+- `management_address_space` – Management VNet CIDR (default: `10.2.0.0/16`)
+- `management_jumpbox_subnet_prefix` – Jumpbox subnet (default: `10.2.1.0/24`)
 
-## Network extensions
+### Shared Services (Pillar 4: Security)
+- `shared_address_space` – Shared services VNet CIDR (default: `10.3.0.0/16`)
+- `shared_app_subnet_prefix` – Application subnet (default: `10.3.1.0/24`)
+- `shared_pe_subnet_prefix` – Private Endpoint subnet (default: `10.3.2.0/24`)
 
-- `deploy_nat_gateway` - assigns a static outbound IP for the workload web subnet.  
-- `deploy_private_dns_zones` - central Private DNS zones for blob, Key Vault, and SQL Private Link.  
-- `deploy_private_endpoints` - creates Private Endpoints for Key Vault, Storage, and SQL (requires Private DNS zones).  
-- `deploy_application_security_groups` - creates ASGs for workload web/app/data tiers to simplify NSG rules.  
-- `enable_vnet_flow_logs` - VNet-level flow logs (requires storage and a Network Watcher in the region).  
-- `enable_traffic_analytics` - turns on Traffic Analytics (requires `deploy_log_analytics = true` and storage).
-- `create_network_watcher` - create the NetworkWatcherRG/Network Watcher if your subscription doesn't have one yet.
+### Workloads (Pillar 5: Management/Workload)
+- `workload_prod_address_space` – Prod VNet CIDR (default: `10.10.0.0/16`)
+- `workload_prod_web_subnet_prefix`, `workload_prod_app_subnet_prefix`, `workload_prod_data_subnet_prefix`
+- `workload_prod_container_apps_subnet_prefix` – Container Apps subnet (default: `10.10.8.0/23`)
+- `aks_subnet_prefix` – AKS node pool subnet (default: `10.10.16.0/20`)
+- `workload_dev_address_space` – Dev VNet CIDR (default: `10.11.0.0/16`)
 
-## VM and workload sizing
+### On-Premises Simulation
+- `onprem_address_space` – On-prem VNet CIDR (default: `10.100.0.0/16`)
+- `onprem_gateway_subnet_prefix`, `onprem_servers_subnet_prefix`
+- `onprem_bgp_asn` – BGP ASN (default: `65050`)
+- `allowed_rdp_source_ips` – IPs allowed to RDP to on-prem VM
 
-- `vm_size`, `sql_vm_size`, `enable_auto_shutdown`.  
-- Load balancer: `lb_type`, `lb_private_ip`, `lb_web_server_count`, `lb_web_server_size`.  
-- AKS: `aks_node_count`, `aks_vm_size`, `aks_subnet_prefix`.
+## Feature flags by pillar
 
-## Monitoring
+### Pillar 1: Networking
+| Flag | Default | Description | Est. Cost |
+|------|---------|-------------|-----------|
+| `deploy_firewall` | `true` | Azure Firewall | ~$300/mo |
+| `firewall_sku_tier` | `Standard` | Firewall SKU | - |
+| `deploy_vpn_gateway` | `false` | VPN Gateway | ~$140/mo |
+| `vpn_gateway_sku` | `VpnGw1` | VPN Gateway SKU | - |
+| `enable_bgp` | `false` | Enable BGP routing | - |
+| `hub_bgp_asn` | `65515` | Hub BGP ASN | - |
+| `deploy_application_gateway` | `true` | Application Gateway with WAF | ~$36/mo |
+| `appgw_waf_mode` | `Detection` | WAF mode (Detection/Prevention) | - |
 
-- `log_retention_days` and `log_daily_quota_gb` control workspace cost.  
-- `deploy_log_analytics` determines whether diagnostics are enabled for dependent services.
+### Pillar 2: Identity Management
+| Flag | Default | Description | Est. Cost |
+|------|---------|-------------|-----------|
+| `deploy_secondary_dc` | `false` | Second Domain Controller | ~$30/mo |
 
-## Naming and tags
+### Pillar 3: Governance
+| Flag | Default | Description |
+|------|---------|-------------|
+| `deploy_management_groups` | `true` | Management Group hierarchy |
+| `management_group_root_name` | `Organization` | Root MG display name |
+| `management_group_root_id` | `org-root` | Root MG ID |
+| `deploy_azure_policy` | `true` | Azure Policy assignments |
+| `policy_allowed_locations` | `[list]` | Allowed Azure regions |
+| `policy_required_tags` | `{map}` | Required tags for resources |
+| `enable_audit_public_network_access` | `true` | Audit public access |
+| `enable_require_https_storage` | `true` | Require HTTPS for storage |
+| `enable_require_nsg_on_subnet` | `true` | Require NSG on subnets |
+| `deploy_cost_management` | `true` | Budget and cost alerts |
+| `cost_budget_amount` | `1000` | Monthly budget in USD |
+| `cost_alert_emails` | `[]` | Alert email recipients |
+| `deploy_regulatory_compliance` | `true` | HIPAA/PCI-DSS policies |
+| `enable_hipaa_compliance` | `false` | Enable HIPAA initiative |
+| `enable_pci_dss_compliance` | `false` | Enable PCI-DSS initiative |
+| `compliance_enforcement_mode` | `DoNotEnforce` | Audit only by default |
+| `deploy_rbac_custom_roles` | `true` | Custom RBAC roles |
 
-`locals.tf` builds names and the shared `common_tags` map using `project`, `environment`, and `location_short`. Adjust the inputs above to change how resources are labelled across the platform.
+### Pillar 4: Security (Shared Services)
+| Flag | Default | Description | Est. Cost |
+|------|---------|-------------|-----------|
+| `deploy_keyvault` | `true` | Azure Key Vault | ~$3/mo |
+| `deploy_storage` | `true` | Storage Account | ~$5/mo |
+| `deploy_sql` | `true` | Azure SQL Database | ~$5/mo |
+| `deploy_private_dns_zones` | `true` | Private DNS for Private Link | Minimal |
+| `deploy_private_endpoints` | `true` | Private Endpoints for PaaS | None |
+
+### Pillar 5: Management
+| Flag | Default | Description | Est. Cost |
+|------|---------|-------------|-----------|
+| `enable_jumpbox_public_ip` | `false` | Public IP for jumpbox | ~$3/mo |
+| `allowed_jumpbox_source_ips` | `[]` | IPs allowed to RDP | - |
+| `deploy_log_analytics` | `true` | Log Analytics workspace | ~$10/mo |
+| `log_retention_days` | `30` | Log retention | - |
+| `log_daily_quota_gb` | `1` | Daily ingestion limit | - |
+| `deploy_backup` | `true` | Recovery Services Vault | ~$10/mo |
+| `backup_storage_redundancy` | `LocallyRedundant` | Backup redundancy | - |
+| `deploy_workbooks` | `true` | Azure Workbooks | Free |
+| `deploy_connection_monitor` | `true` | Connection Monitor | ~$1/mo |
+| `enable_scheduled_startstop` | `true` | VM start/stop automation | ~$1/mo |
+| `startstop_timezone` | `America/New_York` | Timezone for schedules | - |
+
+### Workloads
+| Flag | Default | Description | Est. Cost |
+|------|---------|-------------|-----------|
+| `deploy_workload_prod` | `true` | Production workload VNet | - |
+| `deploy_workload_dev` | `false` | Development workload VNet | - |
+| `deploy_onprem_simulation` | `false` | Simulated on-premises | ~$60/mo |
+| `deploy_load_balancer` | `true` | Load Balancer + IIS VMs | ~$55/mo |
+| `lb_type` | `public` | Load balancer type | - |
+| `lb_web_server_count` | `2` | Number of web servers | - |
+| `lb_web_server_size` | `Standard_B1ms` | Web server VM size | - |
+| `deploy_aks` | `false` | Azure Kubernetes Service | ~$30+/mo |
+
+### PaaS Services
+| Flag | Default | Description | Est. Cost |
+|------|---------|-------------|-----------|
+| `deploy_functions` | `true` | Azure Functions (Consumption) | Free |
+| `deploy_static_web_app` | `true` | Static Web Apps | Free |
+| `deploy_logic_apps` | `true` | Logic Apps (Consumption) | ~$0 |
+| `deploy_event_grid` | `true` | Event Grid | Free (100k) |
+| `deploy_service_bus` | `true` | Service Bus (Basic) | ~$0.05/mo |
+| `deploy_app_service` | `true` | App Service (F1) | Free |
+| `deploy_cosmos_db` | `true` | Cosmos DB (Serverless) | ~$0-5/mo |
+| `deploy_container_apps` | `false` | Container Apps (placeholder) | - |
+| `paas_alternative_location` | `westus2` | Alternate region for PaaS | - |
+| `cosmos_location` | `""` | Override for Cosmos DB region | - |
+
+### Network Extensions
+| Flag | Default | Description |
+|------|---------|-------------|
+| `deploy_nat_gateway` | `true` | NAT Gateway for fixed outbound IP |
+| `deploy_application_security_groups` | `false` | ASGs for micro-segmentation |
+| `enable_vnet_flow_logs` | `true` | VNet flow logs (replaces NSG flow logs) |
+| `enable_traffic_analytics` | `true` | Traffic Analytics |
+| `create_network_watcher` | `true` | Create Network Watcher if missing |
+| `network_watcher_name` | `null` | Name of existing Network Watcher |
+| `nsg_flow_logs_retention_days` | `7` | Flow log retention |
+
+## VM sizing
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `vm_size` | `Standard_B2s` | Default VM size (DCs, jumpbox) |
+| `sql_vm_size` | `Standard_B2s` | SQL VM size |
+| `enable_auto_shutdown` | `true` | Auto-shutdown VMs at 7 PM |
+| `aks_node_count` | `1` | AKS node count |
+| `aks_vm_size` | `Standard_B2s` | AKS node size |
