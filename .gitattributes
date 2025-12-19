@@ -1,0 +1,11 @@
+# Normalize line endings for CI (Linux runners)
+# Keep Terraform and workflow files as LF in the repository.
+
+*.tf text eol=lf
+*.tfvars text eol=lf
+*.hcl text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.rego text eol=lf
+
+.terraform.lock.hcl text eol=lf
