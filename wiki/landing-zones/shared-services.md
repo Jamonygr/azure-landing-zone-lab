@@ -1,6 +1,6 @@
-# Shared services landing zone
+# Security landing zone (Pillar 4: Security / Shared Services)
 
-The shared services landing zone provides common PaaS components that multiple applications can use. It keeps secrets, data, and private endpoints in one place so workloads do not duplicate them.
+The security landing zone provides common PaaS components and security services that multiple applications can use. It represents **Pillar 4** of the 5-pillar Azure Landing Zone architecture and keeps secrets, data, private endpoints, and security configurations in one place so workloads do not duplicate them.
 
 ## What you will learn
 
@@ -10,38 +10,81 @@ The shared services landing zone provides common PaaS components that multiple a
 
 ## What it deploys
 
-- A shared services VNet (`10.3.0.0/16`) with an app subnet and a private endpoint subnet.  
-- An NSG that allows required traffic from trusted ranges.  
-- Optional Key Vault, storage account, and SQL database.  
-- Private endpoints for the services above when enabled.  
-- An optional route table that sends internet-bound traffic to the hub firewall.
+| Component | Default | Purpose |
+|-----------|---------|---------|
+| Shared Services VNet | `10.3.0.0/16` | Isolated network for shared services |
+| Azure Key Vault | Enabled | Centralized secrets management |
+| Storage Account | Enabled | General-purpose storage |
+| Azure SQL Database | Enabled | Managed relational database |
+| Private Endpoints | Enabled | Private access to PaaS |
+| Private DNS Zones | Enabled | DNS resolution for Private Link |
+| Application Security Groups | Optional | Micro-segmentation |
+
+### Subnet layout
+
+| Subnet | CIDR | Purpose |
+|--------|------|---------|
+| App Subnet | `10.3.1.0/24` | Application workloads |
+| Private Endpoint Subnet | `10.3.2.0/24` | Private Endpoints |
 
 ## Inputs to know about
 
-- `deploy_keyvault`, `deploy_storage`, and `deploy_sql` toggle each service.  
-- `storage_account_name` is generated with the random suffix passed in from the root to maintain global uniqueness.  
-- `sql_admin_login` and `sql_admin_password` set the database admin credentials.  
-- `dns_servers` comes from the identity zone so private endpoints resolve correctly.  
-- `firewall_private_ip` and `deploy_route_table` align egress with the hub firewall when it is enabled.
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `deploy_keyvault` | Enable Key Vault | `true` |
+| `deploy_storage` | Enable Storage Account | `true` |
+| `deploy_sql` | Enable Azure SQL | `true` |
+| `deploy_private_dns_zones` | Enable Private DNS | `true` |
+| `deploy_private_endpoints` | Enable Private Endpoints | `true` |
+| `deploy_application_security_groups` | Enable ASGs | `false` |
+
+## Private DNS zones created
+
+When `deploy_private_dns_zones = true`:
+
+| Zone | Service |
+|------|---------|
+| `privatelink.blob.core.windows.net` | Storage Blob |
+| `privatelink.vaultcore.azure.net` | Key Vault |
+| `privatelink.database.windows.net` | SQL Database |
+| `privatelink.azurewebsites.net` | App Service |
+| `privatelink.servicebus.windows.net` | Service Bus |
 
 ## Outputs other zones or teams can use
 
-- `keyvault_uri` for storing secrets.  
-- `storage_account_name` for data landing.  
-- `sql_server_fqdn` for application connection strings.  
-- `vnet_id` and subnet IDs if you want to attach more services later.
+| Output | Description | Used By |
+|--------|-------------|---------|
+| `keyvault_uri` | Key Vault URI | Applications |
+| `keyvault_name` | Key Vault name | Terraform references |
+| `storage_account_name` | Storage account name | Applications |
+| `sql_server_fqdn` | SQL Server FQDN | Connection strings |
+| `vnet_id` | Shared VNet ID | Peering |
 
 ## How it behaves
 
 - Uses the tenant ID from `azurerm_client_config` to create Key Vault access policies.  
 - Applies the shared tag set so ownership and cost are easy to trace.  
-- Keeps routing consistent with the firewall flag; if the firewall is off, the route table is skipped.
+- Keeps routing consistent with the firewall flag.
+- Private Endpoints are linked to the centralized Private DNS zones.
 
 ## When to enable each service
 
-- **Key Vault** – enable by default to centralize secrets, even in a lab.  
-- **Storage** – enable when workloads need a general-purpose landing place for files or diagnostics.  
-- **SQL** – enable when you want to demo a stateful back end; leave it off for lighter runs.
+| Service | Recommendation | Cost |
+|---------|----------------|------|
+| Key Vault | Always enable | ~$3/month |
+| Storage | Enable for diagnostics/data | ~$5/month |
+| SQL | Enable for stateful apps | ~$5/month |
+| Private DNS | Enable with Private Endpoints | Minimal |
+| ASGs | Enable for micro-segmentation | Free |
+
+## Cost and lab tips
+
+| Component | Estimated Cost | Optimization |
+|-----------|----------------|--------------|
+| Key Vault | ~$3/month | Standard tier is sufficient |
+| Storage | ~$5/month | LRS for lab |
+| Azure SQL | ~$5/month | Basic tier for lab |
+| Private Endpoints | None | No hourly cost |
 
 ## Next step
 

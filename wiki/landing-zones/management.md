@@ -1,6 +1,6 @@
-# Management landing zone
+# Management landing zone (Pillar 5: Management)
 
-The management landing zone gives administrators a safe entry point and a place to collect logs. It hosts the jumpbox VM and the Log Analytics workspace many other services rely on.
+The management landing zone gives administrators a safe entry point and a place to collect logs. It represents **Pillar 5** of the 5-pillar Azure Landing Zone architecture and hosts the jumpbox VM, Log Analytics workspace, backup, automation, and monitoring that many other services rely on.
 
 ## What you will learn
 
@@ -10,37 +10,81 @@ The management landing zone gives administrators a safe entry point and a place 
 
 ## What it deploys
 
-- A management VNet (`10.2.0.0/16`) with a jumpbox subnet (`10.2.1.0/24`).  
-- A Windows jumpbox VM with optional public IP for lab convenience.  
-- An NSG that limits RDP to trusted ranges (hub, VPN clients, and optional on-premises).  
-- A Log Analytics workspace when `deploy_log_analytics` is true.  
-- An optional route table that sends outbound traffic through the hub firewall.
+| Component | Default | Purpose |
+|-----------|---------|---------|
+| Management VNet | `10.2.0.0/16` | Isolated management network |
+| Jumpbox VM | Windows Server | Administrator entry point |
+| Log Analytics | 30-day retention | Centralized logging |
+| Recovery Services Vault | LRS | VM backup |
+| Action Group | Created | Alert notifications |
+| Azure Workbooks | Created | Monitoring dashboards |
+| Connection Monitor | Created | Network connectivity testing |
+| Automation Account | Created | Scheduled start/stop |
+
+### Subnet layout
+
+| Subnet | CIDR | Purpose |
+|--------|------|---------|
+| Jumpbox Subnet | `10.2.1.0/24` | Management jumpbox |
 
 ## Inputs to know about
 
-- `enable_jumpbox_public_ip` controls whether the VM gets a public IP. Keep it false for private-only access through VPN.  
-- `deploy_log_analytics`, `log_retention_days`, and `log_daily_quota_gb` govern monitoring scope and cost.  
-- `deploy_route_table` follows your firewall decision so routes stay consistent.  
-- Admin username/password come from the root variables shared with other VMs.
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `enable_jumpbox_public_ip` | Public IP for jumpbox | `false` |
+| `allowed_jumpbox_source_ips` | IPs allowed to RDP | `[]` |
+| `deploy_log_analytics` | Enable Log Analytics | `true` |
+| `log_retention_days` | Log retention period | `30` |
+| `log_daily_quota_gb` | Daily ingestion limit | `1` |
+| `deploy_backup` | Enable Recovery Services | `true` |
+| `backup_storage_redundancy` | Backup redundancy | `LocallyRedundant` |
+| `deploy_workbooks` | Enable Azure Workbooks | `true` |
+| `deploy_connection_monitor` | Enable Connection Monitor | `true` |
+| `enable_scheduled_startstop` | VM automation | `true` |
+| `startstop_timezone` | Schedule timezone | `America/New_York` |
 
 ## Outputs other zones consume
 
-- `jumpbox_private_ip` (and public IP if enabled) for administrators.  
-- `log_analytics_workspace_id` which AKS, Application Gateway, and diagnostics modules require.  
-- `vnet_id` for peering to the hub.
+| Output | Description | Used By |
+|--------|-------------|---------|
+| `jumpbox_private_ip` | Jumpbox private IP | Administrators |
+| `jumpbox_public_ip` | Jumpbox public IP (if enabled) | Administrators |
+| `log_analytics_workspace_id` | Workspace ID | All diagnostics |
+| `recovery_services_vault_id` | Vault ID | VM backup policies |
+| `action_group_id` | Alert action group | All alerts |
 
 ## How it behaves
 
-- NSG rules allow RDP only from the VPN client pool and hub address space by default; you can extend the allowlist for on-premises IPs.  
-- Auto-shutdown is enabled by default to keep lab costs low; disable it if you plan to keep the VM running.  
-- Diagnostic settings for other resources point to this workspace so you have a single place to query logs.
+- NSG rules allow RDP only from the VPN client pool and hub address space by default; you can extend the allowlist.  
+- Auto-shutdown is enabled by default to keep lab costs low.  
+- Diagnostic settings for other resources point to this workspace.
+- Scheduled start/stop uses Azure Automation runbooks with Logic Apps for triggering.
+
+## Workload management
+
+The management zone also supports workload-level management through:
+- **workload/** submodule for workload-specific monitoring
+- Connection monitors between spokes and hub
+- Azure Workbooks for network and security visualization
 
 ## When to enable the public IP
 
-- Turn it on only for short-lived demos where a VPN is not available.  
-- Keep the NSG source list tight to your current IPs to avoid broad exposure.  
-- For production-like testing, leave the public IP off and connect through VPN or ExpressRoute instead.
+| Scenario | Recommendation |
+|----------|----------------|
+| Quick demo | Enable with restricted IPs |
+| Production-like | Keep off, use VPN |
+| Testing | Enable temporarily |
+
+## Cost and lab tips
+
+| Component | Estimated Cost | Optimization |
+|-----------|----------------|--------------|
+| Jumpbox VM | ~$30/month | Auto-shutdown enabled |
+| Log Analytics | ~$10/month | Set `log_daily_quota_gb = 1` |
+| Recovery Services | ~$10/month | LRS for lab environments |
+| Workbooks | Free | No cost |
+| Connection Monitor | ~$1/month | Minimal endpoints |
 
 ## Next step
 
-Review the [shared services landing zone](shared-services.md) for Key Vault, storage, SQL, and private endpoints.
+Review the [security landing zone](shared-services.md) (Pillar 4) for Key Vault, storage, SQL, and private endpoints.
