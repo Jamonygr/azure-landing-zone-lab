@@ -56,15 +56,18 @@ runs:
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "$RESULT" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          
-          VIOLATIONS=$(echo "$RESULT" | grep -c "FAIL" || echo "0")
-          echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT
+
+          # NOTE: `grep -c` already prints "0" when there are no matches (exit code 1).
+          # Do not append an `|| echo 0` fallback here, or you'll produce a multi-line
+          # value and break the GitHub Actions output file format.
+          VIOLATIONS=$(printf '%s' "$RESULT" | grep -c "FAIL" || true)
+          printf 'violations=%s\n' "$VIOLATIONS" >> "$GITHUB_OUTPUT"
           
           if [ $EXITCODE -ne 0 ] && [ "${{ inputs.soft_fail }}" != "true" ]; then
             exit 1
           fi
         else
           echo "No policies found in ${{ inputs.policy_dir }}" >> $GITHUB_STEP_SUMMARY
-          echo "violations=0" >> $GITHUB_OUTPUT
+          printf 'violations=0\n' >> "$GITHUB_OUTPUT"
         fi
       continue-on-error: ${{ inputs.soft_fail == 'true' }}

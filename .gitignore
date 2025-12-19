@@ -27,8 +27,7 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-# Ignore lock files (optional - you may want to commit these)
-# .terraform.lock.hcl
+# Terraform dependency lock file (commit this)
 
 # Ignore plan output files
 *.tfplan
@@ -87,5 +86,4 @@ secrets.tfvars
 # Azure CLI artifacts
 .azure/
 
-# Terraform cloud
-.terraform.lock.hcl
+# Terraform Cloud

@@ -6,19 +6,14 @@
 # Updated: 2025-12-16 - Pipeline trigger
 # =============================================================================
 
-# NOTE: For local development, use local backend (comment out the azurerm block below)
-# For CI/CD or remote state, uncomment and configure the azurerm backend
+# NOTE:
+# - CI/CD uses the Azure Storage backend and supplies values via -backend-config.
+# - Local development can still run `terraform init -backend=false` for validate,
+#   or provide matching -backend-config values when applying.
 
-# terraform {
-#   backend "azurerm" {
-#     # These values are provided via -backend-config in CI/CD pipeline
-#     # resource_group_name  = "rg-terraform-state"
-#     # storage_account_name = "stterraformstateXXXX"
-#     # container_name       = "tfstate"
-#     # key                  = "lab.terraform.tfstate"
-#     # use_azuread_auth = true
-#   }
-# }
+terraform {
+	backend "azurerm" {}
+}
 
 # =============================================================================
 # BACKEND SETUP INSTRUCTIONS
