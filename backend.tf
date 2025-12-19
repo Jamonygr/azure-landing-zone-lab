@@ -12,7 +12,7 @@
 #   or provide matching -backend-config values when applying.
 
 terraform {
-	backend "azurerm" {}
+  backend "azurerm" {}
 }
 
 # =============================================================================
