@@ -7,6 +7,17 @@ locals {
   vnet_2_rg = var.vnet_2_resource_group_name != null ? var.vnet_2_resource_group_name : var.resource_group_name
 }
 
+# Wait for VNets to be fully provisioned before creating peering
+# This prevents race conditions when VNets are still completing subnet operations
+resource "time_sleep" "wait_for_vnets" {
+  create_duration = "30s"
+
+  triggers = {
+    vnet_1_id = var.vnet_1_id
+    vnet_2_id = var.vnet_2_id
+  }
+}
+
 # Peering from VNet 1 to VNet 2
 resource "azurerm_virtual_network_peering" "vnet1_to_vnet2" {
   name                         = "${var.name_prefix}-${var.vnet_1_name}-to-${var.vnet_2_name}"
@@ -17,6 +28,8 @@ resource "azurerm_virtual_network_peering" "vnet1_to_vnet2" {
   allow_forwarded_traffic      = var.allow_forwarded_traffic
   allow_gateway_transit        = var.allow_gateway_transit_vnet1
   use_remote_gateways          = false
+
+  depends_on = [time_sleep.wait_for_vnets]
 }
 
 # Peering from VNet 2 to VNet 1

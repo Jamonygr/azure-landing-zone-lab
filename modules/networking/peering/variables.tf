@@ -62,3 +62,9 @@ variable "use_remote_gateways_vnet2" {
   type        = bool
   default     = false
 }
+
+variable "wait_for_resources" {
+  description = "List of resource IDs to wait for before creating peering (ensures VNets/subnets are fully provisioned)"
+  type        = list(string)
+  default     = []
+}
