@@ -9,6 +9,7 @@
 variable "subscription_id" {
   description = "Azure Subscription ID"
   type        = string
+  default     = null
 }
 
 variable "project" {
@@ -55,6 +56,7 @@ variable "admin_password" {
   description = "Admin password for all VMs"
   type        = string
   sensitive   = true
+  default     = null
 }
 
 variable "sql_admin_login" {
@@ -67,13 +69,14 @@ variable "sql_admin_password" {
   description = "SQL Server admin password"
   type        = string
   sensitive   = true
+  default     = null
 }
 
 variable "vpn_shared_key" {
   description = "Shared key for VPN connections - must be provided securely via terraform.tfvars or environment variable"
   type        = string
   sensitive   = true
-  # No default - must be explicitly set to avoid committing secrets
+  default     = null
 }
 
 # -----------------------------------------------------------------------------

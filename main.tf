@@ -31,8 +31,6 @@ terraform {
 }
 
 provider "azurerm" {
-  subscription_id = var.subscription_id
-
   features {
     key_vault {
       purge_soft_delete_on_destroy    = true
@@ -53,6 +51,31 @@ provider "azurerm" {
 # =============================================================================
 
 data "azurerm_client_config" "current" {}
+
+resource "random_password" "admin_password" {
+  length           = 20
+  special          = true
+  min_upper        = 1
+  min_lower        = 1
+  min_numeric      = 1
+  min_special      = 1
+  override_special = "!@#%&*()-_=+[]{}:?,."
+}
+
+resource "random_password" "sql_admin_password" {
+  length           = 20
+  special          = true
+  min_upper        = 1
+  min_lower        = 1
+  min_numeric      = 1
+  min_special      = 1
+  override_special = "!@#%&*()-_=+[]{}:?,."
+}
+
+resource "random_password" "vpn_shared_key" {
+  length  = 32
+  special = false
+}
 
 resource "random_string" "suffix" {
   length  = 4
@@ -170,7 +193,7 @@ module "identity" {
 
   vm_size              = var.vm_size
   admin_username       = var.admin_username
-  admin_password       = var.admin_password
+  admin_password       = local.effective_admin_password
   dc01_ip_address      = var.dc01_ip_address
   dc02_ip_address      = var.dc02_ip_address
   deploy_secondary_dc  = var.deploy_secondary_dc
@@ -204,7 +227,7 @@ module "management" {
 
   vm_size                  = var.vm_size
   admin_username           = var.admin_username
-  admin_password           = var.admin_password
+  admin_password           = local.effective_admin_password
   enable_jumpbox_public_ip = var.enable_jumpbox_public_ip
   enable_auto_shutdown     = var.enable_auto_shutdown
 
@@ -265,7 +288,7 @@ module "management" {
   network_watcher_name      = var.network_watcher_name
 
   enable_scheduled_startstop = var.enable_scheduled_startstop
-  subscription_id            = var.subscription_id
+  subscription_id            = local.effective_subscription_id
   startstop_timezone         = var.startstop_timezone
   startstop_start_time       = var.startstop_start_time
   startstop_stop_time        = var.startstop_stop_time
@@ -304,9 +327,9 @@ module "security" {
   deploy_private_endpoints = var.deploy_private_endpoints
   deploy_private_dns_zones = var.deploy_private_dns_zones
 
-  admin_password       = var.admin_password
+  admin_password       = local.effective_admin_password
   sql_admin_login      = var.sql_admin_login
-  sql_admin_password   = var.sql_admin_password
+  sql_admin_password   = local.effective_sql_admin_password
   storage_account_name = "st${var.project}${local.environment}${random_string.suffix.result}"
   random_suffix        = random_string.suffix.result
 
@@ -358,7 +381,7 @@ module "workload_prod" {
   lb_web_server_count  = var.lb_web_server_count
   lb_web_server_size   = var.lb_web_server_size
   admin_username       = var.admin_username
-  admin_password       = var.admin_password
+  admin_password       = local.effective_admin_password
 
   deploy_functions      = var.deploy_functions
   deploy_static_web_app = var.deploy_static_web_app
@@ -477,7 +500,7 @@ module "onprem" {
   onprem_bgp_asn        = var.onprem_bgp_asn
   hub_vpn_gateway_id    = var.deploy_vpn_gateway ? module.networking.vpn_gateway_id : null
   deploy_vpn_connection = var.deploy_vpn_gateway
-  vpn_shared_key        = var.vpn_shared_key
+  vpn_shared_key        = local.effective_vpn_shared_key
 
   hub_vpn_gateway_public_ip = var.deploy_vpn_gateway ? module.networking.vpn_gateway_public_ip : null
   hub_address_spaces = concat(
@@ -493,7 +516,7 @@ module "onprem" {
 
   vm_size                = var.vm_size
   admin_username         = var.admin_username
-  admin_password         = var.admin_password
+  admin_password         = local.effective_admin_password
   enable_auto_shutdown   = var.enable_auto_shutdown
   allowed_rdp_source_ips = var.allowed_rdp_source_ips
 
@@ -527,7 +550,7 @@ module "vpn_connection_hub_to_onprem" {
   type                       = "IPsec"
   virtual_network_gateway_id = module.networking.vpn_gateway_id
   local_network_gateway_id   = module.lng_to_onprem[0].id
-  shared_key                 = var.vpn_shared_key
+  shared_key                 = local.effective_vpn_shared_key
   enable_bgp                 = var.enable_bgp
   tags                       = local.common_tags
 
@@ -541,7 +564,7 @@ module "vpn_connection_hub_to_onprem" {
 module "governance" {
   source = "./landing-zones/governance"
 
-  subscription_id = var.subscription_id
+  subscription_id = local.effective_subscription_id
   location        = var.location
   environment     = local.environment
 
@@ -553,7 +576,7 @@ module "governance" {
   subscription_ids_platform_identity     = []
   subscription_ids_platform_management   = []
   subscription_ids_platform_connectivity = []
-  subscription_ids_landing_zones_corp    = [var.subscription_id]
+  subscription_ids_landing_zones_corp    = [local.effective_subscription_id]
   subscription_ids_landing_zones_online  = []
   subscription_ids_sandbox               = []
   subscription_ids_decommissioned        = []
