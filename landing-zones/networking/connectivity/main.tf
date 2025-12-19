@@ -158,7 +158,7 @@ module "vnet_flow_logs_hub" {
 
 module "vnet_flow_logs_workload" {
   source = "../../../modules/monitoring/vnet-flow-logs"
-  count  = var.enable_vnet_flow_logs && var.deploy_workload_prod && var.workload_prod_vnet_id != null ? 1 : 0
+  count  = var.enable_vnet_flow_logs && var.deploy_workload_prod ? 1 : 0
 
   name               = "flowlog-vnet-prod-${var.environment}-${var.location_short}"
   location           = var.location
