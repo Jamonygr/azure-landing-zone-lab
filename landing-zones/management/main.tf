@@ -1,161 +1,46 @@
 # =============================================================================
-# MANAGEMENT LANDING ZONE
-# Jump boxes, monitoring, and shared management services
+# MANAGEMENT PILLAR
+# Jumpbox + Log Analytics + monitoring/diagnostics + backup + automation
 # =============================================================================
 
-# Management VNet
-module "mgmt_vnet" {
-  source = "../../modules/networking/vnet"
+# Core management landing zone (jumpbox, VNet, Log Analytics)
+module "management" {
+  source = "./core"
 
-  name                = "vnet-mgmt-${var.environment}-${var.location_short}"
-  resource_group_name = var.resource_group_name
+  environment         = var.environment
   location            = var.location
-  address_space       = var.mgmt_address_space
-  dns_servers         = var.dns_servers
-  tags                = var.tags
-}
-
-# Jump Box Subnet
-module "jumpbox_subnet" {
-  source = "../../modules/networking/subnet"
-
-  name                 = "snet-jumpbox-${var.environment}-${var.location_short}"
-  resource_group_name  = var.resource_group_name
-  virtual_network_name = module.mgmt_vnet.name
-  address_prefixes     = [var.jumpbox_subnet_prefix]
-  service_endpoints    = ["Microsoft.KeyVault", "Microsoft.Storage", "Microsoft.Sql"]
-}
-
-# NSG for Jump Boxes
-module "jumpbox_nsg" {
-  source = "../../modules/networking/nsg"
-
-  name                  = "nsg-jumpbox-${var.environment}-${var.location_short}"
-  resource_group_name   = var.resource_group_name
-  location              = var.location
-  subnet_id             = module.jumpbox_subnet.id
-  associate_with_subnet = true
-  tags                  = var.tags
-
-  depends_on = [module.jumpbox_subnet] # Wait for subnet before NSG association
-
-  security_rules = concat(
-    length(var.allowed_jumpbox_source_ips) > 0 ? [
-      for idx, ip in var.allowed_jumpbox_source_ips : {
-        name                       = "AllowRDPFromTrusted${idx + 1}"
-        priority                   = 100 + idx
-        direction                  = "Inbound"
-        access                     = "Allow"
-        protocol                   = "Tcp"
-        destination_port_range     = "3389"
-        source_address_prefix      = ip
-        destination_address_prefix = "*"
-      }
-    ] : [],
-    [
-      {
-        name                       = "AllowRDPFromVPN"
-        priority                   = 150
-        direction                  = "Inbound"
-        access                     = "Allow"
-        protocol                   = "Tcp"
-        destination_port_range     = "3389"
-        source_address_prefix      = var.vpn_client_address_pool
-        destination_address_prefix = "*"
-      },
-      {
-        name                       = "AllowRDPFromHub"
-        priority                   = 160
-        direction                  = "Inbound"
-        access                     = "Allow"
-        protocol                   = "Tcp"
-        destination_port_range     = "3389"
-        source_address_prefix      = var.hub_address_prefix
-        destination_address_prefix = "*"
-      },
-      {
-        name                       = "AllowRDPFromOnPrem"
-        priority                   = 170
-        direction                  = "Inbound"
-        access                     = "Allow"
-        protocol                   = "Tcp"
-        destination_port_range     = "3389"
-        source_address_prefix      = var.onprem_address_prefix
-        destination_address_prefix = "*"
-      },
-      {
-        name                       = "DenyAllInbound"
-        priority                   = 4096
-        direction                  = "Inbound"
-        access                     = "Deny"
-        protocol                   = "*"
-        destination_port_range     = "*"
-        source_address_prefix      = "*"
-        destination_address_prefix = "*"
-      }
-  ])
-}
-
-# Jump Box VM
-module "jumpbox" {
-  source = "../../modules/compute/windows-vm"
-
-  name                 = "vmjumpbox01"
-  resource_group_name  = var.resource_group_name
-  location             = var.location
-  subnet_id            = module.jumpbox_subnet.id
-  size                 = var.vm_size
-  admin_username       = var.admin_username
-  admin_password       = var.admin_password
-  enable_public_ip     = var.enable_jumpbox_public_ip
-  enable_auto_shutdown = var.enable_auto_shutdown
-  tags                 = merge(var.tags, { Role = "JumpBox" })
-}
-
-# Log Analytics Workspace
-module "log_analytics" {
-  source = "../../modules/monitoring/log-analytics"
-  count  = var.deploy_log_analytics ? 1 : 0
-
-  name                = "log-${var.environment}-${var.location_short}"
+  location_short      = var.location_short
   resource_group_name = var.resource_group_name
-  location            = var.location
-  retention_in_days   = var.log_retention_days
-  daily_quota_gb      = var.log_daily_quota_gb
   tags                = var.tags
+
+  mgmt_address_space        = var.mgmt_address_space
+  jumpbox_subnet_prefix     = var.jumpbox_subnet_prefix
+  dns_servers               = var.dns_servers
+  hub_address_prefix        = var.hub_address_prefix
+  vpn_client_address_pool   = var.vpn_client_address_pool
+  onprem_address_prefix     = var.onprem_address_prefix
+  allowed_jumpbox_source_ips = var.allowed_jumpbox_source_ips
+
+  vm_size                = var.vm_size
+  admin_username         = var.admin_username
+  admin_password         = var.admin_password
+  enable_jumpbox_public_ip = var.enable_jumpbox_public_ip
+  enable_auto_shutdown   = var.enable_auto_shutdown
+  deploy_log_analytics   = var.deploy_log_analytics
+  log_retention_days     = var.log_retention_days
+  log_daily_quota_gb     = var.log_daily_quota_gb
+  firewall_private_ip    = var.firewall_private_ip
+  deploy_route_table     = var.deploy_route_table
+
+  # Disable module-level monitoring; handled below
+  deploy_monitoring     = false
+  alert_email_receivers = []
+  monitored_vm_ids      = []
 }
 
-# Route Table (via Firewall)
-module "mgmt_route_table" {
-  source = "../../modules/networking/route-table"
-  count  = var.deploy_route_table ? 1 : 0
-
-  name                = "rt-mgmt-${var.environment}-${var.location_short}"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  subnet_ids          = [module.jumpbox_subnet.id]
-  tags                = var.tags
-  depends_on          = [module.jumpbox_nsg] # Serialize subnet updates (NSG association before route table)
-
-  routes = [
-    {
-      name                   = "default-via-firewall"
-      address_prefix         = "0.0.0.0/0"
-      next_hop_type          = "VirtualAppliance"
-      next_hop_in_ip_address = var.firewall_private_ip
-    },
-    {
-      name                   = "onprem-via-firewall"
-      address_prefix         = var.onprem_address_prefix
-      next_hop_type          = "VirtualAppliance"
-      next_hop_in_ip_address = var.firewall_private_ip
-    }
-  ]
-}
-
-# =============================================================================
-# MONITORING - ACTION GROUP
-# =============================================================================
+# -----------------------------------------------------------------------------
+# Monitoring: Action Group
+# -----------------------------------------------------------------------------
 
 module "action_group" {
   source = "../../modules/monitoring/action-group"
@@ -164,15 +49,17 @@ module "action_group" {
   action_group_name   = "ag-${var.environment}-${var.location_short}"
   resource_group_name = var.resource_group_name
   short_name          = "alerts"
-  enabled             = true
   tags                = var.tags
+  enabled             = true
 
   email_receivers = var.alert_email_receivers
+
+  depends_on = [module.management]
 }
 
-# =============================================================================
-# MONITORING - ALERTS (15 alerts for VMs, AKS, SQL, Firewall, VPN)
-# =============================================================================
+# -----------------------------------------------------------------------------
+# Monitoring: Alerts
+# -----------------------------------------------------------------------------
 
 module "alerts" {
   source = "../../modules/monitoring/alerts"
@@ -182,10 +69,9 @@ module "alerts" {
   location            = var.location
   alert_name_prefix   = "alert-${var.environment}"
   action_group_id     = module.action_group[0].action_group_id
-  alerts_enabled      = var.alerts_enabled
+  alerts_enabled      = true
   tags                = var.tags
 
-  # VM monitoring
   vm_ids                     = var.monitored_vm_ids
   enable_vm_alerts           = length(var.monitored_vm_ids) > 0
   vm_cpu_threshold           = var.vm_cpu_threshold
@@ -193,49 +79,46 @@ module "alerts" {
   vm_disk_iops_threshold     = var.vm_disk_iops_threshold
   vm_network_threshold_bytes = var.vm_network_threshold_bytes
 
-  # AKS monitoring
-  aks_cluster_id             = var.monitored_aks_cluster_id
-  enable_aks_alerts          = var.monitored_aks_cluster_id != ""
+  aks_cluster_id    = var.monitored_aks_cluster_id
+  enable_aks_alerts = var.monitored_aks_cluster_id != ""
   aks_cpu_threshold          = var.aks_cpu_threshold
   aks_memory_threshold       = var.aks_memory_threshold
   aks_min_node_count         = var.aks_min_node_count
   aks_pending_pods_threshold = var.aks_pending_pods_threshold
 
-  # SQL monitoring
-  sql_database_id                  = var.monitored_sql_database_id
-  enable_sql_alerts                = var.monitored_sql_database_id != ""
+  firewall_id               = var.monitored_firewall_id
+  enable_firewall_alerts    = var.enable_firewall_monitoring
+  firewall_health_threshold = var.firewall_health_threshold
+  firewall_throughput_threshold = var.firewall_throughput_threshold
+
+  vpn_gateway_id    = var.monitored_vpn_gateway_id
+  enable_vpn_alerts = var.enable_vpn_monitoring
+  vpn_bandwidth_threshold = var.vpn_bandwidth_threshold
+
+  sql_database_id   = var.monitored_sql_database_id
+  enable_sql_alerts = var.monitored_sql_database_id != ""
   sql_dtu_threshold                = var.sql_dtu_threshold
   sql_storage_threshold            = var.sql_storage_threshold
   sql_failed_connections_threshold = var.sql_failed_connections_threshold
 
-  # Firewall monitoring
-  firewall_id                   = var.monitored_firewall_id
-  enable_firewall_alerts        = var.monitored_firewall_id != ""
-  firewall_health_threshold     = var.firewall_health_threshold
-  firewall_throughput_threshold = var.firewall_throughput_threshold
-
-  # VPN Gateway monitoring
-  vpn_gateway_id          = var.monitored_vpn_gateway_id
-  enable_vpn_alerts       = var.monitored_vpn_gateway_id != ""
-  vpn_bandwidth_threshold = var.vpn_bandwidth_threshold
+  depends_on = [module.management]
 }
 
-# =============================================================================
-# MONITORING - DIAGNOSTIC SETTINGS
-# =============================================================================
+# -----------------------------------------------------------------------------
+# Monitoring: Diagnostic Settings
+# -----------------------------------------------------------------------------
 
 module "diagnostic_settings" {
   source = "../../modules/monitoring/diagnostic-settings"
   count  = var.deploy_monitoring && var.deploy_log_analytics ? 1 : 0
 
   diagnostic_name_prefix     = "diag-${var.environment}"
-  log_analytics_workspace_id = module.log_analytics[0].id
+  log_analytics_workspace_id = module.management.log_analytics_workspace_id
 
-  # Resource IDs for diagnostic settings
   firewall_id                 = var.monitored_firewall_id
-  enable_firewall_diagnostics = var.monitored_firewall_id != ""
+  enable_firewall_diagnostics = var.enable_firewall_monitoring
   vpn_gateway_id              = var.monitored_vpn_gateway_id
-  enable_vpn_diagnostics      = var.monitored_vpn_gateway_id != ""
+  enable_vpn_diagnostics      = var.enable_vpn_monitoring
   aks_cluster_id              = var.monitored_aks_cluster_id
   enable_aks_diagnostics      = var.monitored_aks_cluster_id != ""
   sql_server_id               = var.monitored_sql_server_id
@@ -247,4 +130,139 @@ module "diagnostic_settings" {
   enable_storage_diagnostics  = var.monitored_storage_account_id != ""
   nsg_ids                     = var.monitored_nsg_ids
   enable_nsg_diagnostics      = length(var.monitored_nsg_ids) > 0
+
+  depends_on = [module.management]
+}
+
+# -----------------------------------------------------------------------------
+# Azure Workbooks
+# -----------------------------------------------------------------------------
+
+module "workbooks" {
+  source = "../../modules/monitoring/workbooks"
+  count  = var.deploy_workbooks && var.deploy_log_analytics ? 1 : 0
+
+  environment         = var.environment
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  tags                = var.tags
+
+  log_analytics_workspace_id = module.management.log_analytics_workspace_id
+
+  deploy_vm_workbook       = true
+  deploy_network_workbook  = true
+  deploy_firewall_workbook = var.enable_firewall_monitoring
+
+  depends_on = [module.management]
+}
+
+# -----------------------------------------------------------------------------
+# Connection Monitor
+# -----------------------------------------------------------------------------
+
+module "connection_monitor" {
+  source = "../../modules/monitoring/connection-monitor"
+  count  = var.deploy_connection_monitor && var.deploy_log_analytics && length(var.monitored_vm_ids) > 0 ? 1 : 0
+
+  monitor_name           = "cmon-${var.environment}-${var.location_short}"
+  location               = var.location
+  resource_group_name    = var.resource_group_name
+  create_network_watcher = var.create_network_watcher
+  network_watcher_name   = var.network_watcher_name
+  tags                   = var.tags
+
+  log_analytics_workspace_id = module.management.log_analytics_workspace_id
+
+  source_endpoints = [
+    {
+      name        = "source-vm"
+      resource_id = var.monitored_vm_ids[0]
+    }
+  ]
+
+  destination_endpoints = [
+    {
+      name    = "Azure-Portal"
+      address = "portal.azure.com"
+      type    = "ExternalAddress"
+    },
+    {
+      name    = "Microsoft"
+      address = "www.microsoft.com"
+      type    = "ExternalAddress"
+    }
+  ]
+
+  test_configurations = [
+    {
+      name              = "tcp-443"
+      protocol          = "Tcp"
+      frequency_seconds = 60
+      port              = 443
+      trace_route       = true
+    },
+    {
+      name              = "icmp-ping"
+      protocol          = "Icmp"
+      frequency_seconds = 60
+      trace_route       = true
+    }
+  ]
+
+  depends_on = [module.management]
+}
+
+# -----------------------------------------------------------------------------
+# Backup - Recovery Services Vault
+# -----------------------------------------------------------------------------
+
+resource "azurerm_resource_group" "backup" {
+  count    = var.deploy_backup ? 1 : 0
+  name     = "rg-backup-${var.environment}-${var.location_short}"
+  location = var.location
+  tags     = var.tags
+}
+
+module "backup" {
+  source = "../../modules/backup"
+  count  = var.deploy_backup ? 1 : 0
+
+  vault_name          = "rsv-${var.environment}-${var.location_short}"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.backup[0].name
+  tags                = var.tags
+
+  storage_mode_type   = var.backup_storage_redundancy
+  soft_delete_enabled = var.enable_soft_delete
+  protected_vms       = var.backup_protected_vms
+}
+
+# -----------------------------------------------------------------------------
+# Automation - scheduled start/stop
+# -----------------------------------------------------------------------------
+
+resource "azurerm_resource_group" "automation" {
+  count    = var.enable_scheduled_startstop ? 1 : 0
+  name     = "rg-automation-${var.environment}-${var.location_short}"
+  location = var.location
+  tags     = var.tags
+}
+
+module "automation" {
+  source = "../../modules/automation"
+  count  = var.enable_scheduled_startstop ? 1 : 0
+
+  automation_account_name = "aa-${var.environment}-${var.location_short}"
+  location                = var.location
+  resource_group_name     = azurerm_resource_group.automation[0].name
+  tags                    = var.tags
+
+  subscription_id      = var.subscription_id
+  resource_group_names = var.resource_group_names_for_automation
+
+  timezone              = var.startstop_timezone
+  enable_start_schedule = true
+  enable_stop_schedule  = true
+
+  depends_on = [module.management]
 }

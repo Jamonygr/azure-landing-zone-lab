@@ -766,6 +766,24 @@ variable "policy_required_tags" {
   }
 }
 
+variable "enable_audit_public_network_access" {
+  description = "Audit resources exposing public network access (SQL, Storage, Key Vault)"
+  type        = bool
+  default     = true
+}
+
+variable "enable_require_https_storage" {
+  description = "Require HTTPS traffic for storage accounts"
+  type        = bool
+  default     = true
+}
+
+variable "enable_require_nsg_on_subnet" {
+  description = "Require NSG on every subnet"
+  type        = bool
+  default     = true
+}
+
 # -----------------------------------------------------------------------------
 # Management Groups Configuration
 # -----------------------------------------------------------------------------

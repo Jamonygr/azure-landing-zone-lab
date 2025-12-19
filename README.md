@@ -1146,7 +1146,7 @@ AzureDiagnostics
 
 ```
 azure-landing-zone-lab/
-├── main.tf                    # Root orchestration (~1500 lines)
+├── main.tf                    # Root orchestration (5-pillar architecture)
 ├── variables.tf               # 80+ configurable input variables
 ├── outputs.tf                 # Key resource outputs (IPs, URLs, etc.)
 ├── locals.tf                  # Computed local values
@@ -1156,21 +1156,36 @@ azure-landing-zone-lab/
 ├── README.md                  # This documentation
 │
 ├── environments/              # Environment-specific configurations
+│   ├── lab.tfvars             # Lab settings (default)
 │   ├── dev.tfvars             # Development settings
 │   └── prod.tfvars            # Production settings
 │
-├── landing-zones/             # Landing zone modules (CAF aligned)
-│   ├── hub/                   # Hub VNet, Firewall, VPN Gateway, App Gateway
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   └── outputs.tf
-│   ├── identity/              # Domain Controllers, AD DS
-│   ├── management/            # Jumpbox, Log Analytics, Monitoring
-│   ├── shared-services/       # Key Vault, Storage, SQL Database, Private Endpoints
-│   ├── workload/              # Load Balancer, Web Servers, AKS, PaaS
-│   └── onprem-simulated/      # Simulated on-premises environment
+├── landing-zones/             # 5-Pillar Landing Zone Architecture
+│   │
+│   ├── networking/            # PILLAR 1: Networking
+│   │   ├── main.tf            # Hub VNet, Firewall, VPN, App Gateway
+│   │   ├── core/              # Hub networking core components
+│   │   ├── connectivity/      # VNet peering, flow logs, NAT, ASGs
+│   │   ├── onprem-simulated/  # Simulated on-premises for hybrid testing
+│   │   └── secondary-region/  # Multi-region support (placeholder)
+│   │
+│   ├── identity-management/   # PILLAR 2: Identity Management
+│   │   ├── main.tf            # Domain Controllers, DNS
+│   │   └── core/              # DC VMs, Identity VNet
+│   │
+│   ├── governance/            # PILLAR 3: Governance
+│   │   └── main.tf            # Management Groups, Azure Policy, Cost Mgmt, RBAC
+│   │
+│   ├── security/              # PILLAR 4: Security
+│   │   ├── main.tf            # Shared services VNet, Key Vault, Storage, SQL
+│   │   └── shared-services/   # Private DNS, Private Endpoints
+│   │
+│   └── management/            # PILLAR 5: Management
+│       ├── main.tf            # Jumpbox, Log Analytics, Monitoring, Backup
+│       ├── core/              # Management VNet, Jumpbox VM
+│       └── workload/          # Workload zones (prod/dev), LB, AKS, PaaS
 │
-└── modules/                   # Reusable infrastructure modules
+├── modules/                   # Reusable infrastructure modules
     ├── aks/                   # Azure Kubernetes Service
     ├── compute/
     │   └── windows-vm/        # Windows Server 2022 VMs
@@ -1202,11 +1217,21 @@ azure-landing-zone-lab/
 
 | File | Purpose |
 |------|---------|
-| `main.tf` | Orchestrates all landing zones and resources |
-| `variables.tf` | 50+ configurable parameters for customization |
+| `main.tf` | Orchestrates 5-pillar architecture: Networking → Identity → Management → Security → Governance |
+| `variables.tf` | 80+ configurable parameters for customization |
 | `terraform.tfvars` | Your environment-specific values (gitignored) |
 | `outputs.tf` | Connection info (IPs, URLs, FQDNs) |
 | `locals.tf` | Location short codes, naming conventions |
+
+### 5-Pillar Architecture
+
+| Pillar | Landing Zone | Responsibilities |
+|--------|--------------|------------------|
+| **1. Networking** | `landing-zones/networking/` | Hub VNet, Azure Firewall, VPN Gateway, App Gateway, VNet Peering |
+| **2. Identity** | `landing-zones/identity-management/` | Domain Controllers, DNS servers, Identity VNet |
+| **3. Governance** | `landing-zones/governance/` | Management Groups, Azure Policy, Cost Management, RBAC, Compliance |
+| **4. Security** | `landing-zones/security/` | Shared Services VNet, Key Vault, Storage, SQL, Private Endpoints |
+| **5. Management** | `landing-zones/management/` | Jumpbox, Log Analytics, Monitoring, Backup, Workload zones |
 
 ### Providers Used
 

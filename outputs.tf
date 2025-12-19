@@ -1,33 +1,38 @@
 # =============================================================================
-# OUTPUTS
+# ROOT OUTPUTS (5-pillar layout)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# Hub Outputs
+# Networking (Hub)
 # -----------------------------------------------------------------------------
 
 output "hub_vnet_id" {
   description = "Hub VNet ID"
-  value       = module.hub.vnet_id
+  value       = module.networking.vnet_id
 }
 
 output "hub_firewall_private_ip" {
   description = "Azure Firewall private IP"
-  value       = var.deploy_firewall ? module.hub.firewall_private_ip : null
+  value       = var.deploy_firewall ? module.networking.firewall_private_ip : null
 }
 
 output "hub_firewall_public_ip" {
   description = "Azure Firewall public IP"
-  value       = var.deploy_firewall ? module.hub.firewall_public_ip : null
+  value       = var.deploy_firewall ? module.networking.firewall_public_ip : null
 }
 
 output "hub_vpn_gateway_public_ip" {
   description = "Hub VPN Gateway public IP"
-  value       = var.deploy_vpn_gateway ? module.hub.vpn_gateway_public_ip : null
+  value       = var.deploy_vpn_gateway ? module.networking.vpn_gateway_public_ip : null
+}
+
+output "application_gateway_public_ip" {
+  description = "Application Gateway public IP"
+  value       = var.deploy_application_gateway ? module.networking.application_gateway_public_ip : null
 }
 
 # -----------------------------------------------------------------------------
-# Identity Outputs
+# Identity
 # -----------------------------------------------------------------------------
 
 output "identity_vnet_id" {
@@ -41,7 +46,7 @@ output "domain_controller_ips" {
 }
 
 # -----------------------------------------------------------------------------
-# Management Outputs
+# Management
 # -----------------------------------------------------------------------------
 
 output "management_vnet_id" {
@@ -64,32 +69,37 @@ output "log_analytics_workspace_id" {
   value       = module.management.log_analytics_workspace_id
 }
 
+output "log_analytics_workspace_guid" {
+  description = "Log Analytics Workspace GUID"
+  value       = module.management.log_analytics_workspace_guid
+}
+
 # -----------------------------------------------------------------------------
-# Shared Services Outputs
+# Security (Shared Services)
 # -----------------------------------------------------------------------------
 
 output "shared_services_vnet_id" {
-  description = "Shared Services VNet ID"
-  value       = module.shared_services.vnet_id
+  description = "Shared services VNet ID"
+  value       = module.security.vnet_id
 }
 
 output "keyvault_uri" {
   description = "Key Vault URI"
-  value       = module.shared_services.keyvault_uri
+  value       = module.security.keyvault_uri
 }
 
 output "storage_account_name" {
   description = "Storage Account name"
-  value       = module.shared_services.storage_account_name
+  value       = module.security.storage_account_name
 }
 
 output "sql_server_fqdn" {
   description = "SQL Server FQDN"
-  value       = module.shared_services.sql_server_fqdn
+  value       = module.security.sql_server_fqdn
 }
 
 # -----------------------------------------------------------------------------
-# Workload Outputs
+# Workloads
 # -----------------------------------------------------------------------------
 
 output "workload_prod_vnet_id" {
@@ -102,10 +112,6 @@ output "workload_dev_vnet_id" {
   value       = var.deploy_workload_dev ? module.workload_dev[0].vnet_id : null
 }
 
-# -----------------------------------------------------------------------------
-# AKS Outputs
-# -----------------------------------------------------------------------------
-
 output "aks_cluster_name" {
   description = "AKS Cluster Name"
   value       = var.deploy_workload_prod && var.deploy_aks ? module.workload_prod[0].aks_name : null
@@ -116,26 +122,22 @@ output "aks_cluster_fqdn" {
   value       = var.deploy_workload_prod && var.deploy_aks ? module.workload_prod[0].aks_fqdn : null
 }
 
-# -----------------------------------------------------------------------------
-# Load Balancer Outputs
-# -----------------------------------------------------------------------------
-
 output "lb_frontend_ip" {
-  description = "Load Balancer public IP address (access web servers here)"
+  description = "Load Balancer public IP address (web entrypoint)"
   value       = var.deploy_workload_prod && var.deploy_load_balancer ? module.workload_prod[0].lb_frontend_ip : null
 }
 
 output "lb_web_server_ips" {
-  description = "Private IP addresses of web servers behind load balancer"
+  description = "Private IPs of web servers behind the load balancer"
   value       = var.deploy_workload_prod && var.deploy_load_balancer ? module.workload_prod[0].web_server_ips : []
 }
 
 # -----------------------------------------------------------------------------
-# On-Premises Outputs
+# On-Premises Simulation
 # -----------------------------------------------------------------------------
 
 output "onprem_vnet_id" {
-  description = "On-Premises VNet ID"
+  description = "On-Premises simulated VNet ID"
   value       = var.deploy_onprem_simulation ? module.onprem[0].vnet_id : null
 }
 
@@ -145,17 +147,17 @@ output "onprem_vpn_gateway_public_ip" {
 }
 
 output "onprem_mgmt_vm_public_ip" {
-  description = "On-Premises Management VM public IP (RDP access point)"
+  description = "On-Premises management VM public IP (RDP)"
   value       = var.deploy_onprem_simulation ? module.onprem[0].mgmt_vm_public_ip : null
 }
 
 output "onprem_mgmt_vm_private_ip" {
-  description = "On-Premises Management VM private IP"
+  description = "On-Premises management VM private IP"
   value       = var.deploy_onprem_simulation ? module.onprem[0].mgmt_vm_private_ip : null
 }
 
 # -----------------------------------------------------------------------------
-# VPN Connectivity (Gateways, LNGs, Connections)
+# VPN Connectivity
 # -----------------------------------------------------------------------------
 
 output "hub_local_network_gateway_id" {
@@ -179,58 +181,37 @@ output "vpn_connection_onprem_to_hub_id" {
 }
 
 # -----------------------------------------------------------------------------
-# Connection Information
-# -----------------------------------------------------------------------------
-
-output "connection_info" {
-  description = "Connection information for the lab"
-  value       = <<-EOT
-    
-    ╔═══════════════════════════════════════════════════════════════════════════╗
-    ║                    AZURE LANDING ZONE LAB - CONNECTION INFO               ║
-    ╠═══════════════════════════════════════════════════════════════════════════╣
-    ║                                                                           ║
-    ║  🔐 Access Methods:                                                       ║
-    ║     1. VPN: Connect via Point-to-Site VPN (configure in Azure Portal)    ║
-    ║     2. Jump Box: ${var.enable_jumpbox_public_ip ? "RDP to public IP" : "Access via VPN or Bastion"}                                ║
-    ║                                                                           ║
-    ║  📍 Key IP Addresses:                                                     ║
-    ║     Jump Box:     ${module.management.jumpbox_private_ip}                                          ║
-    ║     DC01:         ${var.dc01_ip_address}                                          ║
-    ║     DC02:         ${var.dc02_ip_address}                                          ║
-    ${var.deploy_firewall ? "║     Firewall:     Check firewall_private_ip output                       ║" : ""}
-    ║                                                                           ║
-    ║  🔑 Default Credentials:                                                  ║
-    ║     Username: ${var.admin_username}                                              ║
-    ║     Password: <from terraform.tfvars>                                     ║
-    ║                                                                           ║
-    ║  📚 Documentation:                                                        ║
-    ║     See README.md for detailed instructions                               ║
-    ║                                                                           ║
-    ╚═══════════════════════════════════════════════════════════════════════════╝
-    
-  EOT
-}
-
-# -----------------------------------------------------------------------------
-# Backup Outputs
+# Backup and Automation
 # -----------------------------------------------------------------------------
 
 output "recovery_services_vault_id" {
   description = "Recovery Services Vault ID"
-  value       = var.deploy_backup ? module.backup[0].vault_id : null
+  value       = var.deploy_backup ? module.management.recovery_services_vault_id : null
 }
 
 output "recovery_services_vault_name" {
-  description = "Recovery Services Vault Name"
-  value       = var.deploy_backup ? module.backup[0].vault_name : null
+  description = "Recovery Services Vault name"
+  value       = var.deploy_backup ? module.management.recovery_services_vault_name : null
 }
-
-# -----------------------------------------------------------------------------
-# Automation Outputs
-# -----------------------------------------------------------------------------
 
 output "automation_account_name" {
   description = "Automation Account name for scheduled start/stop"
-  value       = var.enable_scheduled_startstop ? module.automation[0].automation_account_name : null
+  value       = var.enable_scheduled_startstop ? module.management.automation_account_name : null
+}
+
+# -----------------------------------------------------------------------------
+# Connection Info (summary)
+# -----------------------------------------------------------------------------
+
+output "connection_info" {
+  description = "Quick connection summary"
+  value       = <<-EOT
+    Jump box:      ${module.management.jumpbox_private_ip}${var.enable_jumpbox_public_ip ? " (public: ${module.management.jumpbox_public_ip})" : ""}
+    DC01:          ${var.dc01_ip_address}
+    DC02:          ${var.dc02_ip_address}
+    Firewall IP:   ${var.deploy_firewall ? module.networking.firewall_private_ip : "not deployed"}
+    VPN gateway:   ${var.deploy_vpn_gateway ? module.networking.vpn_gateway_public_ip : "not deployed"}
+    On-prem VPN:   ${var.deploy_onprem_simulation ? module.onprem[0].vpn_gateway_public_ip : "not deployed"}
+    Credentials:   ${var.admin_username} / <password from tfvars>
+  EOT
 }

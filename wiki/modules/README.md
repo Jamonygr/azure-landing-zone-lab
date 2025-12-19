@@ -25,11 +25,14 @@ The lab is built from small, reusable Terraform modules. Each module creates a f
 
 ## Categories you will find
 
-- **Networking** – VNets, subnets, NSGs, route tables, peering, VPN, load balancers.  
-- **Compute** – Windows VMs and IIS web servers.  
-- **Security** – Azure Firewall, firewall rule collections, Key Vault.  
-- **Monitoring** – Log Analytics, action groups, alerts, diagnostic settings.  
-- **PaaS** – AKS and common app services like Functions, App Service, and Cosmos DB.
+| Category | Modules | Documentation |
+|----------|---------|---------------|
+| **Networking** | VNets, subnets, NSGs, route tables, peering, VPN, NAT gateway, load balancers | [networking.md](networking.md) |
+| **Compute** | Windows VMs, IIS web servers | [compute.md](compute.md) |
+| **Security** | Azure Firewall, firewall rules, Key Vault | [security.md](security.md) |
+| **Monitoring** | Log Analytics, action groups, alerts, diagnostic settings, workbooks | [monitoring.md](monitoring.md) |
+| **PaaS** | AKS, Functions, App Service, Logic Apps, Cosmos DB, Service Bus | [paas.md](paas.md) |
+| **Governance** | Management groups, policies, cost management, RBAC, compliance | [governance.md](governance.md) |
 
 ## Error avoidance tips
 

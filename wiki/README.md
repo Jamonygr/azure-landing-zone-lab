@@ -1,6 +1,6 @@
 # Azure Landing Zone Lab documentation
 
-Azure Landing Zone Lab is a hands-on, Terraform-first walkthrough of the Cloud Adoption Framework hub-and-spoke design. It is written for people who want to see the moving parts of an Azure landing zone without needing to be Terraform experts. Follow these articles in order and you will understand what deploys, why it matters, and which switches you can safely toggle.
+Azure Landing Zone Lab is a hands-on, Terraform-first walkthrough of the Cloud Adoption Framework hub-and-spoke design. It follows a **5-pillar architecture** (Networking, Identity, Governance, Security, Management) that maps directly to CAF best practices. This documentation is written for people who want to see the moving parts of an Azure landing zone without needing to be Terraform experts.
 
 ## Who this is for
 
@@ -8,11 +8,22 @@ Azure Landing Zone Lab is a hands-on, Terraform-first walkthrough of the Cloud A
 - Students and hobbyists who want a safe sandbox to learn hybrid networking, firewalls, and PaaS.
 - Teams evaluating landing-zone patterns before building out an enterprise platform.
 
+## The 5-Pillar Architecture
+
+| Pillar | What it owns |
+|--------|--------------|
+| **1. Networking** | Hub VNet, Azure Firewall, VPN Gateway, Application Gateway, VNet Peering, NAT Gateway |
+| **2. Identity Management** | Domain Controllers, DNS servers, Identity VNet |
+| **3. Governance** | Management Groups, Azure Policy, Cost Management, RBAC, Regulatory Compliance |
+| **4. Security** | Shared Services VNet, Key Vault, Storage, SQL Database, Private Endpoints |
+| **5. Management** | Jumpbox VM, Log Analytics, Monitoring, Backup, Automation, Workload zones |
+
 ## What you will deploy
 
 - A hub VNet with Azure Firewall, optional VPN Gateway, and optional Application Gateway.
 - Spoke VNets for identity, management, shared services, and one or more workloads.
 - Optional hybrid link to a simulated on-premises VNet.
+- Governance layer with management groups, policies, and cost budgets.
 - Monitoring via Log Analytics with diagnostics wired to key resources.
 
 Everything is controlled with variables and feature flags so you can scale the footprint up or down to fit a demo or proof of concept.
@@ -32,23 +43,28 @@ The fastest way to change the footprint is the **MASTER CONTROL PANEL** at the t
 | Topic | What you will learn |
 |-------|---------------------|
 | [Book-style guide](book.md) | A-to-Z walkthrough of the codebase, Terraform logic, and pipeline in narrative form. |
-| [Architecture overview](architecture/overview.md) | How the root module orchestrates resource groups, landing zones, and shared resources. |
+| [Architecture overview](architecture/overview.md) | How the root module orchestrates the 5-pillar architecture. |
 | [Network topology](architecture/network-topology.md) | Address spaces, subnets, peering, and routing choices. |
 | [Security model](architecture/security-model.md) | How firewall, NSGs, and diagnostics layer together. |
 | [Configuration flow](architecture/configuration-flow.md) | How values move from `tfvars` through locals, modules, and outputs. |
-| [Landing zones overview](landing-zones/README.md) | What each landing zone owns and how they connect. |
-| [Hub](landing-zones/hub.md) | Central connectivity: firewall, VPN, gateway transit. |
-| [Identity](landing-zones/identity.md) | Domain controllers and DNS for the platform. |
-| [Management](landing-zones/management.md) | Jumpbox and monitoring workspace. |
-| [Shared services](landing-zones/shared-services.md) | Key Vault, storage, SQL, and private endpoints. |
+| **Landing Zones (5 Pillars)** ||
+| [Landing zones overview](landing-zones/README.md) | The 5-pillar architecture and how they connect. |
+| [Hub/Networking](landing-zones/hub.md) | Pillar 1: Firewall, VPN, App Gateway, peering. |
+| [Identity](landing-zones/identity.md) | Pillar 2: Domain controllers and DNS for the platform. |
+| [Governance](landing-zones/governance.md) | Pillar 3: Management groups, policies, cost management, RBAC. |
+| [Shared services/Security](landing-zones/shared-services.md) | Pillar 4: Key Vault, storage, SQL, private endpoints. |
+| [Management](landing-zones/management.md) | Pillar 5: Jumpbox, monitoring, backup, automation. |
 | [Workload](landing-zones/workload.md) | Web/app/data tiers, load balancer, AKS, and optional PaaS. |
 | [On-premises simulated](landing-zones/onprem-simulated.md) | A small on-prem VNet to test VPN connectivity. |
+| **Modules** ||
 | [Module design patterns](modules/README.md) | How each reusable module is built and consumed. |
 | [Networking modules](modules/networking.md) | VNets, subnets, NSGs, peering, routing, VPN, load balancer. |
 | [Compute modules](modules/compute.md) | Windows VMs and IIS web servers. |
 | [Security modules](modules/security.md) | Firewall, firewall rules, and Key Vault. |
 | [Monitoring modules](modules/monitoring.md) | Log Analytics, alerts, diagnostic settings. |
 | [PaaS modules](modules/paas.md) | AKS and common Azure services for apps. |
+| [Governance modules](modules/governance.md) | Management groups, policies, cost management, RBAC. |
+| **Reference** ||
 | [Variables reference](reference/variables.md) | The inputs you set in `terraform.tfvars`. |
 | [Outputs reference](reference/outputs.md) | What the deployment returns for downstream use. |
 | [Naming conventions](reference/naming-conventions.md) | CAF-aligned names and tags used throughout. |
