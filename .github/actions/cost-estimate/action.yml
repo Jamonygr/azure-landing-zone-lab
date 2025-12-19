@@ -4,7 +4,7 @@ description: 'Estimate infrastructure costs using Infracost'
 inputs:
   api_key:
     description: 'Infracost API key'
-    required: true
+    required: false
   working_directory:
     description: 'Working directory'
     required: false
@@ -28,13 +28,25 @@ outputs:
 runs:
   using: 'composite'
   steps:
+    - name: Check API Key
+      id: gate
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.api_key }}" ]; then
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "enabled=false" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Setup Infracost
+      if: steps.gate.outputs.enabled == 'true'
       uses: infracost/actions/setup@v3
       with:
         api-key: ${{ inputs.api_key }}
 
     - name: Generate Cost Breakdown
       id: cost
+      if: steps.gate.outputs.enabled == 'true'
       shell: bash
       working-directory: ${{ inputs.working_directory }}
       run: |
@@ -54,8 +66,17 @@ runs:
           --terraform-var-file=${{ inputs.var_file }} \
           --format table >> $GITHUB_STEP_SUMMARY
 
+    - name: Skipped (no API key)
+      if: steps.gate.outputs.enabled != 'true'
+      shell: bash
+      run: |
+        echo "monthly_cost=" >> "$GITHUB_OUTPUT"
+        echo "diff=" >> "$GITHUB_OUTPUT"
+        echo "## 💰 Cost Estimation" >> "$GITHUB_STEP_SUMMARY"
+        echo "Skipped: INFRACOST_API_KEY not set." >> "$GITHUB_STEP_SUMMARY"
+
     - name: Post to PR
-      if: github.event_name == 'pull_request'
+      if: github.event_name == 'pull_request' && steps.gate.outputs.enabled == 'true'
       uses: infracost/actions/comment@v1
       with:
         path: /tmp/infracost.json
