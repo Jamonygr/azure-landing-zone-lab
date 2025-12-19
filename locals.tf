@@ -38,8 +38,8 @@ locals {
 
   # CI-friendly defaults: derive subscription from current credentials and
   # generate secrets when not explicitly provided.
-  effective_subscription_id  = coalesce(var.subscription_id, data.azurerm_client_config.current.subscription_id)
-  effective_admin_password   = coalesce(var.admin_password, random_password.admin_password.result)
+  effective_subscription_id    = coalesce(var.subscription_id, data.azurerm_client_config.current.subscription_id)
+  effective_admin_password     = coalesce(var.admin_password, random_password.admin_password.result)
   effective_sql_admin_password = coalesce(var.sql_admin_password, random_password.sql_admin_password.result)
-  effective_vpn_shared_key   = coalesce(var.vpn_shared_key, random_password.vpn_shared_key.result)
+  effective_vpn_shared_key     = coalesce(var.vpn_shared_key, random_password.vpn_shared_key.result)
 }
