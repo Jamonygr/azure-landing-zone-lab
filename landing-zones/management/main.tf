@@ -13,24 +13,24 @@ module "management" {
   resource_group_name = var.resource_group_name
   tags                = var.tags
 
-  mgmt_address_space        = var.mgmt_address_space
-  jumpbox_subnet_prefix     = var.jumpbox_subnet_prefix
-  dns_servers               = var.dns_servers
-  hub_address_prefix        = var.hub_address_prefix
-  vpn_client_address_pool   = var.vpn_client_address_pool
-  onprem_address_prefix     = var.onprem_address_prefix
+  mgmt_address_space         = var.mgmt_address_space
+  jumpbox_subnet_prefix      = var.jumpbox_subnet_prefix
+  dns_servers                = var.dns_servers
+  hub_address_prefix         = var.hub_address_prefix
+  vpn_client_address_pool    = var.vpn_client_address_pool
+  onprem_address_prefix      = var.onprem_address_prefix
   allowed_jumpbox_source_ips = var.allowed_jumpbox_source_ips
 
-  vm_size                = var.vm_size
-  admin_username         = var.admin_username
-  admin_password         = var.admin_password
+  vm_size                  = var.vm_size
+  admin_username           = var.admin_username
+  admin_password           = var.admin_password
   enable_jumpbox_public_ip = var.enable_jumpbox_public_ip
-  enable_auto_shutdown   = var.enable_auto_shutdown
-  deploy_log_analytics   = var.deploy_log_analytics
-  log_retention_days     = var.log_retention_days
-  log_daily_quota_gb     = var.log_daily_quota_gb
-  firewall_private_ip    = var.firewall_private_ip
-  deploy_route_table     = var.deploy_route_table
+  enable_auto_shutdown     = var.enable_auto_shutdown
+  deploy_log_analytics     = var.deploy_log_analytics
+  log_retention_days       = var.log_retention_days
+  log_daily_quota_gb       = var.log_daily_quota_gb
+  firewall_private_ip      = var.firewall_private_ip
+  deploy_route_table       = var.deploy_route_table
 
   # Disable module-level monitoring; handled below
   deploy_monitoring     = false
@@ -79,24 +79,24 @@ module "alerts" {
   vm_disk_iops_threshold     = var.vm_disk_iops_threshold
   vm_network_threshold_bytes = var.vm_network_threshold_bytes
 
-  aks_cluster_id    = var.monitored_aks_cluster_id
-  enable_aks_alerts = var.monitored_aks_cluster_id != ""
+  aks_cluster_id             = var.monitored_aks_cluster_id
+  enable_aks_alerts          = var.monitored_aks_cluster_id != ""
   aks_cpu_threshold          = var.aks_cpu_threshold
   aks_memory_threshold       = var.aks_memory_threshold
   aks_min_node_count         = var.aks_min_node_count
   aks_pending_pods_threshold = var.aks_pending_pods_threshold
 
-  firewall_id               = var.monitored_firewall_id
-  enable_firewall_alerts    = var.enable_firewall_monitoring
-  firewall_health_threshold = var.firewall_health_threshold
+  firewall_id                   = var.monitored_firewall_id
+  enable_firewall_alerts        = var.enable_firewall_monitoring
+  firewall_health_threshold     = var.firewall_health_threshold
   firewall_throughput_threshold = var.firewall_throughput_threshold
 
-  vpn_gateway_id    = var.monitored_vpn_gateway_id
-  enable_vpn_alerts = var.enable_vpn_monitoring
+  vpn_gateway_id          = var.monitored_vpn_gateway_id
+  enable_vpn_alerts       = var.enable_vpn_monitoring
   vpn_bandwidth_threshold = var.vpn_bandwidth_threshold
 
-  sql_database_id   = var.monitored_sql_database_id
-  enable_sql_alerts = var.monitored_sql_database_id != ""
+  sql_database_id                  = var.monitored_sql_database_id
+  enable_sql_alerts                = var.monitored_sql_database_id != ""
   sql_dtu_threshold                = var.sql_dtu_threshold
   sql_storage_threshold            = var.sql_storage_threshold
   sql_failed_connections_threshold = var.sql_failed_connections_threshold

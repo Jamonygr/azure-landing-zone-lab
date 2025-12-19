@@ -122,10 +122,10 @@ module "networking" {
   resource_group_name = azurerm_resource_group.hub.name
   tags                = local.common_tags
 
-  hub_address_space      = var.hub_address_space
-  gateway_subnet_prefix  = var.hub_gateway_subnet_prefix
-  firewall_subnet_prefix = var.hub_firewall_subnet_prefix
-  hub_mgmt_subnet_prefix = var.hub_mgmt_subnet_prefix
+  hub_address_space       = var.hub_address_space
+  gateway_subnet_prefix   = var.hub_gateway_subnet_prefix
+  firewall_subnet_prefix  = var.hub_firewall_subnet_prefix
+  hub_mgmt_subnet_prefix  = var.hub_mgmt_subnet_prefix
   hub_appgw_subnet_prefix = var.hub_appgw_subnet_prefix
 
   deploy_firewall         = var.deploy_firewall
@@ -144,9 +144,9 @@ module "networking" {
   deploy_application_gateway = var.deploy_application_gateway
   appgw_waf_mode             = var.appgw_waf_mode
 
-  lb_backend_ips   = []
-  dc01_ip_address  = var.dc01_ip_address
-  dc02_ip_address  = var.dc02_ip_address
+  lb_backend_ips  = []
+  dc01_ip_address = var.dc01_ip_address
+  dc02_ip_address = var.dc02_ip_address
 }
 
 # =============================================================================
@@ -192,21 +192,21 @@ module "management" {
   resource_group_name = azurerm_resource_group.management.name
   tags                = local.common_tags
 
-  mgmt_address_space      = var.management_address_space
-  jumpbox_subnet_prefix   = var.management_jumpbox_subnet_prefix
-  dns_servers             = module.identity.dns_servers
-  hub_address_prefix      = var.hub_address_space[0]
-  vpn_client_address_pool = var.vpn_client_address_pool
-  onprem_address_prefix   = var.onprem_address_space[0]
+  mgmt_address_space         = var.management_address_space
+  jumpbox_subnet_prefix      = var.management_jumpbox_subnet_prefix
+  dns_servers                = module.identity.dns_servers
+  hub_address_prefix         = var.hub_address_space[0]
+  vpn_client_address_pool    = var.vpn_client_address_pool
+  onprem_address_prefix      = var.onprem_address_space[0]
   allowed_jumpbox_source_ips = var.allowed_jumpbox_source_ips
-  firewall_private_ip     = var.deploy_firewall ? module.networking.firewall_private_ip : null
-  deploy_route_table      = var.deploy_firewall
+  firewall_private_ip        = var.deploy_firewall ? module.networking.firewall_private_ip : null
+  deploy_route_table         = var.deploy_firewall
 
-  vm_size                = var.vm_size
-  admin_username         = var.admin_username
-  admin_password         = var.admin_password
+  vm_size                  = var.vm_size
+  admin_username           = var.admin_username
+  admin_password           = var.admin_password
   enable_jumpbox_public_ip = var.enable_jumpbox_public_ip
-  enable_auto_shutdown   = var.enable_auto_shutdown
+  enable_auto_shutdown     = var.enable_auto_shutdown
 
   deploy_log_analytics = var.deploy_log_analytics
   log_retention_days   = var.log_retention_days
@@ -219,28 +219,28 @@ module "management" {
       email_address = "admin@example.com"
     }
   ]
-  monitored_vm_ids          = []
-  monitored_aks_cluster_id  = ""
-  monitored_firewall_id     = var.deploy_firewall ? module.networking.firewall_id : ""
-  monitored_vpn_gateway_id  = var.deploy_vpn_gateway ? module.networking.vpn_gateway_id : ""
-  monitored_sql_database_id = ""
-  monitored_sql_server_id   = ""
-  monitored_keyvault_id     = ""
+  monitored_vm_ids             = []
+  monitored_aks_cluster_id     = ""
+  monitored_firewall_id        = var.deploy_firewall ? module.networking.firewall_id : ""
+  monitored_vpn_gateway_id     = var.deploy_vpn_gateway ? module.networking.vpn_gateway_id : ""
+  monitored_sql_database_id    = ""
+  monitored_sql_server_id      = ""
+  monitored_keyvault_id        = ""
   monitored_storage_account_id = ""
-  monitored_nsg_ids         = []
+  monitored_nsg_ids            = []
 
   # Use static boolean flags instead of checking IDs at plan time
   enable_firewall_monitoring = var.deploy_firewall
   enable_vpn_monitoring      = var.deploy_vpn_gateway
 
-  vm_cpu_threshold           = 85
-  vm_memory_threshold_bytes  = 1073741824
-  vm_disk_iops_threshold     = 500
-  vm_network_threshold_bytes = 1073741824
-  aks_cpu_threshold          = 80
-  aks_memory_threshold       = 80
-  aks_min_node_count         = 1
-  aks_pending_pods_threshold = 5
+  vm_cpu_threshold                 = 85
+  vm_memory_threshold_bytes        = 1073741824
+  vm_disk_iops_threshold           = 500
+  vm_network_threshold_bytes       = 1073741824
+  aks_cpu_threshold                = 80
+  aks_memory_threshold             = 80
+  aks_min_node_count               = 1
+  aks_pending_pods_threshold       = 5
   sql_dtu_threshold                = 80
   sql_storage_threshold            = 80
   sql_failed_connections_threshold = 5
@@ -259,16 +259,16 @@ module "management" {
     }
   ]
 
-  deploy_workbooks        = var.deploy_workbooks
+  deploy_workbooks          = var.deploy_workbooks
   deploy_connection_monitor = var.deploy_connection_monitor
-  create_network_watcher  = var.create_network_watcher
-  network_watcher_name    = var.network_watcher_name
+  create_network_watcher    = var.create_network_watcher
+  network_watcher_name      = var.network_watcher_name
 
-  enable_scheduled_startstop       = var.enable_scheduled_startstop
-  subscription_id                  = var.subscription_id
-  startstop_timezone               = var.startstop_timezone
-  startstop_start_time             = var.startstop_start_time
-  startstop_stop_time              = var.startstop_stop_time
+  enable_scheduled_startstop = var.enable_scheduled_startstop
+  subscription_id            = var.subscription_id
+  startstop_timezone         = var.startstop_timezone
+  startstop_start_time       = var.startstop_start_time
+  startstop_stop_time        = var.startstop_stop_time
   resource_group_names_for_automation = [
     azurerm_resource_group.identity.name,
     var.deploy_workload_prod ? azurerm_resource_group.workload_prod[0].name : ""
@@ -298,9 +298,9 @@ module "security" {
   firewall_private_ip  = var.deploy_firewall ? module.networking.firewall_private_ip : null
   deploy_route_table   = var.deploy_firewall
 
-  deploy_keyvault      = var.deploy_keyvault
-  deploy_storage       = var.deploy_storage
-  deploy_sql           = var.deploy_sql
+  deploy_keyvault          = var.deploy_keyvault
+  deploy_storage           = var.deploy_storage
+  deploy_sql               = var.deploy_sql
   deploy_private_endpoints = var.deploy_private_endpoints
   deploy_private_dns_zones = var.deploy_private_dns_zones
 
@@ -310,9 +310,9 @@ module "security" {
   storage_account_name = "st${var.project}${local.environment}${random_string.suffix.result}"
   random_suffix        = random_string.suffix.result
 
-  hub_vnet_id       = module.networking.vnet_id
-  identity_vnet_id  = module.identity.vnet_id
-  management_vnet_id = module.management.vnet_id
+  hub_vnet_id           = module.networking.vnet_id
+  identity_vnet_id      = module.identity.vnet_id
+  management_vnet_id    = module.management.vnet_id
   workload_prod_vnet_id = var.deploy_workload_prod ? module.workload_prod[0].vnet_id : null
   workload_dev_vnet_id  = var.deploy_workload_dev ? module.workload_dev[0].vnet_id : null
   deploy_workload_prod  = var.deploy_workload_prod
@@ -415,36 +415,36 @@ module "networking_connectivity" {
   hub_vnet_name           = module.networking.vnet_name
   deploy_vpn_gateway      = var.deploy_vpn_gateway
 
-  identity_vnet_id              = module.identity.vnet_id
-  identity_vnet_name            = module.identity.vnet_name
-  identity_resource_group_name  = azurerm_resource_group.identity.name
-  management_vnet_id            = module.management.vnet_id
-  management_vnet_name          = module.management.vnet_name
-  management_resource_group_name = azurerm_resource_group.management.name
-  shared_vnet_id                = module.security.vnet_id
-  shared_vnet_name              = module.security.vnet_name
-  shared_resource_group_name    = azurerm_resource_group.shared.name
-  workload_prod_vnet_id         = var.deploy_workload_prod ? module.workload_prod[0].vnet_id : null
-  workload_prod_vnet_name       = var.deploy_workload_prod ? module.workload_prod[0].vnet_name : null
+  identity_vnet_id                  = module.identity.vnet_id
+  identity_vnet_name                = module.identity.vnet_name
+  identity_resource_group_name      = azurerm_resource_group.identity.name
+  management_vnet_id                = module.management.vnet_id
+  management_vnet_name              = module.management.vnet_name
+  management_resource_group_name    = azurerm_resource_group.management.name
+  shared_vnet_id                    = module.security.vnet_id
+  shared_vnet_name                  = module.security.vnet_name
+  shared_resource_group_name        = azurerm_resource_group.shared.name
+  workload_prod_vnet_id             = var.deploy_workload_prod ? module.workload_prod[0].vnet_id : null
+  workload_prod_vnet_name           = var.deploy_workload_prod ? module.workload_prod[0].vnet_name : null
   workload_prod_resource_group_name = var.deploy_workload_prod ? azurerm_resource_group.workload_prod[0].name : null
-  workload_dev_vnet_id          = var.deploy_workload_dev ? module.workload_dev[0].vnet_id : null
-  workload_dev_vnet_name        = var.deploy_workload_dev ? module.workload_dev[0].vnet_name : null
-  workload_dev_resource_group_name = var.deploy_workload_dev ? azurerm_resource_group.workload_dev[0].name : null
-  deploy_workload_prod          = var.deploy_workload_prod
-  deploy_workload_dev           = var.deploy_workload_dev
+  workload_dev_vnet_id              = var.deploy_workload_dev ? module.workload_dev[0].vnet_id : null
+  workload_dev_vnet_name            = var.deploy_workload_dev ? module.workload_dev[0].vnet_name : null
+  workload_dev_resource_group_name  = var.deploy_workload_dev ? azurerm_resource_group.workload_dev[0].name : null
+  deploy_workload_prod              = var.deploy_workload_prod
+  deploy_workload_dev               = var.deploy_workload_dev
 
-  enable_vnet_flow_logs         = var.enable_vnet_flow_logs
-  storage_account_id            = module.security.storage_account_id
-  create_network_watcher        = var.create_network_watcher
-  network_watcher_name          = var.network_watcher_name
-  nsg_flow_logs_retention_days  = var.nsg_flow_logs_retention_days
-  enable_traffic_analytics      = var.enable_traffic_analytics && var.deploy_log_analytics
-  log_analytics_workspace_id    = var.deploy_log_analytics ? module.management.log_analytics_workspace_id : null
-  log_analytics_workspace_guid  = var.deploy_log_analytics ? module.management.log_analytics_workspace_guid : null
+  enable_vnet_flow_logs        = var.enable_vnet_flow_logs
+  storage_account_id           = module.security.storage_account_id
+  create_network_watcher       = var.create_network_watcher
+  network_watcher_name         = var.network_watcher_name
+  nsg_flow_logs_retention_days = var.nsg_flow_logs_retention_days
+  enable_traffic_analytics     = var.enable_traffic_analytics && var.deploy_log_analytics
+  log_analytics_workspace_id   = var.deploy_log_analytics ? module.management.log_analytics_workspace_id : null
+  log_analytics_workspace_guid = var.deploy_log_analytics ? module.management.log_analytics_workspace_guid : null
 
-  deploy_nat_gateway               = var.deploy_nat_gateway
-  workload_web_subnet_id           = var.deploy_workload_prod ? module.workload_prod[0].web_subnet_id : null
-  workload_resource_group_name     = var.deploy_workload_prod ? azurerm_resource_group.workload_prod[0].name : null
+  deploy_nat_gateway                 = var.deploy_nat_gateway
+  workload_web_subnet_id             = var.deploy_workload_prod ? module.workload_prod[0].web_subnet_id : null
+  workload_resource_group_name       = var.deploy_workload_prod ? azurerm_resource_group.workload_prod[0].name : null
   deploy_application_security_groups = var.deploy_application_security_groups
 
   deploy_application_gateway = var.deploy_application_gateway
@@ -559,19 +559,19 @@ module "governance" {
   subscription_ids_decommissioned        = []
   additional_management_groups           = []
 
-  deploy_azure_policy              = var.deploy_azure_policy
-  policy_allowed_locations         = var.policy_allowed_locations
-  policy_required_tags             = var.policy_required_tags
-  enable_inherit_tag_policy        = false
+  deploy_azure_policy                = var.deploy_azure_policy
+  policy_allowed_locations           = var.policy_allowed_locations
+  policy_required_tags               = var.policy_required_tags
+  enable_inherit_tag_policy          = false
   enable_audit_public_network_access = var.enable_audit_public_network_access
   enable_require_https_storage       = var.enable_require_https_storage
   enable_require_nsg_on_subnet       = var.enable_require_nsg_on_subnet
   enable_allowed_vm_skus             = false
   allowed_vm_skus                    = []
 
-  deploy_cost_management = var.deploy_cost_management
-  cost_budget_amount     = var.cost_budget_amount
-  cost_alert_emails      = var.cost_alert_emails
+  deploy_cost_management              = var.deploy_cost_management
+  cost_budget_amount                  = var.cost_budget_amount
+  cost_alert_emails                   = var.cost_alert_emails
   cost_management_resource_group_name = azurerm_resource_group.management.name
 
   deploy_regulatory_compliance = var.deploy_regulatory_compliance
@@ -581,9 +581,9 @@ module "governance" {
   log_analytics_workspace_id   = var.deploy_log_analytics ? module.management.log_analytics_workspace_id : null
   compliance_scope             = var.deploy_workload_prod ? azurerm_resource_group.workload_prod[0].id : azurerm_resource_group.shared.id
 
-  deploy_rbac_custom_roles    = var.deploy_rbac_custom_roles
-  network_operator_principals = []
-  backup_operator_principals  = []
+  deploy_rbac_custom_roles     = var.deploy_rbac_custom_roles
+  network_operator_principals  = []
+  backup_operator_principals   = []
   monitoring_reader_principals = []
 
   tags = local.common_tags
