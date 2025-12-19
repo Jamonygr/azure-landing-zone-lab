@@ -100,3 +100,143 @@ module "rbac" {
   backup_operator_principals   = var.backup_operator_principals
   monitoring_reader_principals = var.monitoring_reader_principals
 }
+
+# =============================================================================
+# MONITORING
+# Log Analytics, Action Groups, Alerts, Diagnostic Settings, Workbooks
+# =============================================================================
+
+module "log_analytics" {
+  source = "../../modules/monitoring/log-analytics"
+  count  = var.deploy_monitoring ? 1 : 0
+
+  name                = var.log_analytics_workspace_name
+  resource_group_name = var.monitoring_resource_group_name
+  location            = var.location
+  sku                 = var.log_analytics_sku
+  retention_in_days   = var.log_analytics_retention_days
+  daily_quota_gb      = var.log_analytics_daily_quota_gb
+
+  tags = var.tags
+}
+
+module "monitoring_action_group" {
+  source = "../../modules/monitoring/action-group"
+  count  = var.deploy_monitoring && length(var.monitoring_alert_emails) > 0 ? 1 : 0
+
+  action_group_name   = "${var.environment}-monitoring-alerts"
+  resource_group_name = var.monitoring_resource_group_name
+  short_name          = substr("${var.environment}alerts", 0, 12)
+  enabled             = true
+
+  email_receivers = [for i, email in var.monitoring_alert_emails : {
+    name                    = "alert-receiver-${i + 1}"
+    email_address           = email
+    use_common_alert_schema = true
+  }]
+
+  sms_receivers     = var.monitoring_sms_receivers
+  webhook_receivers = var.monitoring_webhook_receivers
+
+  tags = var.tags
+}
+
+module "monitoring_alerts" {
+  source = "../../modules/monitoring/alerts"
+  count  = var.deploy_monitoring && var.deploy_monitoring_alerts ? 1 : 0
+
+  resource_group_name = var.monitoring_resource_group_name
+  location            = var.location
+  alert_name_prefix   = "${var.environment}-governance"
+  action_group_id     = length(module.monitoring_action_group) > 0 ? module.monitoring_action_group[0].action_group_id : var.external_action_group_id
+  alerts_enabled      = var.monitoring_alerts_enabled
+
+  # VM Alerts
+  enable_vm_alerts           = var.enable_vm_alerts
+  vm_ids                     = var.monitored_vm_ids
+  vm_cpu_threshold           = var.vm_cpu_alert_threshold
+  vm_memory_threshold_bytes  = var.vm_memory_alert_threshold_bytes
+  vm_disk_iops_threshold     = var.vm_disk_iops_threshold
+  vm_network_threshold_bytes = var.vm_network_threshold_bytes
+
+  # AKS Alerts
+  enable_aks_alerts          = var.enable_aks_alerts
+  aks_cluster_id             = var.monitored_aks_cluster_id
+  aks_cpu_threshold          = var.aks_cpu_alert_threshold
+  aks_memory_threshold       = var.aks_memory_alert_threshold
+  aks_min_node_count         = var.aks_min_node_count
+  aks_pending_pods_threshold = var.aks_pending_pods_threshold
+
+  # SQL Alerts
+  enable_sql_alerts                = var.enable_sql_alerts
+  sql_database_id                  = var.monitored_sql_database_id
+  sql_dtu_threshold                = var.sql_dtu_alert_threshold
+  sql_storage_threshold            = var.sql_storage_alert_threshold
+  sql_failed_connections_threshold = var.sql_failed_connections_threshold
+
+  # Firewall Alerts
+  enable_firewall_alerts        = var.enable_firewall_alerts
+  firewall_id                   = var.monitored_firewall_id
+  firewall_health_threshold     = var.firewall_health_threshold
+  firewall_throughput_threshold = var.firewall_throughput_threshold
+
+  # VPN Gateway Alerts
+  enable_vpn_alerts       = var.enable_vpn_alerts
+  vpn_gateway_id          = var.monitored_vpn_gateway_id
+  vpn_bandwidth_threshold = var.vpn_bandwidth_threshold
+
+  tags = var.tags
+}
+
+module "diagnostic_settings" {
+  source = "../../modules/monitoring/diagnostic-settings"
+  count  = var.deploy_monitoring && var.deploy_diagnostic_settings ? 1 : 0
+
+  diagnostic_name_prefix     = "${var.environment}-diag"
+  log_analytics_workspace_id = length(module.log_analytics) > 0 ? module.log_analytics[0].id : var.external_log_analytics_workspace_id
+
+  # Firewall Diagnostics
+  enable_firewall_diagnostics = var.enable_firewall_diagnostics
+  firewall_id                 = var.monitored_firewall_id
+
+  # VPN Gateway Diagnostics
+  enable_vpn_diagnostics = var.enable_vpn_diagnostics
+  vpn_gateway_id         = var.monitored_vpn_gateway_id
+
+  # AKS Diagnostics
+  enable_aks_diagnostics = var.enable_aks_diagnostics
+  aks_cluster_id         = var.monitored_aks_cluster_id
+
+  # SQL Diagnostics
+  enable_sql_diagnostics = var.enable_sql_diagnostics
+  sql_server_id          = var.monitored_sql_server_id
+  sql_database_id        = var.monitored_sql_database_id
+
+  # Key Vault Diagnostics
+  enable_keyvault_diagnostics = var.enable_keyvault_diagnostics
+  keyvault_id                 = var.monitored_keyvault_id
+
+  # Storage Diagnostics
+  enable_storage_diagnostics = var.enable_storage_diagnostics
+  storage_account_id         = var.monitored_storage_account_id
+
+  # NSG Diagnostics
+  enable_nsg_diagnostics = var.enable_nsg_diagnostics
+  nsg_ids                = var.monitored_nsg_ids
+}
+
+module "workbooks" {
+  source = "../../modules/monitoring/workbooks"
+  count  = var.deploy_monitoring && var.deploy_workbooks ? 1 : 0
+
+  environment                = var.environment
+  location                   = var.location
+  resource_group_name        = var.monitoring_resource_group_name
+  log_analytics_workspace_id = length(module.log_analytics) > 0 ? module.log_analytics[0].id : var.external_log_analytics_workspace_id
+
+  deploy_vm_workbook       = var.deploy_vm_workbook
+  deploy_network_workbook  = var.deploy_network_workbook
+  deploy_firewall_workbook = var.deploy_firewall_workbook
+
+  tags = var.tags
+}
