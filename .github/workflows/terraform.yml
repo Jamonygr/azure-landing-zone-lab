@@ -325,8 +325,7 @@ jobs:
       always() &&
       needs.plan.result == 'success' &&
       github.event_name == 'workflow_dispatch' && 
-      github.event.inputs.action == 'apply' &&
-      needs.plan.outputs.has_changes == 'true'
+      github.event.inputs.action == 'apply'
     environment: ${{ github.event.inputs.environment }}
     outputs:
       start_time: ${{ steps.timer.outputs.start }}
