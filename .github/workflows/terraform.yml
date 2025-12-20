@@ -26,7 +26,11 @@ on:
         required: true
         default: 'plan'
         type: choice
-        options: [plan, apply]
+        options: [plan, apply, destroy]
+      destroy_confirm:
+        description: 'Type DESTROY to confirm'
+        required: false
+        type: string
 
 concurrency:
   group: terraform-${{ github.ref }}-${{ github.event.inputs.environment || 'lab' }}
@@ -382,3 +386,38 @@ jobs:
           add_count: ${{ needs.plan.outputs.add || '0' }}
           change_count: ${{ needs.plan.outputs.change || '0' }}
           destroy_count: ${{ needs.plan.outputs.destroy || '0' }}
+
+  # =========================================================================
+  # STAGE 9: DESTROY (with Approval Gate)
+  # =========================================================================
+  destroy:
+    name: '9️⃣ Destroy'
+    runs-on: ubuntu-latest
+    needs: plan
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.action == 'destroy' &&
+      github.event.inputs.destroy_confirm == 'DESTROY'
+    environment: ${{ github.event.inputs.environment }}-destroy
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: State Backup Before Destroy
+        uses: ./.github/actions/state-backup
+        with:
+          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+          storage_account: ${{ secrets.TF_STATE_SA }}
+          resource_group: ${{ secrets.TF_STATE_RG }}
+          state_key: ${{ env.ENVIRONMENT }}.terraform.tfstate
+
+      - name: Destroy
+        uses: ./.github/actions/destroy
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+          backend_resource_group: ${{ secrets.TF_STATE_RG }}
+          backend_storage_account: ${{ secrets.TF_STATE_SA }}
+          state_key: ${{ env.ENVIRONMENT }}.terraform.tfstate
+          var_file: environments/${{ env.ENVIRONMENT }}.tfvars
+          environment: ${{ env.ENVIRONMENT }}
+          confirm: ${{ github.event.inputs.destroy_confirm }}
