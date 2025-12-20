@@ -34,6 +34,6 @@ enable_auto_shutdown = true
 # No secondary DC in dev
 deploy_secondary_dc = false
 
-# Reduced logging
-log_retention_days = 7
+# Reduced logging (Azure Log Analytics minimum retention is 30 days)
+log_retention_days = 30
 log_daily_quota_gb = 0.5
