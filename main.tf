@@ -31,6 +31,7 @@ terraform {
 }
 
 provider "azurerm" {
+  subscription_id = var.subscription_id
   features {
     key_vault {
       purge_soft_delete_on_destroy    = true
@@ -242,7 +243,10 @@ module "management" {
       email_address = "admin@example.com"
     }
   ]
-  monitored_vm_ids             = []
+  monitored_vm_ids             = concat(
+    [module.identity.dc01_id],
+    var.deploy_secondary_dc ? [module.identity.dc02_id] : []
+  )
   monitored_aks_cluster_id     = ""
   monitored_firewall_id        = var.deploy_firewall ? module.networking.firewall_id : ""
   monitored_vpn_gateway_id     = var.deploy_vpn_gateway ? module.networking.vpn_gateway_id : ""
@@ -292,10 +296,10 @@ module "management" {
   startstop_timezone         = var.startstop_timezone
   startstop_start_time       = var.startstop_start_time
   startstop_stop_time        = var.startstop_stop_time
-  resource_group_names_for_automation = [
-    azurerm_resource_group.identity.name,
-    var.deploy_workload_prod ? azurerm_resource_group.workload_prod[0].name : ""
-  ]
+  resource_group_names_for_automation = concat(
+    [azurerm_resource_group.identity.name],
+    var.deploy_workload_prod ? [azurerm_resource_group.workload_prod[0].name] : []
+  )
 }
 
 # =============================================================================

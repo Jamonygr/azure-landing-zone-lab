@@ -21,60 +21,60 @@ location    = "westus2"
 owner       = "Lab-User"
 
 # =============================================================================
-# FEATURE TOGGLES - MINIMAL LAB DEPLOYMENT
+# FEATURE TOGGLES - FULL LAB DEPLOYMENT
 # =============================================================================
 
-# Core Infrastructure (minimal for cost savings)
-deploy_firewall            = false # Save ~$300/month - use NSGs instead
-deploy_vpn_gateway         = false # Save ~$140/month
-deploy_application_gateway = false # Save ~$20/month
-deploy_nat_gateway         = true  # Keep for outbound connectivity ~$5
-deploy_load_balancer       = true  # Web server testing ~$35
+# Core Infrastructure
+deploy_firewall            = true  # Azure Firewall             ~$300
+deploy_vpn_gateway         = false # VPN Gateway                ~$140
+deploy_application_gateway = true  # App Gateway + WAF          ~$20
+deploy_nat_gateway         = true  # NAT Gateway                ~$5
+deploy_load_balancer       = true  # Load Balancer + IIS VMs    ~$35
 
 # Landing Zones
-deploy_workload_prod     = true  # Production workload VNet
-deploy_workload_dev      = false # Skip dev in lab
-deploy_onprem_simulation = false # Skip on-prem simulation
-deploy_secondary_dc      = false # Single DC is sufficient
+deploy_workload_prod     = true  # Production workload VNet   ~FREE
+deploy_workload_dev      = true  # Development workload VNet  ~FREE
+deploy_onprem_simulation = false # Simulated on-premises      ~$30
+deploy_secondary_dc      = false # Second domain controller   ~$30
 
 # Compute & Containers
-deploy_aks            = false # Save ~$70+/month
-deploy_container_apps = false # Skip for minimal lab
-deploy_functions      = false # Skip for minimal lab
+deploy_aks            = false # Azure Kubernetes Service   ~$70+
+deploy_container_apps = false # Container Apps             ~$0-20
+deploy_functions      = false # Azure Functions            ~FREE
 
-# PaaS Services (minimal)
-deploy_app_service    = false # Skip for minimal lab
-deploy_static_web_app = false # Skip for minimal lab
-deploy_logic_apps     = false # Skip for minimal lab
-deploy_event_grid     = false # Skip for minimal lab
-deploy_service_bus    = false # Skip for minimal lab
-deploy_cosmos_db      = false # Skip for minimal lab
+# PaaS Services
+deploy_app_service    = true  # App Service                ~$15
+deploy_static_web_app = true  # Static Web App             FREE
+deploy_logic_apps     = true  # Logic Apps                 ~FREE
+deploy_event_grid     = true  # Event Grid                 FREE
+deploy_service_bus    = true  # Service Bus                ~$0.05
+deploy_cosmos_db      = true  # Cosmos DB Serverless       ~$0-5
 
 # Data & Security
-deploy_keyvault          = true  # Keep for secrets management
-deploy_storage           = true  # Keep for storage testing
-deploy_sql               = false # Skip for minimal lab
-deploy_backup            = false # Skip for minimal lab
-deploy_private_endpoints = false # Skip for minimal lab
-deploy_private_dns_zones = false # Skip for minimal lab
+deploy_keyvault          = true  # Key Vault                  ~FREE
+deploy_storage           = true  # Storage Account            ~$1
+deploy_sql               = true  # Azure SQL Database         ~$5
+deploy_backup            = false # Recovery Services Vault    ~$10+
+deploy_private_endpoints = true  # Private Endpoints          ~FREE
+deploy_private_dns_zones = true  # Private DNS Zones          ~FREE
 
 # Monitoring & Observability
-deploy_log_analytics      = true  # Keep for monitoring
-deploy_workbooks          = false # Skip for minimal lab
-deploy_connection_monitor = false # Skip for minimal lab
-deploy_cost_management    = true  # Keep for budget tracking
-enable_vnet_flow_logs     = false # Skip for minimal lab
-enable_traffic_analytics  = false # Skip for minimal lab
+deploy_log_analytics      = true  # Log Analytics              ~FREE(30d)
+deploy_workbooks          = true  # Azure Workbooks            FREE
+deploy_connection_monitor = true  # Connection Monitor         ~$1
+deploy_cost_management    = true  # Budget Alerts              FREE
+enable_vnet_flow_logs     = false # VNet Flow Logs             ~$1-5
+enable_traffic_analytics  = false # Traffic Analytics          ~$3
 
 # Governance & Compliance
-deploy_azure_policy          = false # Skip for minimal lab
-deploy_management_groups     = false # Skip for minimal lab
-deploy_rbac_custom_roles     = false # Skip for minimal lab
-deploy_regulatory_compliance = false # Skip for minimal lab
+deploy_azure_policy          = true  # Azure Policy               FREE
+deploy_management_groups     = true  # Management Groups          FREE
+deploy_rbac_custom_roles     = true  # Custom RBAC Roles          FREE
+deploy_regulatory_compliance = true  # HIPAA/PCI-DSS Policies     FREE
 
 # Automation
-enable_auto_shutdown       = true  # IMPORTANT: Saves money!
-enable_scheduled_startstop = false # Skip for minimal lab
+enable_auto_shutdown       = true  # VM Auto-Shutdown 7PM       SAVES $$$
+enable_scheduled_startstop = true  # Scheduled Start/Stop       ~$1
 
 # =============================================================================
 # NETWORK CONFIGURATION

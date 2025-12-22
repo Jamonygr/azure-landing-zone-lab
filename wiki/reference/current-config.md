@@ -8,11 +8,11 @@ For the full list of feature flags, see the **MASTER CONTROL PANEL** section at 
 
 | Pillar | Status | Key Components |
 |--------|--------|----------------|
-| **1. Networking** | ✅ Deployed | Hub VNet, Azure Firewall (Standard), NAT Gateway, App Gateway |
-| **2. Identity** | ✅ Deployed | Domain Controller (DC01), Identity VNet |
-| **3. Governance** | ✅ Deployed | Management Groups, Policies, Cost Management, RBAC |
-| **4. Security** | ✅ Deployed | Key Vault, Storage, SQL, Private Endpoints, Private DNS |
-| **5. Management** | ✅ Deployed | Jumpbox, Log Analytics, Backup, Workbooks, Automation |
+| **1. Networking** | Deployed | Hub VNet, Azure Firewall (Standard), NAT Gateway, App Gateway |
+| **2. Identity** | Deployed | Domain Controller (DC01), Identity VNet |
+| **3. Governance** | Deployed | Management Groups, Policies, Cost Management, RBAC |
+| **4. Security** | Deployed | Key Vault, Storage, SQL, Private Endpoints, Private DNS |
+| **5. Management** | Deployed | Jumpbox, Log Analytics, Workbooks, Automation |
 
 ## What's on
 
@@ -21,7 +21,6 @@ For the full list of feature flags, see the **MASTER CONTROL PANEL** section at 
 - Hub/spoke topology with **Azure Firewall (Standard)**
 - **Application Gateway v2** with WAF (Detection mode)
 - **NAT Gateway** for fixed outbound IP
-- **VNet Flow Logs** with Traffic Analytics enabled
 
 ### Pillar 2: Identity Management
 - Primary Domain Controller (**DC01**) deployed
@@ -30,9 +29,9 @@ For the full list of feature flags, see the **MASTER CONTROL PANEL** section at 
 ### Pillar 3: Governance
 - **Management Groups** with Organization hierarchy
 - **Azure Policy** with allowed locations, required tags, security policies
-- **Cost Management** budget ($1000/mo) with alerts
+- **Cost Management** budget ($500/mo) with alerts
 - **Custom RBAC roles** for Landing Zone Admin, Network Operator
-- Regulatory compliance policies (audit mode)
+- Regulatory compliance policies enabled in **audit** mode
 
 ### Pillar 4: Security (Shared Services)
 - **Key Vault** with private endpoint
@@ -44,15 +43,15 @@ For the full list of feature flags, see the **MASTER CONTROL PANEL** section at 
 ### Pillar 5: Management
 - **Jumpbox** with public IP enabled (RDP allowed from `allowed_jumpbox_source_ips`)
 - **Log Analytics** workspace (`log_retention_days = 30`, `log_daily_quota_gb = 2`)
-- **Recovery Services Vault** for VM backup
 - **Azure Workbooks** for monitoring dashboards
-- **Connection Monitor** for network connectivity testing
+- **Connection Monitor** enabled (uses DC01 as the source VM)
 - **Scheduled Start/Stop** for VMs (cost optimization)
+- **Recovery Services Vault** disabled in current profile
 
 ### Workloads
 - **Production workload** zone deployed with Load Balancer (2x IIS VMs)
-- **Development workload** zone deployed
-- **PaaS services**: Static Web App, Logic Apps, Event Grid, Service Bus, App Service, Cosmos DB
+- **Development workload** zone deployed (network only; no LB/IIS by default)
+- **PaaS services enabled**: Static Web App, Logic Apps, Event Grid, Service Bus, App Service, Cosmos DB
 
 ## What's off (cost savings)
 
@@ -61,7 +60,8 @@ For the full list of feature flags, see the **MASTER CONTROL PANEL** section at 
 - AKS
 - Azure Functions
 - Container Apps
-- HIPAA/PCI-DSS enforcement (audit only)
+- Recovery Services Vault (backup)
+- VNet Flow Logs and Traffic Analytics
 
 ## Access path
 
@@ -71,10 +71,10 @@ For the full list of feature flags, see the **MASTER CONTROL PANEL** section at 
 
 ## Key caveats and recommendations
 
-- ⚠️ Restrict `allowed_jumpbox_source_ips` from `0.0.0.0/0` to your IP range
-- ⚠️ Set `cost_alert_emails` to receive budget notifications
-- 💡 For production, enable `deploy_secondary_dc = true` for HA
-- 💡 Consider `deploy_vpn_gateway = true` for private access instead of public jumpbox
+- Restrict `allowed_jumpbox_source_ips` from `0.0.0.0/0` to your IP range.
+- Replace `cost_alert_emails` with real recipients for budget notifications.
+- For production, enable `deploy_secondary_dc = true` for HA.
+- Consider `deploy_vpn_gateway = true` for private access instead of public jumpbox.
 
 ## Quick flag snapshot (from `terraform.tfvars`)
 
@@ -86,8 +86,8 @@ deploy_vpn_gateway          = false
 deploy_application_gateway  = true
 appgw_waf_mode              = "Detection"
 deploy_nat_gateway          = true
-enable_vnet_flow_logs       = true
-enable_traffic_analytics    = true
+enable_vnet_flow_logs       = false
+enable_traffic_analytics    = false
 ```
 
 ### Pillar 2: Identity
@@ -97,32 +97,32 @@ deploy_secondary_dc = false
 
 ### Pillar 3: Governance
 ```hcl
-deploy_management_groups    = true
-deploy_azure_policy         = true
-deploy_cost_management      = true
-cost_budget_amount          = 1000
-deploy_rbac_custom_roles    = true
+deploy_management_groups     = true
+deploy_azure_policy          = true
+deploy_cost_management       = true
+cost_budget_amount           = 500
+deploy_rbac_custom_roles     = true
 deploy_regulatory_compliance = true
-compliance_enforcement_mode = "DoNotEnforce"
+compliance_enforcement_mode  = "DoNotEnforce"
 ```
 
 ### Pillar 4: Security
 ```hcl
-deploy_keyvault           = true
-deploy_storage            = true
-deploy_sql                = true
-deploy_private_dns_zones  = true
-deploy_private_endpoints  = true
+deploy_keyvault                    = true
+deploy_storage                     = true
+deploy_sql                         = true
+deploy_private_dns_zones           = true
+deploy_private_endpoints           = true
 deploy_application_security_groups = true
 ```
 
 ### Pillar 5: Management
 ```hcl
-enable_jumpbox_public_ip  = true
-deploy_log_analytics      = true
-deploy_backup             = true
-deploy_workbooks          = true
-deploy_connection_monitor = true
+enable_jumpbox_public_ip   = true
+deploy_log_analytics       = true
+deploy_backup              = false
+deploy_workbooks           = true
+deploy_connection_monitor  = true
 enable_scheduled_startstop = true
 ```
 
@@ -142,4 +142,5 @@ deploy_event_grid         = true
 deploy_service_bus        = true
 deploy_app_service        = true
 deploy_cosmos_db          = true
+deploy_container_apps     = false
 ```

@@ -504,7 +504,7 @@ variable "deploy_service_bus" {
 }
 
 variable "deploy_app_service" {
-  description = "Deploy Azure App Service (B1 Basic ~$13/month)"
+  description = "Deploy Azure App Service (F1 Free tier)"
   type        = bool
   default     = true
 }

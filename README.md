@@ -140,7 +140,7 @@ All PaaS services are **optional** and controlled via deployment flags:
 | **Full Hybrid** | Standard + VPN + On-Prem Simulation | ~45 min | ~$650-700 |
 | **Enterprise** | Full Hybrid + AKS + App Gateway | ~55 min | ~$850-950 |
 
-> **Current Default Config** (`terraform.tfvars`): Standard + PaaS + Network Add-ons (~$500-600/month)
+> **Current Default Config** (`terraform.tfvars`): Standard + PaaS + Network Add-ons + Dev VNet (VPN/AKS/Flow Logs/Backup off; ~$500-600/month)
 
 ---
 
