@@ -109,7 +109,21 @@ vm_size     = "Standard_B2s"
 sql_vm_size = "Standard_B2s"
 
 # =============================================================================
+# PAAS SETTINGS
+# =============================================================================
+paas_alternative_location = "canadacentral"
+cosmos_location           = "northeurope"
+
+# =============================================================================
+# WORKLOAD DEV NETWORK
+# =============================================================================
+workload_dev_address_space      = ["10.11.0.0/16"]
+workload_dev_web_subnet_prefix  = "10.11.1.0/24"
+workload_dev_app_subnet_prefix  = "10.11.2.0/24"
+workload_dev_data_subnet_prefix = "10.11.3.0/24"
+
+# =============================================================================
 # LOGGING (minimal retention)
 # =============================================================================
 log_retention_days = 30
-log_daily_quota_gb = 0.5
+log_daily_quota_gb = 2
