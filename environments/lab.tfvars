@@ -127,3 +127,14 @@ workload_dev_data_subnet_prefix = "10.11.3.0/24"
 # =============================================================================
 log_retention_days = 30
 log_daily_quota_gb = 2
+
+# =============================================================================
+# NETWORK WATCHER (use existing)
+# =============================================================================
+create_network_watcher = false
+network_watcher_name   = "NetworkWatcher_westus2"
+
+# =============================================================================
+# GOVERNANCE SETTINGS
+# =============================================================================
+policy_allowed_locations = ["eastus", "eastus2", "westeurope", "northeurope", "westus2", "canadacentral"]
