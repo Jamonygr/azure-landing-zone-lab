@@ -43,12 +43,12 @@ deploy_container_apps = false # Container Apps             ~$0-20
 deploy_functions      = false # Azure Functions            ~FREE
 
 # PaaS Services
-deploy_app_service    = true  # App Service                ~$15
-deploy_static_web_app = true  # Static Web App             FREE
-deploy_logic_apps     = true  # Logic Apps                 ~FREE
-deploy_event_grid     = true  # Event Grid                 FREE
-deploy_service_bus    = true  # Service Bus                ~$0.05
-deploy_cosmos_db      = true  # Cosmos DB Serverless       ~$0-5
+deploy_app_service    = true # App Service                ~$15
+deploy_static_web_app = true # Static Web App             FREE
+deploy_logic_apps     = true # Logic Apps                 ~FREE
+deploy_event_grid     = true # Event Grid                 FREE
+deploy_service_bus    = true # Service Bus                ~$0.05
+deploy_cosmos_db      = true # Cosmos DB Serverless       ~$0-5
 
 # Data & Security
 deploy_keyvault          = true  # Key Vault                  ~FREE
@@ -67,14 +67,14 @@ enable_vnet_flow_logs     = false # VNet Flow Logs             ~$1-5
 enable_traffic_analytics  = false # Traffic Analytics          ~$3
 
 # Governance & Compliance
-deploy_azure_policy          = true  # Azure Policy               FREE
-deploy_management_groups     = true  # Management Groups          FREE
-deploy_rbac_custom_roles     = true  # Custom RBAC Roles          FREE
-deploy_regulatory_compliance = true  # HIPAA/PCI-DSS Policies     FREE
+deploy_azure_policy          = true # Azure Policy               FREE
+deploy_management_groups     = true # Management Groups          FREE
+deploy_rbac_custom_roles     = true # Custom RBAC Roles          FREE
+deploy_regulatory_compliance = true # HIPAA/PCI-DSS Policies     FREE
 
 # Automation
-enable_auto_shutdown       = true  # VM Auto-Shutdown 7PM       SAVES $$$
-enable_scheduled_startstop = true  # Scheduled Start/Stop       ~$1
+enable_auto_shutdown       = true # VM Auto-Shutdown 7PM       SAVES $$$
+enable_scheduled_startstop = true # Scheduled Start/Stop       ~$1
 
 # =============================================================================
 # NETWORK CONFIGURATION

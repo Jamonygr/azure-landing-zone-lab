@@ -243,7 +243,7 @@ module "management" {
       email_address = "admin@example.com"
     }
   ]
-  monitored_vm_ids             = concat(
+  monitored_vm_ids = concat(
     [module.identity.dc01_id],
     var.deploy_secondary_dc ? [module.identity.dc02_id] : []
   )
