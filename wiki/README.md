@@ -75,6 +75,13 @@ The fastest way to change the footprint is the **MASTER CONTROL PANEL** at the t
 | [Current config (westus2 lab profile)](reference/current-config.md) | Snapshot of the active lab profile and access path. |
 | [Hardening checklist](reference/hardening.md) | Quick steps to lock down the current lab profile. |
 | [Lab testing guide](testing/lab-testing-guide.md) | Step-by-step validation checklist after deployment. |
+| **Certifications** ||
+| [Certification overview](certifications/README.md) | How to use the lab for AZ-104, AZ-305, and AZ-400 prep. |
+| [AZ-104 study path](certifications/az-104.md) | Administrator skills map and hands-on tasks. |
+| [AZ-305 study path](certifications/az-305.md) | Architecture design guidance and scenarios. |
+| [AZ-400 study path](certifications/az-400.md) | DevOps pipeline and IaC exercises. |
+| [Skill matrix](certifications/skill-matrix.md) | Mapping between exam areas and repo components. |
+| [Lab workbook](certifications/lab-workbook.md) | End-to-end lab checklist across all three exams. |
 
 ## Before you start
 

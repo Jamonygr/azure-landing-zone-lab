@@ -144,3 +144,39 @@ deploy_app_service        = true
 deploy_cosmos_db          = true
 deploy_container_apps     = false
 ```
+
+## Certification prep profiles (deltas from current lab profile)
+
+Use these as deltas on top of the current lab configuration when you want exam-specific coverage. Apply only the changes you need for cost or time constraints.
+
+### AZ-104 (Administrator)
+
+```hcl
+deploy_backup            = true
+deploy_vpn_gateway       = true
+deploy_onprem_simulation = true
+deploy_secondary_dc      = true
+enable_vnet_flow_logs    = true
+enable_traffic_analytics = true
+```
+
+If you need to keep cost down, skip VPN and on-prem simulation and keep the monitoring changes.
+
+### AZ-305 (Architect)
+
+```hcl
+deploy_vpn_gateway          = true
+deploy_onprem_simulation    = true
+deploy_secondary_dc         = true
+deploy_backup               = true
+enable_vnet_flow_logs       = true
+enable_traffic_analytics    = true
+compliance_enforcement_mode = "Default"
+enable_jumpbox_public_ip    = false
+```
+
+This profile is about design coverage. If you do not want to deploy VPN or on-prem, keep them as paper design exercises and document the tradeoffs.
+
+### AZ-400 (DevOps)
+
+No infrastructure changes are required. Keep the lab profile and focus on the pipeline and policy-as-code pieces in `.github/workflows/terraform.yml`, `.github/actions/`, and `policies/`.

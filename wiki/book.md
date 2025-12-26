@@ -5,9 +5,11 @@ This guide stitches the entire repository together so you can understand the Ter
 ## How to read this guide
 - **Part 1 – Orientation:** What lives where, how state and providers are set up, and how to flip the big feature toggles.
 - **Part 2 – Terraform logic:** How values flow from `terraform.tfvars` into locals, modules, and resources; how dependencies are expressed; and how optional components are wired.
-- **Part 3 – Modules and landing zones:** What each module deploys and how the hub/spoke/on-prem pieces fit together.
-- **Part 4 – CI/CD pipeline:** How the GitHub Actions workflow is structured, what each job does, and how composite actions work.
-- **Part 5 – Operating the lab:** Running plans and applies, cost controls, troubleshooting, and testing.
+- **Part 3 - Modules and landing zones:** What each module deploys and how the hub/spoke/on-prem pieces fit together.
+- **Part 4 - CI/CD pipeline:** How the GitHub Actions workflow is structured, what each job does, and how composite actions work.
+- **Part 5 - Operating the lab:** Running plans and applies, cost controls, troubleshooting, and testing.
+- **Part 10 - Certification alignment:** How the lab maps to AZ-104, AZ-305, and AZ-400 skills.
+- **Part 11 - Certification lab workbook:** A long-form checklist to practice each certification track.
 
 ---
 
@@ -286,7 +288,47 @@ This guide stitches the entire repository together so you can understand the Ter
 
 ---
 
-## Appendix – Quick links
+## Part 10 - Certification alignment (AZ-104, AZ-305, AZ-400)
+
+The certification guides translate this repo into exam-focused practice. They map the lab's landing zones, modules, and pipeline to the skills measured so you can practice on a single platform.
+
+### AZ-104 focus map
+- Operate the platform: identity, networking, compute, storage, monitoring.
+- Use the current lab profile with a few deltas (backup, VPN, flow logs).
+
+### AZ-305 focus map
+- Design tradeoffs: security vs. cost, private vs. public access, PaaS vs. IaaS.
+- Document architecture decisions and governance posture.
+
+### AZ-400 focus map
+- Use the GitHub Actions pipeline to practice CI/CD, security, and compliance.
+- Treat policy and security checks as code and wire them into the workflow.
+
+### Where to start
+- Certification overview: `certifications/README.md`
+- Skill matrix: `certifications/skill-matrix.md`
+- AZ-104 path: `certifications/az-104.md`
+- AZ-305 path: `certifications/az-305.md`
+- AZ-400 path: `certifications/az-400.md`
+
+---
+
+## Part 11 - Certification lab workbook
+
+The workbook is a long-form checklist that ties build, operate, and design tasks together. Use it to track progress and collect evidence for each exam.
+
+Highlights:
+- Baseline deployment and networking validation.
+- Governance and security hardening.
+- Compute and PaaS operations.
+- DevOps pipeline runs and security scans.
+- Architecture review and cost optimization.
+
+Start here: `certifications/lab-workbook.md`.
+
+---
+
+## Appendix - Quick links
 - Architecture overview: `wiki/architecture/overview.md`
 - Network topology: `wiki/architecture/network-topology.md`
 - Configuration flow: `wiki/architecture/configuration-flow.md`
@@ -297,3 +339,9 @@ This guide stitches the entire repository together so you can understand the Ter
 - State and secrets: `wiki/reference/state-and-secrets.md`
 - Hardening: `wiki/reference/hardening.md`
 - Naming conventions: `wiki/reference/naming-conventions.md`
+- Certification overview: `wiki/certifications/README.md`
+- AZ-104 study path: `wiki/certifications/az-104.md`
+- AZ-305 study path: `wiki/certifications/az-305.md`
+- AZ-400 study path: `wiki/certifications/az-400.md`
+- Skill matrix: `wiki/certifications/skill-matrix.md`
+- Lab workbook: `wiki/certifications/lab-workbook.md`
