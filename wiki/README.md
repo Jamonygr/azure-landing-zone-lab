@@ -1,12 +1,24 @@
 # Azure Landing Zone Lab documentation
 
-Azure Landing Zone Lab is a hands-on, Terraform-first walkthrough of the Cloud Adoption Framework hub-and-spoke design. It follows a **5-pillar architecture** (Networking, Identity, Governance, Security, Management) that maps directly to CAF best practices. This documentation is written for people who want to see the moving parts of an Azure landing zone without needing to be Terraform experts.
+Azure Landing Zone Lab is a hands-on, Terraform-first walkthrough of the Cloud Adoption Framework hub-and-spoke design. It follows a 5-pillar architecture (Networking, Identity, Governance, Security, Management) that maps directly to CAF best practices. This documentation is written for people who want to see the moving parts of an Azure landing zone without needing to be Terraform experts. It is lab-scoped by design.
+
+## What this lab is (and is not)
+
+- It is a runnable reference implementation of a CAF-aligned landing zone.
+- It is optimized for learning, experimentation, and repeatable demos.
+- It is not a production landing zone or a prescriptive enterprise blueprint.
 
 ## Who this is for
 
 - Cloud engineers who need a guided tour of CAF concepts backed by runnable code.
 - Students and hobbyists who want a safe sandbox to learn hybrid networking, firewalls, and PaaS.
 - Teams evaluating landing-zone patterns before building out an enterprise platform.
+
+## Foundations (CAF + Entra)
+
+If you are new to the concepts, start with the foundations page for a short, lab-focused summary of the Cloud Adoption Framework and Microsoft Entra.
+
+- [Foundations: CAF and Entra](architecture/foundations.md)
 
 ## The 5-Pillar Architecture
 
@@ -28,21 +40,28 @@ Azure Landing Zone Lab is a hands-on, Terraform-first walkthrough of the Cloud A
 
 Everything is controlled with variables and feature flags so you can scale the footprint up or down to fit a demo or proof of concept.
 
-The fastest way to change the footprint is the **MASTER CONTROL PANEL** at the top of `terraform.tfvars` (all `deploy_*` / `enable_*` switches in one place).
+The fastest way to change the footprint is the MASTER CONTROL PANEL at the top of `terraform.tfvars` (all `deploy_*` / `enable_*` switches in one place).
 
 ## How to use these docs
 
-1) Start with **Architecture** to see how the Terraform files fit together.  
-2) Move to **Landing zones** to understand each slice of the platform.  
-3) Check **Modules** if you want to reuse a building block in your own code.  
-4) Refer to **Reference** for variables, outputs, and naming while you edit `terraform.tfvars`.  
-5) Use **Lab testing** after your first apply to confirm everything works end to end.
+1) Start with Architecture to see how the Terraform files fit together.
+2) Move to Landing zones to understand each slice of the platform.
+3) Check Modules if you want to reuse a building block in your own code.
+4) Refer to Reference for variables, outputs, and naming while you edit `terraform.tfvars`.
+5) Use Lab testing after your first apply to confirm everything works end to end.
+
+## Doc conventions
+
+- Feature flags use `deploy_*` and `enable_*` names and live in `terraform.tfvars`.
+- Environment profiles live in `environments/*.tfvars` and map to separate state keys.
+- Cost notes are estimates for lab planning, not pricing guarantees.
 
 ## Article map
 
 | Topic | What you will learn |
 |-------|---------------------|
 | [Book-style guide](book.md) | A-to-Z walkthrough of the codebase, Terraform logic, and pipeline in narrative form. |
+| [Foundations: CAF and Entra](architecture/foundations.md) | The Microsoft foundations this lab maps to and why they matter. |
 | [Architecture overview](architecture/overview.md) | How the root module orchestrates the 5-pillar architecture. |
 | [Network topology](architecture/network-topology.md) | Address spaces, subnets, peering, and routing choices. |
 | [Security model](architecture/security-model.md) | How firewall, NSGs, and diagnostics layer together. |
@@ -69,9 +88,9 @@ The fastest way to change the footprint is the **MASTER CONTROL PANEL** at the t
 | [Outputs reference](reference/outputs.md) | What the deployment returns for downstream use. |
 | [Naming conventions](reference/naming-conventions.md) | CAF-aligned names and tags used throughout. |
 | [Terraform patterns](reference/terraform-patterns.md) | Reusable HCL idioms in this repo. |
-| [**CI/CD Pipeline**](reference/pipeline.md) | GitHub Actions workflow for automated deployments. |
-| [**Pipeline Templates**](reference/pipeline-templates.md) | 2-level templatized architecture (composite actions + orchestrator). |
-| [**Remote State & Secrets**](reference/state-and-secrets.md) | Terraform state storage and GitHub secret management. |
+| [CI/CD Pipeline](reference/pipeline.md) | GitHub Actions workflow for automated deployments. |
+| [Pipeline Templates](reference/pipeline-templates.md) | Two-level templatized architecture (composite actions plus orchestrator). |
+| [Remote State and Secrets](reference/state-and-secrets.md) | Terraform state storage and GitHub secret management. |
 | [Current config (westus2 lab profile)](reference/current-config.md) | Snapshot of the active lab profile and access path. |
 | [Hardening checklist](reference/hardening.md) | Quick steps to lock down the current lab profile. |
 | [Lab testing guide](testing/lab-testing-guide.md) | Step-by-step validation checklist after deployment. |
@@ -85,22 +104,23 @@ The fastest way to change the footprint is the **MASTER CONTROL PANEL** at the t
 
 ## Before you start
 
-- Azure subscription with Owner or Contributor rights.
+- Azure subscription with Owner or Contributor rights (Owner recommended for policy and RBAC assignments).
 - Terraform 1.9 or later.
 - Azure CLI signed in (`az login`).
 - Rough budget awareness: Azure Firewall and VPN Gateway accrue notable hourly cost. Toggle `deploy_firewall` or `deploy_vpn_gateway` to control spend.
 
-> **Note:** This project uses both **AzureRM** (~> 4.0) and **AzAPI** (~> 2.0) providers. AzAPI is required for VNet Flow Logs (the modern replacement for deprecated NSG Flow Logs).
+Note: This project uses both AzureRM (~> 4.0) and AzAPI (~> 2.0) providers. AzAPI is required for VNet Flow Logs (the modern replacement for deprecated NSG Flow Logs).
 
 ## Quick path
 
-1. Copy `terraform.tfvars.example` to `terraform.tfvars`.  
-2. Set your subscription ID, admin credentials, and any feature flags.  
-3. Run `terraform init`, then `terraform apply`.  
+1. Copy `terraform.tfvars.example` to `terraform.tfvars`.
+2. Set your subscription ID, admin credentials, and any feature flags.
+3. Run `terraform init`, then `terraform apply`.
 4. Use the outputs file to connect to VMs, firewall, and VPN endpoints.
 
 ## Helpful Microsoft resources
 
-- [Cloud Adoption Framework](https://learn.microsoft.com/azure/cloud-adoption-framework/) for the concepts behind this lab.
-- [Azure Landing Zones](https://learn.microsoft.com/azure/architecture/landing-zones/) for design guidance.
-- [Terraform AzureRM provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs) for resource-specific settings.
+- Cloud Adoption Framework: https://learn.microsoft.com/azure/cloud-adoption-framework/
+- Microsoft Entra fundamentals: https://learn.microsoft.com/entra/fundamentals/what-is-entra
+- Azure Landing Zones: https://learn.microsoft.com/azure/architecture/landing-zones/
+- Terraform AzureRM provider: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs

@@ -1,12 +1,21 @@
 # Identity landing zone (Pillar 2: Identity Management)
 
-The identity landing zone provides DNS and Active Directory for the entire lab and represents **Pillar 2** of the 5-pillar Azure Landing Zone architecture. Other zones point to these domain controllers for name resolution so services can find each other by name instead of IP.
+The identity landing zone provides DNS and Active Directory for the entire lab and represents Pillar 2 of the 5-pillar Azure Landing Zone architecture. Other zones point to these domain controllers for name resolution so services can find each other by name instead of IP.
+
+This pillar complements Microsoft Entra. Entra handles Azure access and RBAC, while these AD DS VMs provide a traditional Windows domain for workloads that expect it.
 
 ## What you will learn
 
-- What the identity zone deploys and how it fits into the hub-and-spoke layout.  
-- Which settings control the number of domain controllers and their IPs.  
+- What the identity zone deploys and how it fits into the hub-and-spoke layout.
+- How Entra and AD DS split responsibilities in this lab.
+- Which settings control the number of domain controllers and their IPs.
 - What outputs other zones need from identity.
+
+## Identity boundaries in this lab
+
+- Microsoft Entra ID is the identity control plane for Azure access and Terraform automation.
+- Active Directory Domain Services (AD DS) in the identity VNet provides Windows domain join and DNS for workloads.
+- VNets use the AD DS IPs as custom DNS so name resolution is consistent across spokes.
 
 ## What it deploys
 
@@ -45,10 +54,23 @@ The identity landing zone provides DNS and Active Directory for the entire lab a
 
 ## How it behaves
 
-- DNS IPs are exported so every other landing zone can simply reuse them; you do not have to hard-code DNS anywhere else.  
-- NSG rules scope inbound RDP and directory traffic to the hub or on-premises prefixes, reducing exposure.  
+- DNS IPs are exported so every other landing zone can simply reuse them; you do not have to hard-code DNS anywhere else.
+- NSG rules scope inbound RDP and directory traffic to the hub or on-premises prefixes, reducing exposure.
 - When the firewall is enabled, the route table pushes outbound traffic back to the hub for inspection.
-- VNet peering to hub is created with DNS forwarding enabled.
+- VNet peering to the hub is created with DNS forwarding enabled.
+
+## Operational notes
+
+- Patch and reboot the DCs like any other Windows Server VM.
+- Rotate admin passwords in `terraform.tfvars` if you rebuild or share the lab.
+- Consider enabling backup for DCs in longer-lived environments.
+- Keep time synchronization healthy; AD DS is sensitive to clock drift.
+
+## Common pitfalls
+
+- Incorrect DNS settings in spoke VNets cause domain join and name resolution failures.
+- Blocking ports between spokes and the identity VNet prevents AD DS traffic.
+- Turning on the firewall without updating routes can strand traffic from the DCs.
 
 ## When to add the secondary DC
 
