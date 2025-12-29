@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-label="Lab scenarios overview">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f7fbff"/>
+      <stop offset="100%" stop-color="#eaf2fb"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="520" fill="url(#bg)"/>
+
+  <text x="600" y="55" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#0b1f3a">
+    Lab Scenarios
+  </text>
+
+  <rect x="60" y="90" width="500" height="170" rx="18" fill="#ffffff" stroke="#d7e2f0" stroke-width="2"/>
+  <rect x="640" y="90" width="500" height="170" rx="18" fill="#ffffff" stroke="#d7e2f0" stroke-width="2"/>
+  <rect x="60" y="290" width="500" height="170" rx="18" fill="#ffffff" stroke="#d7e2f0" stroke-width="2"/>
+  <rect x="640" y="290" width="500" height="170" rx="18" fill="#ffffff" stroke="#d7e2f0" stroke-width="2"/>
+
+  <g transform="translate(90 135)" stroke="#0f4c81" stroke-width="3" fill="#00b7c3">
+    <line x1="0" y1="28" x2="30" y2="6"/>
+    <line x1="30" y1="6" x2="60" y2="28"/>
+    <line x1="0" y1="28" x2="60" y2="28"/>
+    <circle cx="0" cy="28" r="7"/>
+    <circle cx="30" cy="6" r="7"/>
+    <circle cx="60" cy="28" r="7"/>
+  </g>
+  <text x="170" y="150" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#0b1f3a">
+    Hub-Spoke Fundamentals
+  </text>
+  <text x="170" y="178" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#526a86">
+    VNet peering, routing, and connectivity
+  </text>
+
+  <g transform="translate(670 130)" stroke="#0f4c81" stroke-width="3" fill="#ffb900">
+    <rect x="0" y="30" width="70" height="28" rx="6" fill="none"/>
+    <rect x="10" y="0" width="20" height="20" rx="4"/>
+    <rect x="40" y="0" width="20" height="20" rx="4"/>
+    <line x1="35" y1="20" x2="35" y2="30"/>
+  </g>
+  <text x="750" y="150" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#0b1f3a">
+    Load Balancing and HA
+  </text>
+  <text x="750" y="178" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#526a86">
+    Probes, rules, and failover
+  </text>
+
+  <g transform="translate(90 335)" stroke="#0f4c81" stroke-width="3" fill="#00b7c3">
+    <circle cx="10" cy="20" r="10"/>
+    <circle cx="60" cy="20" r="10"/>
+    <line x1="20" y1="20" x2="50" y2="20"/>
+  </g>
+  <text x="170" y="350" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#0b1f3a">
+    Hybrid Connectivity
+  </text>
+  <text x="170" y="378" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#526a86">
+    VPN gateway and on-prem simulation
+  </text>
+
+  <g transform="translate(670 330)" fill="#ffb900" stroke="#0f4c81" stroke-width="3">
+    <path d="M30 0 L58 10 L58 30 C58 48 44 62 30 68 C16 62 2 48 2 30 L2 10 Z"/>
+    <circle cx="75" cy="52" r="10" fill="#00b7c3"/>
+    <line x1="68" y1="59" x2="82" y2="73"/>
+  </g>
+  <text x="750" y="350" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#0b1f3a">
+    Security Monitoring
+  </text>
+  <text x="750" y="378" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#526a86">
+    Firewall logs and alerts
+  </text>
+</svg>

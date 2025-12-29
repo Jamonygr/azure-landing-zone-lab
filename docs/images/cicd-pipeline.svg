@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-label="CI/CD pipeline stages">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f7fbff"/>
+      <stop offset="100%" stop-color="#eaf2fb"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#7aa9d8"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="320" fill="url(#bg)"/>
+
+  <text x="600" y="50" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700" text-anchor="middle" fill="#0b1f3a">
+    CI/CD Pipeline
+  </text>
+
+  <g stroke="#7aa9d8" stroke-width="2" marker-end="url(#arrow)">
+    <line x1="180" y1="150" x2="200" y2="150"/>
+    <line x1="320" y1="150" x2="340" y2="150"/>
+    <line x1="460" y1="150" x2="480" y2="150"/>
+    <line x1="600" y1="150" x2="620" y2="150"/>
+    <line x1="740" y1="150" x2="760" y2="150"/>
+    <line x1="880" y1="150" x2="900" y2="150"/>
+    <line x1="1020" y1="150" x2="1040" y2="150"/>
+  </g>
+
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="600" fill="#0b1f3a" text-anchor="middle">
+    <rect x="60" y="120" width="120" height="60" rx="10" fill="#ffffff" stroke="#7aa9d8" stroke-width="2"/>
+    <text x="120" y="155">Format</text>
+
+    <rect x="200" y="120" width="120" height="60" rx="10" fill="#ffffff" stroke="#7aa9d8" stroke-width="2"/>
+    <text x="260" y="155">Validate</text>
+
+    <rect x="340" y="120" width="120" height="60" rx="10" fill="#ffffff" stroke="#7aa9d8" stroke-width="2"/>
+    <text x="400" y="155">Security</text>
+
+    <rect x="480" y="120" width="120" height="60" rx="10" fill="#ffffff" stroke="#7aa9d8" stroke-width="2"/>
+    <text x="540" y="155">Lint</text>
+
+    <rect x="620" y="120" width="120" height="60" rx="10" fill="#ffffff" stroke="#7aa9d8" stroke-width="2"/>
+    <text x="680" y="155">Analysis</text>
+
+    <rect x="760" y="120" width="120" height="60" rx="10" fill="#ffffff" stroke="#7aa9d8" stroke-width="2"/>
+    <text x="820" y="155">Plan</text>
+
+    <rect x="900" y="120" width="120" height="60" rx="10" fill="#ffffff" stroke="#7aa9d8" stroke-width="2"/>
+    <text x="960" y="148">Apply</text>
+    <text x="960" y="164">Destroy</text>
+
+    <rect x="1040" y="120" width="120" height="60" rx="10" fill="#ffffff" stroke="#7aa9d8" stroke-width="2"/>
+    <text x="1100" y="155">Metrics</text>
+  </g>
+</svg>

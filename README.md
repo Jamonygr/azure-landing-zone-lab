@@ -32,6 +32,15 @@
 [![AzAPI](https://img.shields.io/badge/AzAPI-~>2.0-blue?logo=microsoftazure)](https://registry.terraform.io/providers/Azure/azapi/latest)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+<p align="center">
+  <img src="docs/images/hero-landing-zone.svg" alt="Azure Landing Zone Lab banner" width="1000" />
+</p>
+
+<p align="center">
+  <img src="docs/images/overview-components.svg" alt="Core pillars overview" width="1000" />
+</p>
+
+
 Learn Azure the right way—by building it. This Terraform project deploys a complete enterprise cloud environment you can explore, break, and rebuild. Covers networking, security, hybrid connectivity, containers, and Windows workloads following Microsoft Cloud Adoption Framework (CAF) best practices.
 
 > 💡 **Hands-on Learning**: Deploy real enterprise infrastructure in minutes. Perfect for Azure certifications (AZ-104, AZ-305, AZ-700), team training, or validating architectures before production.
@@ -146,6 +155,11 @@ All PaaS services are **optional** and controlled via deployment flags:
 
 ## 🏛️ Architecture Diagram
 
+<p align="center">
+  <img src="docs/images/architecture-overview.svg" alt="Architecture overview diagram" width="1000" />
+</p>
+
+
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                              AZURE CLOUD                                                              │
@@ -222,6 +236,11 @@ All PaaS services are **optional** and controlled via deployment flags:
 ---
 
 ## 🧪 Lab Scenarios
+
+<p align="center">
+  <img src="docs/images/lab-scenarios.svg" alt="Lab scenarios overview" width="1000" />
+</p>
+
 
 This landing zone supports multiple hands-on lab scenarios for learning and testing. Each scenario builds on the core infrastructure.
 
@@ -408,6 +427,11 @@ Use this checklist to track your learning progress:
 
 ## 🔄 Traffic Flow
 
+<p align="center">
+  <img src="docs/images/traffic-flow.svg" alt="Traffic flow diagram" width="1000" />
+</p>
+
+
 ### Network Traffic Patterns
 
 ```
@@ -533,6 +557,11 @@ The configuration automatically excludes the web subnet from firewall routing wh
 
 ## 🌐 Network Topology
 
+<p align="center">
+  <img src="docs/images/network-topology.svg" alt="Network topology overview" width="1000" />
+</p>
+
+
 ### Address Space Allocation
 
 | Network | CIDR | Purpose |
@@ -622,6 +651,11 @@ terraform destroy
 ---
 
 ## 🔄 CI/CD Pipeline
+
+<p align="center">
+  <img src="docs/images/cicd-pipeline.svg" alt="CI/CD pipeline diagram" width="1000" />
+</p>
+
 
 The GitHub Actions workflow (`.github/workflows/terraform.yml`) now has **15 visible jobs** that cover formatting, validation, security, linting, docs, analysis, cost estimation, plan/apply/destroy, and metrics. It orchestrates composite actions in `.github/actions/` for Terraform operations, state backup, inventories, changelog generation, graphs, and reporting.
 

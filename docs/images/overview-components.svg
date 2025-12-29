@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-label="Core pillars overview">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f7fbff"/>
+      <stop offset="100%" stop-color="#eaf2fb"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="520" fill="url(#bg)"/>
+
+  <text x="600" y="55" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#0b1f3a">
+    Core Pillars
+  </text>
+
+  <rect x="60" y="90" width="320" height="170" rx="18" fill="#ffffff" stroke="#d7e2f0" stroke-width="2"/>
+  <rect x="430" y="90" width="320" height="170" rx="18" fill="#ffffff" stroke="#d7e2f0" stroke-width="2"/>
+  <rect x="800" y="90" width="320" height="170" rx="18" fill="#ffffff" stroke="#d7e2f0" stroke-width="2"/>
+  <rect x="60" y="290" width="320" height="170" rx="18" fill="#ffffff" stroke="#d7e2f0" stroke-width="2"/>
+  <rect x="430" y="290" width="320" height="170" rx="18" fill="#ffffff" stroke="#d7e2f0" stroke-width="2"/>
+  <rect x="800" y="290" width="320" height="170" rx="18" fill="#ffffff" stroke="#d7e2f0" stroke-width="2"/>
+
+  <g transform="translate(90 125)" stroke="#0f4c81" stroke-width="3" fill="#00b7c3">
+    <line x1="0" y1="28" x2="30" y2="6"/>
+    <line x1="30" y1="6" x2="60" y2="28"/>
+    <line x1="0" y1="28" x2="60" y2="28"/>
+    <circle cx="0" cy="28" r="7"/>
+    <circle cx="30" cy="6" r="7"/>
+    <circle cx="60" cy="28" r="7"/>
+  </g>
+  <text x="90" y="220" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#0b1f3a">
+    Networking
+  </text>
+
+  <g transform="translate(460 118)" fill="#ffb900" stroke="#0f4c81" stroke-width="3">
+    <path d="M30 0 L58 10 L58 30 C58 48 44 62 30 68 C16 62 2 48 2 30 L2 10 Z"/>
+  </g>
+  <text x="460" y="220" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#0b1f3a">
+    Security
+  </text>
+
+  <g transform="translate(830 122)" fill="#00b7c3" stroke="#0f4c81" stroke-width="3">
+    <circle cx="30" cy="12" r="12"/>
+    <rect x="12" y="28" width="36" height="28" rx="14"/>
+  </g>
+  <text x="830" y="220" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#0b1f3a">
+    Identity
+  </text>
+
+  <g transform="translate(90 322)" stroke="#0f4c81" stroke-width="4" fill="#00b7c3">
+    <line x1="0" y1="10" x2="70" y2="10"/>
+    <circle cx="20" cy="10" r="6"/>
+    <line x1="0" y1="30" x2="70" y2="30"/>
+    <circle cx="50" cy="30" r="6"/>
+    <line x1="0" y1="50" x2="70" y2="50"/>
+    <circle cx="35" cy="50" r="6"/>
+  </g>
+  <text x="90" y="420" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#0b1f3a">
+    Management
+  </text>
+
+  <g transform="translate(460 320)" stroke="#0f4c81" stroke-width="3" fill="#ffb900">
+    <line x1="35" y1="0" x2="35" y2="50"/>
+    <line x1="5" y1="10" x2="65" y2="10"/>
+    <line x1="15" y1="10" x2="5" y2="35"/>
+    <line x1="55" y1="10" x2="65" y2="35"/>
+    <circle cx="5" cy="40" r="7"/>
+    <circle cx="65" cy="40" r="7"/>
+  </g>
+  <text x="460" y="420" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#0b1f3a">
+    Governance
+  </text>
+
+  <g transform="translate(830 320)" stroke="#0f4c81" stroke-width="3" fill="none">
+    <ellipse cx="35" cy="20" rx="30" ry="14"/>
+    <circle cx="35" cy="20" r="6" fill="#00b7c3"/>
+  </g>
+  <text x="830" y="420" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" fill="#0b1f3a">
+    Observability
+  </text>
+</svg>

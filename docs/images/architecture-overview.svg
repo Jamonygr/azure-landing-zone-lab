@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-label="Hub and spoke architecture overview">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f7fbff"/>
+      <stop offset="100%" stop-color="#eaf2fb"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#7aa9d8"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="720" fill="url(#bg)"/>
+
+  <g fill="#ffffff" opacity="0.9">
+    <circle cx="600" cy="70" r="28"/>
+    <circle cx="635" cy="60" r="34"/>
+    <circle cx="670" cy="72" r="26"/>
+    <rect x="575" y="70" width="110" height="40" rx="20"/>
+  </g>
+  <text x="600" y="125" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#0b1f3a">
+    Internet
+  </text>
+
+  <g stroke="#7aa9d8" stroke-width="3" marker-end="url(#arrow)">
+    <line x1="600" y1="120" x2="600" y2="300"/>
+    <line x1="600" y1="360" x2="240" y2="190"/>
+    <line x1="600" y1="360" x2="960" y2="190"/>
+    <line x1="600" y1="360" x2="240" y2="530"/>
+    <line x1="600" y1="360" x2="960" y2="530"/>
+  </g>
+
+  <rect x="470" y="300" width="260" height="120" rx="18" fill="#0f4c81"/>
+  <text x="600" y="348" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#ffffff">
+    Hub VNet
+  </text>
+  <text x="600" y="378" font-family="Segoe UI, Arial, sans-serif" font-size="14" text-anchor="middle" fill="#d7e2f0">
+    Firewall, VPN, App Gateway
+  </text>
+
+  <rect x="120" y="140" width="240" height="100" rx="16" fill="#ffffff" stroke="#7aa9d8" stroke-width="2"/>
+  <text x="240" y="190" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" text-anchor="middle" fill="#0b1f3a">
+    Identity
+  </text>
+  <text x="240" y="212" font-family="Segoe UI, Arial, sans-serif" font-size="12" text-anchor="middle" fill="#526a86">
+    Domain Controllers
+  </text>
+
+  <rect x="840" y="140" width="240" height="100" rx="16" fill="#ffffff" stroke="#7aa9d8" stroke-width="2"/>
+  <text x="960" y="190" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" text-anchor="middle" fill="#0b1f3a">
+    Management
+  </text>
+  <text x="960" y="212" font-family="Segoe UI, Arial, sans-serif" font-size="12" text-anchor="middle" fill="#526a86">
+    Jumpbox, Monitoring
+  </text>
+
+  <rect x="120" y="480" width="240" height="100" rx="16" fill="#ffffff" stroke="#7aa9d8" stroke-width="2"/>
+  <text x="240" y="530" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" text-anchor="middle" fill="#0b1f3a">
+    Shared Services
+  </text>
+  <text x="240" y="552" font-family="Segoe UI, Arial, sans-serif" font-size="12" text-anchor="middle" fill="#526a86">
+    Key Vault, Storage
+  </text>
+
+  <rect x="840" y="480" width="240" height="100" rx="16" fill="#ffffff" stroke="#7aa9d8" stroke-width="2"/>
+  <text x="960" y="530" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" text-anchor="middle" fill="#0b1f3a">
+    Workload
+  </text>
+  <text x="960" y="552" font-family="Segoe UI, Arial, sans-serif" font-size="12" text-anchor="middle" fill="#526a86">
+    Web, App, Data
+  </text>
+</svg>

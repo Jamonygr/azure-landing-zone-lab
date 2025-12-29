@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-label="Azure Landing Zone Lab hero banner">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b1f3a"/>
+      <stop offset="100%" stop-color="#0f4c81"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="420" fill="url(#bg)"/>
+  <circle cx="120" cy="70" r="60" fill="#ffffff" opacity="0.06"/>
+  <circle cx="180" cy="330" r="80" fill="#ffffff" opacity="0.05"/>
+  <circle cx="980" cy="60" r="50" fill="#ffffff" opacity="0.05"/>
+  <circle cx="1040" cy="360" r="70" fill="#ffffff" opacity="0.04"/>
+
+  <g stroke="#7aa9d8" stroke-width="2" opacity="0.6">
+    <line x1="760" y1="120" x2="900" y2="70"/>
+    <line x1="760" y1="120" x2="900" y2="150"/>
+    <line x1="900" y1="70" x2="1020" y2="110"/>
+    <line x1="900" y1="150" x2="1020" y2="110"/>
+  </g>
+  <g fill="#00b7c3">
+    <circle cx="760" cy="120" r="8"/>
+    <circle cx="900" cy="70" r="8"/>
+    <circle cx="900" cy="150" r="8"/>
+    <circle cx="1020" cy="110" r="8"/>
+  </g>
+
+  <g fill="#ffffff" opacity="0.12">
+    <circle cx="940" cy="260" r="36"/>
+    <circle cx="990" cy="240" r="44"/>
+    <circle cx="1040" cy="262" r="34"/>
+    <rect x="905" y="260" width="170" height="55" rx="28"/>
+  </g>
+
+  <text x="80" y="150" font-family="Segoe UI, Arial, sans-serif" font-size="52" font-weight="700" fill="#ffffff">
+    Azure Landing Zone Lab
+  </text>
+  <text x="80" y="195" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#d7e2f0">
+    Enterprise-ready Azure lab for networking, security, and hybrid scenarios.
+  </text>
+
+  <g>
+    <rect x="80" y="230" width="110" height="30" rx="15" fill="#00b7c3"/>
+    <text x="96" y="250" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#0b1f3a">
+      Terraform
+    </text>
+    <rect x="200" y="230" width="110" height="30" rx="15" fill="#ffb900"/>
+    <text x="222" y="250" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#0b1f3a">
+      AzureRM
+    </text>
+    <rect x="320" y="230" width="140" height="30" rx="15" fill="#7fba00"/>
+    <text x="340" y="250" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#0b1f3a">
+      CAF aligned
+    </text>
+  </g>
+</svg>
