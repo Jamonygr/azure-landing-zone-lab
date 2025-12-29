@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-label="Virtual WAN architecture overview">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-label="Virtual network topology overview">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#f7fbff"/>
@@ -11,7 +11,7 @@
   <rect width="1200" height="700" fill="url(#bg)"/>
 
   <text x="600" y="50" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#0b1f3a">
-    Virtual WAN Architecture
+    Virtual Network Topology
   </text>
 
   <g stroke="#7aa9d8" stroke-width="3" marker-end="url(#arrow)">
