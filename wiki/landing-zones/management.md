@@ -1,5 +1,10 @@
 # Management landing zone (Pillar 5: Management)
 
+<p align="center">
+  <img src="../images/landing-zones-management.svg" alt="Management landing zone (Pillar 5: Management) banner" width="1000" />
+</p>
+
+
 The management landing zone gives administrators a safe entry point and a place to collect logs. It represents **Pillar 5** of the 5-pillar Azure Landing Zone architecture and hosts the jumpbox VM, Log Analytics workspace, backup, automation, and monitoring that many other services rely on.
 
 ## What you will learn
@@ -88,3 +93,10 @@ The management zone also supports workload-level management through:
 ## Next step
 
 Review the [security landing zone](shared-services.md) (Pillar 4) for Key Vault, storage, SQL, and private endpoints.
+
+## Related pages
+
+- [Monitoring modules](../modules/monitoring.md)
+- [Outputs reference](../reference/outputs.md)
+- [Lab testing guide](../testing/lab-testing-guide.md)
+- [Workload landing zone](workload.md)

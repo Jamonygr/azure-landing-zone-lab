@@ -1,5 +1,10 @@
 # Hub landing zone (Pillar 1: Networking)
 
+<p align="center">
+  <img src="../images/landing-zones-hub.svg" alt="Hub landing zone (Pillar 1: Networking) banner" width="1000" />
+</p>
+
+
 The hub is the centre of the network and represents **Pillar 1** of the 5-pillar Azure Landing Zone architecture. It hosts the firewall, optional VPN gateway, NAT Gateway, and optional Application Gateway. Every spoke VNet peers back here, and most traffic passes through it for inspection.
 
 ## What you will learn
@@ -80,3 +85,9 @@ The hub is the centre of the network and represents **Pillar 1** of the 5-pillar
 ## Next step
 
 Move to the [identity landing zone](identity.md) (Pillar 2) to add DNS and Active Directory for the platform.
+
+## Related pages
+
+- [Network topology](../architecture/network-topology.md)
+- [Networking modules](../modules/networking.md)
+- [Variables reference](../reference/variables.md)

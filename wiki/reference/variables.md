@@ -1,5 +1,10 @@
 # Variables reference
 
+<p align="center">
+  <img src="../images/reference-variables.svg" alt="Variables reference banner" width="1000" />
+</p>
+
+
 This page summarizes the root input variables you set in `terraform.tfvars`. The variables are organized by the 5-pillar architecture. For full definitions and defaults, see `variables.tf`.
 
 ## Context and basics
@@ -171,3 +176,9 @@ This page summarizes the root input variables you set in `terraform.tfvars`. The
 | `enable_auto_shutdown` | `true` | Auto-shutdown VMs at 7 PM |
 | `aks_node_count` | `1` | AKS node count |
 | `aks_vm_size` | `Standard_B2s` | AKS node size |
+
+## Related pages
+
+- [Configuration flow](../architecture/configuration-flow.md)
+- [Current lab configuration (lab profile)](current-config.md)
+- [Outputs reference](outputs.md)

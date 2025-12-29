@@ -1,5 +1,10 @@
 # Compute modules
 
+<p align="center">
+  <img src="../images/modules-compute.svg" alt="Compute modules banner" width="1000" />
+</p>
+
+
 These modules create Windows VMs used throughout the lab. They are primarily used by **Pillar 2: Identity Management** (Domain Controllers) and **Pillar 5: Management** (Jumpbox, Web Servers). They keep VM setup small and predictable so you can focus on networking and platform behavior.
 
 ## Module summary
@@ -131,3 +136,8 @@ module "web_servers" {
 - Use B-series VMs for lab/dev workloads
 - Consider Reserved Instances for long-running labs
 
+## Related pages
+
+- [Identity landing zone (Pillar 2: Identity Management)](../landing-zones/identity.md)
+- [Management landing zone (Pillar 5: Management)](../landing-zones/management.md)
+- [Workload landing zone](../landing-zones/workload.md)

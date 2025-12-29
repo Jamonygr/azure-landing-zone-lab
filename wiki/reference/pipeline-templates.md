@@ -1,5 +1,10 @@
 # Pipeline Templates Architecture
 
+<p align="center">
+  <img src="../images/reference-pipeline-templates.svg" alt="Pipeline Templates Architecture banner" width="1000" />
+</p>
+
+
 This document describes the 2-level templatized pipeline architecture for the Azure Landing Zone lab.
 
 ## Overview
@@ -376,3 +381,8 @@ my-job:
 - [Pipeline Overview](pipeline.md) - Main pipeline documentation with setup instructions
 - [GitHub Actions - Composite Actions](https://docs.github.com/en/actions/creating-actions/creating-a-composite-action)
 - [GitHub Actions - Reusing Workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows)
+
+## Related pages
+
+- [AZ-400 study path (Designing and Implementing Microsoft DevOps Solutions)](../certifications/az-400.md)
+- [Remote State & Secrets Management](state-and-secrets.md)

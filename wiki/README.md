@@ -1,5 +1,10 @@
 # Azure Landing Zone Lab documentation
 
+<p align="center">
+  <img src="images/readme.svg" alt="Azure Landing Zone Lab documentation banner" width="1000" />
+</p>
+
+
 Azure Landing Zone Lab is a hands-on, Terraform-first walkthrough of the Cloud Adoption Framework hub-and-spoke design. It follows a 5-pillar architecture (Networking, Identity, Governance, Security, Management) that maps directly to CAF best practices. This documentation is written for people who want to see the moving parts of an Azure landing zone without needing to be Terraform experts. It is lab-scoped by design.
 
 ## What this lab is (and is not)

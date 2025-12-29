@@ -1,5 +1,10 @@
 # Workload landing zone
 
+<p align="center">
+  <img src="../images/landing-zones-workload.svg" alt="Workload landing zone banner" width="1000" />
+</p>
+
+
 The workload landing zone is where you try application scenarios. It is managed through the **Management pillar (Pillar 5)** and can be deployed as many times as you like (prod, dev, or both) using the same module. It includes subnets for web, app, and data tiers, plus optional AKS and PaaS services.
 
 ## What you will learn
@@ -133,3 +138,10 @@ Toggle the individual flags to see how different Azure services are provisioned.
 ## Next step
 
 If you want to exercise hybrid scenarios, read about the [on-premises simulated landing zone](onprem-simulated.md). Otherwise, jump to the [modules documentation](../modules/README.md) to see how each building block works.
+
+## Related pages
+
+- [Compute modules](../modules/compute.md)
+- [PaaS modules](../modules/paas.md)
+- [Network topology](../architecture/network-topology.md)
+- [Variables reference](../reference/variables.md)

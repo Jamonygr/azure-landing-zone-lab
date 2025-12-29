@@ -1,5 +1,10 @@
 # Certification alignment
 
+<p align="center">
+  <img src="../images/certifications-readme.svg" alt="Certification alignment banner" width="1000" />
+</p>
+
+
 This section extends the Azure Landing Zone Lab documentation with certification-focused study paths for AZ-104, AZ-305, and AZ-400. The goal is to map the lab's Terraform configuration, landing zones, and pipeline to the skills measured so you can practice on real infrastructure rather than isolated demos.
 
 Microsoft updates exam skill outlines regularly. Use these guides as a lab map, and verify any exam objectives against the official skills outline before you schedule.
@@ -39,3 +44,7 @@ Microsoft updates exam skill outlines regularly. Use these guides as a lab map, 
 - Configuration snapshot: `../reference/current-config.md`
 - Hardening checklist: `../reference/hardening.md`
 - Lab testing: `../testing/lab-testing-guide.md`
+
+## Related pages
+
+- [Certification lab workbook](lab-workbook.md)

@@ -1,5 +1,10 @@
 # Outputs reference
 
+<p align="center">
+  <img src="../images/reference-outputs.svg" alt="Outputs reference banner" width="1000" />
+</p>
+
+
 After `terraform apply`, the root module surfaces key IDs and IPs you can use to connect to the environment or feed into other tools. Outputs are organized by the **5-pillar architecture**.
 
 ## Pillar 1: Networking (Hub)
@@ -102,3 +107,9 @@ output "connection_info" {
 ```
 
 Use this as a quick checklist after deployment to verify connectivity.
+
+## Related pages
+
+- [Configuration flow](../architecture/configuration-flow.md)
+- [Lab testing guide](../testing/lab-testing-guide.md)
+- [Variables reference](variables.md)

@@ -1,5 +1,10 @@
 # On-premises simulated landing zone
 
+<p align="center">
+  <img src="../images/landing-zones-onprem-simulated.svg" alt="On-premises simulated landing zone banner" width="1000" />
+</p>
+
+
 This landing zone gives you a small, Azure-hosted “on-premises” site so you can practice hybrid networking without real hardware. It builds a separate VNet, its own VPN gateway, and a management VM you can RDP into.
 
 ## What you will learn
@@ -47,3 +52,10 @@ This landing zone gives you a small, Azure-hosted “on-premises” site so you 
 ## Next step
 
 Head to the [workload landing zone](workload.md) to see how applications behave once hybrid connectivity is in place.
+
+## Related pages
+
+- [Hub landing zone (Pillar 1: Networking)](hub.md)
+- [Network topology](../architecture/network-topology.md)
+- [Networking modules](../modules/networking.md)
+- [Variables reference](../reference/variables.md)

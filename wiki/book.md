@@ -1,5 +1,10 @@
 # Azure Landing Zone Lab - Book-Style Guide
 
+<p align="center">
+  <img src="images/book.svg" alt="Azure Landing Zone Lab - Book-Style Guide banner" width="1000" />
+</p>
+
+
 This guide stitches the entire repository together so you can understand the Terraform logic, deployment flow, and CI/CD pipeline end to end. It is organized to be read like a small book. Each section links back to the existing reference pages for deeper detail. The emphasis is lab-scale clarity rather than production-scale completeness.
 
 ## How to read this guide
@@ -439,3 +444,7 @@ Start here: `certifications/lab-workbook.md`.
 - AZ-400 study path: `wiki/certifications/az-400.md`
 - Skill matrix: `wiki/certifications/skill-matrix.md`
 - Lab workbook: `wiki/certifications/lab-workbook.md`
+
+## Related pages
+
+- [Landing zones overview](landing-zones/README.md)

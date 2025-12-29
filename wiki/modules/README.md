@@ -1,5 +1,10 @@
 # Module design patterns
 
+<p align="center">
+  <img src="../images/modules-readme.svg" alt="Module design patterns banner" width="1000" />
+</p>
+
+
 The lab is built from small, reusable Terraform modules organized by the **5-pillar Azure Landing Zone architecture**. Each module creates a focused set of resources and expects the caller to decide names, tags, and feature flags. This page explains how the modules are structured so you can reuse or extend them in your own projects.
 
 ## Module organization by pillar
@@ -139,3 +144,9 @@ terraform destroy
 | Global uniqueness | Use random suffix for storage, Key Vault |
 | Asymmetric routing | Skip firewall UDR for public LB web subnet |
 | Subnet conflicts | Add `depends_on` for sequential subnet creation |
+
+## Related pages
+
+- [Architecture overview](../architecture/overview.md)
+- [Terraform patterns](../reference/terraform-patterns.md)
+- [Landing zones overview](../landing-zones/README.md)

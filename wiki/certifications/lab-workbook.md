@@ -1,5 +1,10 @@
 # Certification lab workbook
 
+<p align="center">
+  <img src="../images/certifications-lab-workbook.svg" alt="Certification lab workbook banner" width="1000" />
+</p>
+
+
 This workbook is a long-form, hands-on path through the lab. It is designed to support AZ-104, AZ-305, and AZ-400 by walking through build, operate, and design scenarios. Check off tasks as you go, and capture evidence (screenshots, notes, pipeline artifacts).
 
 ## Before you start
@@ -113,3 +118,10 @@ Evidence to capture:
 - [ ] Add a scheduled plan job to detect drift.
 - [ ] Create a second environment using `environments/dev.tfvars`.
 - [ ] Enable AKS and validate cluster diagnostics.
+
+## Related pages
+
+- [AZ-104 study path (Azure Administrator)](az-104.md)
+- [AZ-305 study path (Designing Microsoft Azure Infrastructure Solutions)](az-305.md)
+- [AZ-400 study path (Designing and Implementing Microsoft DevOps Solutions)](az-400.md)
+- [Lab testing guide](../testing/lab-testing-guide.md)

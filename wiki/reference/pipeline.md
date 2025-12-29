@@ -1,5 +1,10 @@
 # CI/CD Pipeline Reference
 
+<p align="center">
+  <img src="../images/reference-pipeline.svg" alt="CI/CD Pipeline Reference banner" width="1000" />
+</p>
+
+
 This document describes the GitHub Actions pipeline used to deploy and manage the Azure Landing Zone Lab infrastructure.
 
 ## Overview
@@ -627,3 +632,7 @@ The Apply stage skips if no changes detected. This is expected behavior.
 - [Outputs Reference](outputs.md) - Deployment outputs
 - [Architecture Overview](../architecture/overview.md) - Infrastructure design
 
+## Related pages
+
+- [AZ-400 study path (Designing and Implementing Microsoft DevOps Solutions)](../certifications/az-400.md)
+- [Module design patterns](../modules/README.md)

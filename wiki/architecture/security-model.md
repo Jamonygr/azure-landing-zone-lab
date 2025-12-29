@@ -1,5 +1,10 @@
 # Security model
 
+<p align="center">
+  <img src="../images/architecture-security-model.svg" alt="Security model banner" width="1000" />
+</p>
+
+
 Security in this lab is layered. The outer ring is Azure Firewall, the middle ring is network security groups (NSGs), and the inner ring is diagnostics that record what happened. This article walks through how those rings are configured and how traffic is routed through them.
 
 ## What you will learn
@@ -62,3 +67,10 @@ If `deploy_application_gateway` is true, the hub gains a WAF_v2 Application Gate
 4. Diagnostic settings and alerts capture the decision for later review.
 
 That sequence delivers defense in depth: even if one layer is misconfigured, another layer still provides coverage.
+
+## Related pages
+
+- [Security landing zone (Pillar 4: Security / Shared Services)](../landing-zones/shared-services.md)
+- [Security modules](../modules/security.md)
+- [Hardening and hygiene checklist (current lab profile)](../reference/hardening.md)
+- [Architecture overview](overview.md)

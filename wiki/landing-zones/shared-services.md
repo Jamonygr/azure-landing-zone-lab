@@ -1,5 +1,10 @@
 # Security landing zone (Pillar 4: Security / Shared Services)
 
+<p align="center">
+  <img src="../images/landing-zones-shared-services.svg" alt="Security landing zone (Pillar 4: Security / Shared Services) banner" width="1000" />
+</p>
+
+
 The security landing zone provides common PaaS components and security services that multiple applications can use. It represents **Pillar 4** of the 5-pillar Azure Landing Zone architecture and keeps secrets, data, private endpoints, and security configurations in one place so workloads do not duplicate them.
 
 ## What you will learn
@@ -89,3 +94,10 @@ When `deploy_private_dns_zones = true`:
 ## Next step
 
 Explore the [workload landing zone](workload.md) to see how an application stack consumes these shared services.
+
+## Related pages
+
+- [Security modules](../modules/security.md)
+- [Security model](../architecture/security-model.md)
+- [Remote State & Secrets Management](../reference/state-and-secrets.md)
+- [Variables reference](../reference/variables.md)

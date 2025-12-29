@@ -1,5 +1,10 @@
 # Architecture overview
 
+<p align="center">
+  <img src="../images/architecture-overview.svg" alt="Architecture overview banner" width="1000" />
+</p>
+
+
 This article shows how the root Terraform module stitches the platform together. By the end you will know which files matter, how they call each other, and what order Terraform follows during a deployment.
 
 ## What you will learn
@@ -97,3 +102,7 @@ This keeps the modules themselves small and reusable; they assume the caller alr
 - [Network topology](network-topology.md) to see how the address spaces and subnets fit.
 - [Security model](security-model.md) to understand firewall, NSG, and diagnostics layering.
 - [Configuration flow](configuration-flow.md) to trace a variable from `tfvars` into a module call.
+
+## Related pages
+
+- [Landing zones overview](../landing-zones/README.md)

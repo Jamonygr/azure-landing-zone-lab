@@ -1,5 +1,10 @@
 # Networking modules
 
+<p align="center">
+  <img src="../images/modules-networking.svg" alt="Networking modules banner" width="1000" />
+</p>
+
+
 These modules build the network fabric for the landing zones and are the foundation of **Pillar 1: Networking**. Each module focuses on one Azure networking concept so you can mix and match them.
 
 ## Module summary
@@ -235,3 +240,9 @@ Creates a Private DNS zone and optionally links it to VNets.
 
 **Outputs:** `dns_zone_id`, `dns_zone_name`  
 **Cost:** Minimal (~$0.50/zone/month)
+
+## Related pages
+
+- [Hub landing zone (Pillar 1: Networking)](../landing-zones/hub.md)
+- [Network topology](../architecture/network-topology.md)
+- [Variables reference](../reference/variables.md)

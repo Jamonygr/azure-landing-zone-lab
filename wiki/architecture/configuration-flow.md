@@ -1,5 +1,10 @@
 # Configuration flow
 
+<p align="center">
+  <img src="../images/architecture-configuration-flow.svg" alt="Configuration flow banner" width="1000" />
+</p>
+
+
 This article follows a single value from `terraform.tfvars` all the way into the resources Terraform creates. If you are new to Terraform, read this as a map: where do inputs come from, how are they validated, and how do they reach each landing zone?
 
 ## What you will learn
@@ -94,3 +99,10 @@ Use these in combinations. For example, if you disable `deploy_firewall`, also d
 - [Network topology](network-topology.md) for the IP layout.  
 - [Security model](security-model.md) to see how traffic is inspected and logged.  
 - [Landing zones overview](../landing-zones/README.md) for what each zone owns.
+
+## Related pages
+
+- [Variables reference](../reference/variables.md)
+- [Outputs reference](../reference/outputs.md)
+- [Terraform patterns](../reference/terraform-patterns.md)
+- [Architecture overview](overview.md)

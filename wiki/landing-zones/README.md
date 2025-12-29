@@ -1,5 +1,10 @@
 # Landing zones overview
 
+<p align="center">
+  <img src="../images/landing-zones-readme.svg" alt="Landing zones overview banner" width="1000" />
+</p>
+
+
 In this lab, the platform follows a **5-pillar architecture** aligned with Microsoft's Cloud Adoption Framework. Each pillar is a self-contained Terraform module that owns one part of the platform. The root module orchestrates them in sequence, passing shared context (tags, location, environment) and cross-pillar references (firewall IP, DNS servers).
 
 ## What you will learn
@@ -108,3 +113,10 @@ Start with **Networking** to understand the hub-spoke topology, then follow the 
 4. [Shared Services/Security](shared-services.md) – Key Vault, storage, SQL
 5. [Workload](workload.md) – Application tiers and PaaS
 6. [On-premises simulated](onprem-simulated.md) – Hybrid testing
+
+## Related pages
+
+- [Architecture overview](../architecture/overview.md)
+- [Network topology](../architecture/network-topology.md)
+- [Module design patterns](../modules/README.md)
+- [Variables reference](../reference/variables.md)

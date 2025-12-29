@@ -1,5 +1,10 @@
 # Remote State & Secrets Management
 
+<p align="center">
+  <img src="../images/reference-state-and-secrets.svg" alt="Remote State & Secrets Management banner" width="1000" />
+</p>
+
+
 This document covers Terraform remote state storage and GitHub secrets configuration for the Azure Landing Zone lab pipeline.
 
 ---
@@ -481,3 +486,8 @@ gh secret set TF_STATE_SA --body "<CORRECT_NAME>"
 - [Pipeline Templates](pipeline-templates.md) - 2-level template architecture
 - [GitHub Actions - Encrypted Secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
 - [Terraform Backend - AzureRM](https://developer.hashicorp.com/terraform/language/settings/backends/azurerm)
+
+## Related pages
+
+- [Security landing zone (Pillar 4: Security / Shared Services)](../landing-zones/shared-services.md)
+- [Hardening and hygiene checklist (current lab profile)](hardening.md)

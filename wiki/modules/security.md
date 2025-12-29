@@ -1,5 +1,10 @@
 # Security modules
 
+<p align="center">
+  <img src="../images/modules-security.svg" alt="Security modules banner" width="1000" />
+</p>
+
+
 These modules provide the core security controls for the lab and are part of **Pillar 4: Security**. They include Azure Firewall for central inspection, firewall policies for rules, Key Vault for secrets, and storage/SQL with private endpoints.
 
 ## Module summary
@@ -152,3 +157,9 @@ deploy_storage           = true   # Keep for diagnostics
 deploy_sql               = false  # Disable if not needed
 deploy_private_endpoints = false  # Use public endpoints
 ```
+
+## Related pages
+
+- [Security landing zone (Pillar 4: Security / Shared Services)](../landing-zones/shared-services.md)
+- [Security model](../architecture/security-model.md)
+- [Remote State & Secrets Management](../reference/state-and-secrets.md)

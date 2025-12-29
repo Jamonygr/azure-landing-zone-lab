@@ -1,5 +1,10 @@
 # Governance Pillar
 
+<p align="center">
+  <img src="../images/landing-zones-governance.svg" alt="Governance Pillar banner" width="1000" />
+</p>
+
+
 The Governance pillar provides policy enforcement, cost control, compliance frameworks, and RBAC customization for the entire landing zone. It runs last in the deployment sequence because it applies policies and role definitions that reference existing resources.
 
 ## What you will learn
@@ -142,3 +147,8 @@ compliance_enforcement_mode  = "DoNotEnforce"  # Audit only
 - Review the [policy module](../modules/governance.md) for customization options.
 - Check the [cost estimation](../../README.md#-cost-estimation) section in the main README.
 - See [hardening checklist](../reference/hardening.md) for production-ready settings.
+
+## Related pages
+
+- [CI/CD Pipeline Reference](../reference/pipeline.md)
+- [Architecture overview](../architecture/overview.md)

@@ -1,5 +1,10 @@
 # Lab testing guide
 
+<p align="center">
+  <img src="../images/testing-lab-testing-guide.svg" alt="Lab testing guide banner" width="1000" />
+</p>
+
+
 Use this checklist after a deploy to prove the lab works end to end and to see how each landing zone connects. Follow the steps in order; every step validates the **5-pillar Azure Landing Zone architecture** and confirms that hub, identity, governance, security, and management all function correctly.
 
 ## What you will learn
@@ -214,3 +219,9 @@ deploy_onprem_simulation  = true
   ```
 - For partial cleanup, target modules (e.g., `terraform destroy -target=module.workload_prod`) after reviewing the plan.
 
+## Related pages
+
+- [Outputs reference](../reference/outputs.md)
+- [Management landing zone (Pillar 5: Management)](../landing-zones/management.md)
+- [Current lab configuration (lab profile)](../reference/current-config.md)
+- [Architecture overview](../architecture/overview.md)

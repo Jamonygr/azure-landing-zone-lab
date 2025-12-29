@@ -1,5 +1,10 @@
 # Monitoring modules
 
+<p align="center">
+  <img src="../images/modules-monitoring.svg" alt="Monitoring modules banner" width="1000" />
+</p>
+
+
 Monitoring in the lab is built from small modules that create a workspace, action groups, metric alerts, diagnostic settings, workbooks, and connection monitors. These are part of **Pillar 5: Management** and provide observability across the entire landing zone.
 
 ## Module summary
@@ -142,3 +147,9 @@ log_daily_quota_gb       = 0.5
 deploy_workbooks         = false
 enable_vnet_flow_logs    = false
 ```
+
+## Related pages
+
+- [Management landing zone (Pillar 5: Management)](../landing-zones/management.md)
+- [Outputs reference](../reference/outputs.md)
+- [CI/CD Pipeline Reference](../reference/pipeline.md)

@@ -1,5 +1,10 @@
 # Terraform patterns
 
+<p align="center">
+  <img src="../images/reference-terraform-patterns.svg" alt="Terraform patterns banner" width="1000" />
+</p>
+
+
 These are the Terraform idioms used throughout the lab. Skim them before extending the codebase so your changes stay consistent.
 
 ## Conditional resources
@@ -47,3 +52,9 @@ An example backend for Azure Storage is commented in the root module. Uncomment 
 ## Asymmetric routing protection
 
 When using a public load balancer, the workload web subnet skips the firewall route so return traffic uses the same path it arrived on. This prevents the firewall from dropping packets due to asymmetry.
+
+## Related pages
+
+- [Module design patterns](../modules/README.md)
+- [Architecture overview](../architecture/overview.md)
+- [Variables reference](variables.md)

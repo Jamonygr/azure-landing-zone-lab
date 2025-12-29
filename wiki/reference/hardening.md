@@ -1,5 +1,10 @@
 # Hardening and hygiene checklist (current lab profile)
 
+<p align="center">
+  <img src="../images/reference-hardening.svg" alt="Hardening and hygiene checklist (current lab profile) banner" width="1000" />
+</p>
+
+
 Use this to tighten the lab after initial deployment. The current profile runs with VPN off and a public jumpbox; firewall is on; LB is public; Application Gateway is enabled; several PaaS services are enabled.
 
 ## Highest-priority fixes
@@ -33,3 +38,9 @@ Use this to tighten the lab after initial deployment. The current profile runs w
 
 - If you need identity resiliency, set `deploy_secondary_dc = true` and ensure DNS settings propagate to spokes.
 - If you need dev parity, enable `deploy_workload_dev`, but expect more cost and IP space usage.
+
+## Related pages
+
+- [Remote State & Secrets Management](state-and-secrets.md)
+- [Security landing zone (Pillar 4: Security / Shared Services)](../landing-zones/shared-services.md)
+- [Security modules](../modules/security.md)

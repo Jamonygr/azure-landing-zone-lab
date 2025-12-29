@@ -1,5 +1,10 @@
 # Current lab configuration (lab profile)
 
+<p align="center">
+  <img src="../images/reference-current-config.svg" alt="Current lab configuration (lab profile) banner" width="1000" />
+</p>
+
+
 This page summarizes the active `terraform.tfvars` profile in the repo so you know what will deploy and how to reach it. The lab is based on the **5-pillar Azure Landing Zone architecture**.
 
 For the full list of feature flags, see the **MASTER CONTROL PANEL** section at the top of `terraform.tfvars`.
@@ -180,3 +185,9 @@ This profile is about design coverage. If you do not want to deploy VPN or on-pr
 ### AZ-400 (DevOps)
 
 No infrastructure changes are required. Keep the lab profile and focus on the pipeline and policy-as-code pieces in `.github/workflows/terraform.yml`, `.github/actions/`, and `policies/`.
+
+## Related pages
+
+- [Variables reference](variables.md)
+- [Lab testing guide](../testing/lab-testing-guide.md)
+- [Landing zones overview](../landing-zones/README.md)

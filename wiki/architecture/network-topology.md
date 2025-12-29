@@ -1,5 +1,10 @@
 # Network topology
 
+<p align="center">
+  <img src="../images/architecture-network-topology.svg" alt="Network topology banner" width="1000" />
+</p>
+
+
 This article explains the IP layout, subnets, peering, and routing strategy used in the lab. If you have never designed a hub-and-spoke network before, think of the hub as the meeting point for all traffic and the firewall as the doorman.
 
 ## What you will learn
@@ -71,3 +76,10 @@ Asymmetric routing causes traffic to enter through one path and leave through an
 - [Security model](security-model.md) to see how firewall and NSGs combine with this routing.  
 - [Configuration flow](configuration-flow.md) to understand how these CIDRs are passed into each module.  
 - [Landing zones overview](../landing-zones/README.md) to see which zone owns which subnet.
+
+## Related pages
+
+- [Hub landing zone (Pillar 1: Networking)](../landing-zones/hub.md)
+- [Workload landing zone](../landing-zones/workload.md)
+- [Networking modules](../modules/networking.md)
+- [Architecture overview](overview.md)

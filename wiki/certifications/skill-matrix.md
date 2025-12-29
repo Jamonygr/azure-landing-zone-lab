@@ -1,5 +1,10 @@
 # Certification skill matrix
 
+<p align="center">
+  <img src="../images/certifications-skill-matrix.svg" alt="Certification skill matrix banner" width="1000" />
+</p>
+
+
 Use this matrix to see how each certification objective aligns with the repository. The intent is to make it easy to locate the right modules, docs, and hands-on tasks.
 
 ## Identity and governance
@@ -141,3 +146,9 @@ AZ-400 focus:
 Practice tasks:
 - Add a PR check or scheduled plan to detect drift.
 - Wire Terratest into the workflow to validate live deployments.
+
+## Related pages
+
+- [Certification lab workbook](lab-workbook.md)
+- [Certification alignment](README.md)
+- [Module design patterns](../modules/README.md)

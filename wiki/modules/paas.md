@@ -1,5 +1,10 @@
 # PaaS modules
 
+<p align="center">
+  <img src="../images/modules-paas.svg" alt="PaaS modules banner" width="1000" />
+</p>
+
+
 These modules provision popular Azure platform services used by the workload landing zone. They are sized for labs and can be toggled individually. Most use the lowest-cost SKUs to minimize spend.
 
 ## Module summary by tier
@@ -213,3 +218,9 @@ deploy_event_grid     = true   # 100k free
 deploy_aks            = false  # Node cost
 deploy_cosmos_db      = false  # RU cost
 ```
+
+## Related pages
+
+- [Workload landing zone](../landing-zones/workload.md)
+- [Variables reference](../reference/variables.md)
+- [Architecture overview](../architecture/overview.md)

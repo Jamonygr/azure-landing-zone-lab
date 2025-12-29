@@ -1,5 +1,10 @@
 # Foundations: Cloud Adoption Framework and Microsoft Entra
 
+<p align="center">
+  <img src="../images/architecture-foundations.svg" alt="Foundations: Cloud Adoption Framework and Microsoft Entra banner" width="1000" />
+</p>
+
+
 This page summarizes the two Microsoft foundations that shape this lab. It is intentionally brief and lab-focused. For full detail, follow the official docs linked at the end.
 
 ## Cloud Adoption Framework (CAF) in plain language
@@ -71,3 +76,9 @@ Microsoft Entra ID (formerly Azure AD) is the identity control plane for Azure. 
 ## Official resources
 - Cloud Adoption Framework: https://learn.microsoft.com/azure/cloud-adoption-framework/
 - Microsoft Entra fundamentals: https://learn.microsoft.com/entra/fundamentals/what-is-entra
+
+## Related pages
+
+- [Architecture overview](overview.md)
+- [Landing zones overview](../landing-zones/README.md)
+- [Certification alignment](../certifications/README.md)

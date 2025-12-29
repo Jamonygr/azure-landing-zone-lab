@@ -1,5 +1,10 @@
 # Governance Modules
 
+<p align="center">
+  <img src="../images/modules-governance.svg" alt="Governance Modules banner" width="1000" />
+</p>
+
+
 The governance modules provide reusable building blocks for policy, compliance, cost control, and access management. They are consumed by the Governance pillar (`landing-zones/governance/`) to implement enterprise controls.
 
 ## Module inventory
@@ -254,3 +259,7 @@ module "regulatory_compliance" {
 - See the [Governance pillar](../landing-zones/governance.md) for how these modules are orchestrated.
 - Review [hardening checklist](../reference/hardening.md) for production settings.
 - Check [variables reference](../reference/variables.md) for all configuration options.
+
+## Related pages
+
+- [CI/CD Pipeline Reference](../reference/pipeline.md)

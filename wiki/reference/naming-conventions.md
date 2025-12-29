@@ -1,5 +1,10 @@
 # Naming conventions
 
+<p align="center">
+  <img src="../images/reference-naming-conventions.svg" alt="Naming conventions banner" width="1000" />
+</p>
+
+
 Names in this lab follow the Cloud Adoption Framework style to stay short, predictable, and readable. Most names combine the zone, environment, and a location short code built in `locals.tf`.
 
 ## Location short codes
@@ -29,3 +34,9 @@ Defined in `locals.tf`, for example `westeurope` → `weu`, `eastus` → `eus`. 
 - Predictable names make troubleshooting and log searches faster.  
 - Short codes keep Azure happy when names must be unique and concise.  
 - Only globally unique resources, like storage accounts, use the random suffix; everything else stays human-friendly.
+
+## Related pages
+
+- [Variables reference](variables.md)
+- [Current lab configuration (lab profile)](current-config.md)
+- [Architecture overview](../architecture/overview.md)
