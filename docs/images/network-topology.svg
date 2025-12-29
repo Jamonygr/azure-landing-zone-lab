@@ -1,55 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-label="Network topology overview">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-label="Network topology summary">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#f7fbff"/>
       <stop offset="100%" stop-color="#eaf2fb"/>
     </linearGradient>
   </defs>
-  <rect width="1200" height="560" fill="url(#bg)"/>
+  <rect width="1200" height="520" fill="url(#bg)"/>
 
   <text x="600" y="55" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" text-anchor="middle" fill="#0b1f3a">
     Network Topology
   </text>
 
-  <rect x="80" y="80" width="1040" height="420" rx="20" fill="#ffffff" stroke="#d7e2f0" stroke-width="2"/>
+  <rect x="90" y="90" width="1020" height="360" rx="20" fill="#ffffff" stroke="#d7e2f0" stroke-width="2"/>
 
-  <rect x="110" y="110" width="980" height="60" rx="14" fill="#e6f2ff" stroke="#7aa9d8" stroke-width="2"/>
-  <text x="140" y="145" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#0b1f3a">
-    Hub 10.0.0.0/16
+  <rect x="130" y="130" width="940" height="55" rx="14" fill="#e6f2ff" stroke="#7aa9d8" stroke-width="2"/>
+  <text x="160" y="163" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#0b1f3a">
+    vHub 10.10.0.0/23
   </text>
-  <text x="420" y="145" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#526a86">
-    Gateway, Firewall, Management, AppGW
-  </text>
-
-  <rect x="110" y="182" width="980" height="60" rx="14" fill="#f0f7ff" stroke="#7aa9d8" stroke-width="2"/>
-  <text x="140" y="217" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#0b1f3a">
-    Identity 10.1.0.0/16
-  </text>
-  <text x="430" y="217" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#526a86">
-    DC subnet and DNS
+  <text x="420" y="163" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#526a86">
+    Secured Hub, Firewall, VPN, Route Tables
   </text>
 
-  <rect x="110" y="254" width="980" height="60" rx="14" fill="#e6f2ff" stroke="#7aa9d8" stroke-width="2"/>
-  <text x="140" y="289" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#0b1f3a">
-    Management 10.2.0.0/16
+  <rect x="130" y="200" width="940" height="55" rx="14" fill="#f0f7ff" stroke="#7aa9d8" stroke-width="2"/>
+  <text x="160" y="233" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#0b1f3a">
+    Spoke 1 10.1.0.0/16
   </text>
-  <text x="460" y="289" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#526a86">
-    Jumpbox and monitoring
-  </text>
-
-  <rect x="110" y="326" width="980" height="60" rx="14" fill="#f0f7ff" stroke="#7aa9d8" stroke-width="2"/>
-  <text x="140" y="361" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#0b1f3a">
-    Shared Services 10.3.0.0/16
-  </text>
-  <text x="520" y="361" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#526a86">
-    Key Vault, Storage, Private Endpoints
+  <text x="440" y="233" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#526a86">
+    Route Server, BGP, workload subnet
   </text>
 
-  <rect x="110" y="398" width="980" height="60" rx="14" fill="#e6f2ff" stroke="#7aa9d8" stroke-width="2"/>
-  <text x="140" y="433" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#0b1f3a">
-    Workload Prod 10.10.0.0/16
+  <rect x="130" y="270" width="940" height="55" rx="14" fill="#e6f2ff" stroke="#7aa9d8" stroke-width="2"/>
+  <text x="160" y="303" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#0b1f3a">
+    Spoke 2 10.2.0.0/16
   </text>
-  <text x="520" y="433" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#526a86">
-    Web, App, Data, AKS
+  <text x="440" y="303" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#526a86">
+    vHub connected workloads
+  </text>
+
+  <rect x="130" y="340" width="940" height="55" rx="14" fill="#f0f7ff" stroke="#7aa9d8" stroke-width="2"/>
+  <text x="160" y="373" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700" fill="#0b1f3a">
+    On-Prem 192.168.0.0/16
+  </text>
+  <text x="440" y="373" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#526a86">
+    VPN gateway and NVA for hybrid testing
   </text>
 </svg>
