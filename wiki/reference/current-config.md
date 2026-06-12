@@ -76,7 +76,7 @@ For the full list of feature flags, see the **MASTER CONTROL PANEL** section at 
 
 ## Key caveats and recommendations
 
-- Restrict `allowed_jumpbox_source_ips` from `0.0.0.0/0` to your IP range.
+- Keep `enable_jumpbox_public_ip = false` by default. If public jumpbox access is temporarily required, set `allowed_jumpbox_source_ips` to trusted `/32` or corporate CIDRs only.
 - Replace `cost_alert_emails` with real recipients for budget notifications.
 - For production, enable `deploy_secondary_dc = true` for HA.
 - Consider `deploy_vpn_gateway = true` for private access instead of public jumpbox.

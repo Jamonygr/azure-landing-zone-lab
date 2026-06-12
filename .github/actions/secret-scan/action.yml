@@ -14,7 +14,7 @@ inputs:
 outputs:
   leaks_found:
     description: 'Whether leaks were found'
-    value: ${{ steps.scan.outputs.leaks_found }}
+    value: ${{ steps.report.outputs.leaks_found }}
 
 runs:
   using: 'composite'
@@ -24,9 +24,10 @@ runs:
       uses: gitleaks/gitleaks-action@v2
       env:
         GITHUB_TOKEN: ${{ github.token }}
-      continue-on-error: true
 
     - name: Report Results
+      id: report
+      if: always()
       shell: bash
       run: |
         if [ "${{ steps.scan.outcome }}" == "failure" ]; then

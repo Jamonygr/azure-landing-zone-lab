@@ -233,9 +233,3 @@ variable "application_gateway_id" {
   type        = string
   default     = null
 }
-
-variable "appgw_backend_ips" {
-  description = "Backend IPs for app gateway pool"
-  type        = list(string)
-  default     = []
-}

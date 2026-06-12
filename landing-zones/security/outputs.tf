@@ -17,6 +17,11 @@ output "app_subnet_id" {
   value       = module.shared_services.app_subnet_id
 }
 
+output "app_nsg_id" {
+  description = "Application subnet NSG ID"
+  value       = module.shared_services.app_nsg_id
+}
+
 output "pe_subnet_id" {
   description = "Private endpoint subnet ID"
   value       = module.shared_services.pe_subnet_id

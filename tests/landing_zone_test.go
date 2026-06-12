@@ -5,9 +5,20 @@ import (
 	"testing"
 
 	"github.com/gruntwork-io/terratest/modules/azure"
-	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/assert"
 )
+
+func testEnv(name, fallback string) string {
+	value := os.Getenv(name)
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+func testNames() (string, string) {
+	return testEnv("TEST_ENVIRONMENT", "lab"), testEnv("TEST_LOCATION_SHORT", "wus2")
+}
 
 // TestLandingZoneDeployment validates the deployed infrastructure
 func TestLandingZoneDeployment(t *testing.T) {
@@ -18,10 +29,12 @@ func TestLandingZoneDeployment(t *testing.T) {
 		t.Skip("ARM_SUBSCRIPTION_ID not set, skipping integration tests")
 	}
 
+	environment, locationShort := testNames()
+
 	// Test Hub VNet exists
 	t.Run("HubVNetExists", func(t *testing.T) {
-		resourceGroupName := "rg-hub-lab-wus2"
-		vnetName := "vnet-hub-lab-wus2"
+		resourceGroupName := "rg-hub-" + environment + "-" + locationShort
+		vnetName := "vnet-hub-" + environment + "-" + locationShort
 
 		exists := azure.VirtualNetworkExists(t, vnetName, resourceGroupName, subscriptionID)
 		assert.True(t, exists, "Hub VNet should exist")
@@ -29,8 +42,8 @@ func TestLandingZoneDeployment(t *testing.T) {
 
 	// Test Identity VNet exists
 	t.Run("IdentityVNetExists", func(t *testing.T) {
-		resourceGroupName := "rg-identity-lab-wus2"
-		vnetName := "vnet-identity-lab-wus2"
+		resourceGroupName := "rg-identity-" + environment + "-" + locationShort
+		vnetName := "vnet-identity-" + environment + "-" + locationShort
 
 		exists := azure.VirtualNetworkExists(t, vnetName, resourceGroupName, subscriptionID)
 		assert.True(t, exists, "Identity VNet should exist")
@@ -38,8 +51,8 @@ func TestLandingZoneDeployment(t *testing.T) {
 
 	// Test VNet Peering
 	t.Run("VNetPeeringConfigured", func(t *testing.T) {
-		hubRG := "rg-hub-lab-wus2"
-		hubVNet := "vnet-hub-lab-wus2"
+		hubRG := "rg-hub-" + environment + "-" + locationShort
+		hubVNet := "vnet-hub-" + environment + "-" + locationShort
 
 		// Check peering exists
 		peerings := azure.GetVirtualNetworkPeerings(t, hubVNet, hubRG, subscriptionID)
@@ -56,8 +69,9 @@ func TestKeyVaultAccessible(t *testing.T) {
 		t.Skip("ARM_SUBSCRIPTION_ID not set, skipping integration tests")
 	}
 
-	resourceGroupName := "rg-shared-lab-wus2"
-	
+	environment, locationShort := testNames()
+	resourceGroupName := "rg-shared-" + environment + "-" + locationShort
+
 	// Find Key Vault in resource group
 	t.Run("KeyVaultExists", func(t *testing.T) {
 		keyVaults := azure.ListKeyVaultsByResourceGroup(t, subscriptionID, resourceGroupName)
@@ -74,10 +88,12 @@ func TestNetworkSecurityGroups(t *testing.T) {
 		t.Skip("ARM_SUBSCRIPTION_ID not set, skipping integration tests")
 	}
 
+	environment, locationShort := testNames()
+
 	// Test management subnet has NSG
 	t.Run("ManagementNSGExists", func(t *testing.T) {
-		resourceGroupName := "rg-management-lab-wus2"
-		nsgName := "nsg-management-lab-wus2"
+		resourceGroupName := "rg-management-" + environment + "-" + locationShort
+		nsgName := "nsg-jumpbox-" + environment + "-" + locationShort
 
 		exists := azure.NetworkSecurityGroupExists(t, nsgName, resourceGroupName, subscriptionID)
 		assert.True(t, exists, "Management NSG should exist")
@@ -93,14 +109,15 @@ func TestResourceTags(t *testing.T) {
 		t.Skip("ARM_SUBSCRIPTION_ID not set, skipping integration tests")
 	}
 
-	resourceGroupName := "rg-hub-lab-wus2"
+	environment, locationShort := testNames()
+	resourceGroupName := "rg-hub-" + environment + "-" + locationShort
 
 	t.Run("ResourceGroupHasTags", func(t *testing.T) {
 		rg := azure.GetResourceGroup(t, resourceGroupName, subscriptionID)
 		assert.NotNil(t, rg.Tags, "Resource group should have tags")
-		
+
 		// Check for required tags
-		_, hasEnv := rg.Tags["environment"]
-		assert.True(t, hasEnv, "Resource group should have 'environment' tag")
+		_, hasEnv := rg.Tags["Environment"]
+		assert.True(t, hasEnv, "Resource group should have 'Environment' tag")
 	})
 }

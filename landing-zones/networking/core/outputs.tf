@@ -83,15 +83,15 @@ output "appgw_subnet_id" {
 
 output "application_gateway_id" {
   description = "Application Gateway ID"
-  value       = var.deploy_application_gateway ? module.application_gateway[0].application_gateway_id : null
+  value       = null
 }
 
 output "application_gateway_name" {
   description = "Application Gateway name"
-  value       = var.deploy_application_gateway ? module.application_gateway[0].application_gateway_name : null
+  value       = null
 }
 
 output "application_gateway_public_ip" {
   description = "Application Gateway public IP address"
-  value       = var.deploy_application_gateway ? module.application_gateway[0].public_ip_address : null
+  value       = null
 }

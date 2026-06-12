@@ -325,6 +325,17 @@ variable "allowed_jumpbox_source_ips" {
   description = "List of IPs/CIDRs allowed to RDP to the jump box when a public IP is enabled"
   type        = list(string)
   default     = []
+
+  validation {
+    condition     = var.allow_public_rdp_from_internet || !contains(var.allowed_jumpbox_source_ips, "0.0.0.0/0")
+    error_message = "Public RDP from 0.0.0.0/0 is blocked by default. Use trusted CIDR ranges, or set allow_public_rdp_from_internet=true only for a short-lived lab exception."
+  }
+}
+
+variable "allow_public_rdp_from_internet" {
+  description = "Explicit break-glass override that allows 0.0.0.0/0 in allowed_jumpbox_source_ips"
+  type        = bool
+  default     = false
 }
 
 variable "deploy_log_analytics" {
@@ -439,6 +450,12 @@ variable "deploy_load_balancer" {
   description = "Deploy load balancer with IIS web servers in workload prod"
   type        = bool
   default     = true
+}
+
+variable "enable_lb_rdp_nat_rules" {
+  description = "Enable public Load Balancer inbound NAT rules for RDP to workload web servers"
+  type        = bool
+  default     = false
 }
 
 variable "lb_type" {
@@ -816,7 +833,7 @@ variable "management_group_root_id" {
 variable "deploy_cost_management" {
   description = "Deploy cost management budgets and alerts"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "cost_budget_amount" {
@@ -829,6 +846,11 @@ variable "cost_alert_emails" {
   description = "Email addresses to receive cost alerts"
   type        = list(string)
   default     = []
+
+  validation {
+    condition     = !var.deploy_cost_management || length(var.cost_alert_emails) > 0
+    error_message = "cost_alert_emails must contain at least one email address when deploy_cost_management is true."
+  }
 }
 
 # -----------------------------------------------------------------------------

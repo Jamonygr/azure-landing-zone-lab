@@ -70,6 +70,12 @@ variable "enabled_for_template_deployment" {
   default     = true
 }
 
+variable "public_network_access_enabled" {
+  description = "Allow public network access to the Key Vault data plane"
+  type        = bool
+  default     = true
+}
+
 variable "network_acls" {
   description = "Network ACLs"
   type = object({

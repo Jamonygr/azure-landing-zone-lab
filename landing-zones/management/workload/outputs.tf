@@ -45,7 +45,7 @@ output "data_nsg_id" {
 # AKS NSG (only when AKS is deployed)
 output "aks_nsg_id" {
   description = "AKS subnet NSG ID"
-  value       = var.deploy_aks ? module.aks[0].nsg_id : null
+  value       = null
 }
 
 # AKS Outputs

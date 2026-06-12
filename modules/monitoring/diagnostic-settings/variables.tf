@@ -96,6 +96,12 @@ variable "nsg_ids" {
   default     = []
 }
 
+variable "nsg_resource_ids" {
+  description = "Map of stable names to Network Security Group resource IDs"
+  type        = map(string)
+  default     = {}
+}
+
 variable "enable_nsg_diagnostics" {
   description = "Whether to create NSG diagnostic settings"
   type        = bool

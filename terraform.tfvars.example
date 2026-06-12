@@ -85,7 +85,9 @@ hub_bgp_asn        = 65515
 deploy_secondary_dc = false     # ~$30/month savings if false
 
 # Management
-enable_jumpbox_public_ip = false  # Use VPN instead (more secure)
+enable_jumpbox_public_ip          = false # Use VPN/Bastion/private access instead
+allowed_jumpbox_source_ips        = ["203.0.113.10/32"]
+allow_public_rdp_from_internet    = false
 deploy_log_analytics     = true
 log_retention_days       = 30     # 30 days = free tier
 log_daily_quota_gb       = 1      # Limit ingestion
@@ -98,13 +100,15 @@ deploy_sql      = true           # ~$5/month (Basic tier)
 # Workloads
 deploy_workload_prod = true
 deploy_workload_dev  = false     # Enable if you need dev environment
+deploy_load_balancer = true      # HTTP load-balanced IIS demo
+enable_lb_rdp_nat_rules = false  # Keep web-server RDP off the public LB
 
 # On-Premises Simulation
 deploy_onprem_simulation = true  # ~$140/month for VPN Gateway
 
 # Network add-ons
 deploy_nat_gateway                 = false  # Fixed outbound IP for web subnet
-deploy_private_dns_zones           = false  # Private DNS for blob/Key Vault/SQL
+deploy_private_dns_zones           = true   # Private DNS for blob/Key Vault/SQL
 deploy_application_security_groups = false  # ASGs for web/app/data tiers
 
 # Observability
@@ -122,8 +126,8 @@ enable_auto_shutdown = true            # Auto-shutdown at 7 PM
 # -----------------------------------------------------------------------------
 # Private Endpoints Configuration
 # -----------------------------------------------------------------------------
-deploy_private_endpoints = false  # Private Endpoints for Key Vault, Storage, SQL
-                                  # Requires deploy_private_dns_zones = true
+deploy_private_endpoints = true  # Private Endpoints for Key Vault, Storage, SQL
+                                 # Requires deploy_private_dns_zones = true
 
 # -----------------------------------------------------------------------------
 # Azure Policy Configuration  
