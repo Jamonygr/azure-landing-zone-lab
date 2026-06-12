@@ -52,28 +52,34 @@ az account set --subscription "<SUBSCRIPTION_ID>"
 az account show --query "{Name:name, ID:id}" -o table
 ```
 
-### Step 2: Create Service Principal
+### Step 2: Create OIDC Service Principal
 
-The pipeline needs a Service Principal with sufficient permissions to manage Azure resources.
+The pipeline needs a Microsoft Entra application with a GitHub federated credential and sufficient permissions to manage Azure resources.
 
 ```bash
-# Create SP with Owner role
-az ad sp create-for-rbac \
-  --name "terraform-alz-pipeline" \
+SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+TENANT_ID=$(az account show --query tenantId -o tsv)
+APP_ID=$(az ad app create --display-name "terraform-alz-pipeline" --query appId -o tsv)
+
+az ad sp create --id "$APP_ID"
+az role assignment create \
+  --assignee "$APP_ID" \
   --role Owner \
-  --scopes /subscriptions/<SUBSCRIPTION_ID> \
-  --sdk-auth
+  --scope "/subscriptions/$SUBSCRIPTION_ID"
+
+cat > federated-credential.json <<EOF
+{
+  "name": "github-main",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:<OWNER>/<REPO>:ref:refs/heads/main",
+  "audiences": ["api://AzureADTokenExchange"]
+}
+EOF
+
+az ad app federated-credential create --id "$APP_ID" --parameters federated-credential.json
 ```
 
-**Save the output** - you'll need these values:
-```json
-{
-  "clientId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-  "clientSecret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "subscriptionId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-  "tenantId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-}
-```
+Save `APP_ID`, `SUBSCRIPTION_ID`, and `TENANT_ID` as GitHub Actions secrets.
 
 > **Why Owner role?** The landing zone creates role assignments, policy assignments, and role definitions which require:
 > - `Microsoft.Authorization/roleAssignments/write`
@@ -149,19 +155,10 @@ gh auth login
 
 # Set secrets (replace with your actual values)
 gh secret set AZURE_CLIENT_ID --body "<CLIENT_ID>"
-gh secret set AZURE_CLIENT_SECRET --body "<CLIENT_SECRET>"
 gh secret set AZURE_SUBSCRIPTION_ID --body "<SUBSCRIPTION_ID>"
 gh secret set AZURE_TENANT_ID --body "<TENANT_ID>"
 gh secret set TF_STATE_RG --body "rg-terraform-state"
 gh secret set TF_STATE_SA --body "<STORAGE_ACCOUNT_NAME>"
-
-# Set AZURE_CREDENTIALS as JSON object
-gh secret set AZURE_CREDENTIALS --body '{
-  "clientId": "<CLIENT_ID>",
-  "clientSecret": "<CLIENT_SECRET>",
-  "subscriptionId": "<SUBSCRIPTION_ID>",
-  "tenantId": "<TENANT_ID>"
-}'
 ```
 
 ### Step 5: Verify Setup
@@ -171,7 +168,7 @@ gh secret set AZURE_CREDENTIALS --body '{
 gh secret list
 
 # Test the pipeline with a plan
-gh workflow run "Terraform Pipeline" -f action=plan -f environment=lab
+gh workflow run "Terraform Pipeline" -f action=plan -f environment=cheap-lab
 gh run watch
 ```
 
@@ -194,10 +191,8 @@ Azure Subscription
 GitHub Repository
 └── Secrets
     ├── AZURE_CLIENT_ID
-    ├── AZURE_CLIENT_SECRET
     ├── AZURE_SUBSCRIPTION_ID
     ├── AZURE_TENANT_ID
-    ├── AZURE_CREDENTIALS (JSON)
     ├── TF_STATE_RG
     └── TF_STATE_SA
 ```
@@ -270,7 +265,7 @@ Start from **GitHub → Actions → Terraform Pipeline → Run workflow** and se
 | Input | Options | Description |
 |-------|---------|-------------|
 | **Action** | `plan`, `apply`, `destroy` | Plan always runs; Apply runs only when `action=apply`; Destroy runs only when `action=destroy`. |
-| **Environment** | `lab`, `dev`, `prod` | Selects the tfvars/state key (default lab) |
+| **Environment** | `cheap-lab`, `lab`, `dev`, `prod` | Selects the tfvars/state key (default lab) |
 | **Destroy confirm** | Type `DESTROY` | Required safety confirmation for destroy |
 
 Apply is further gated on `has_changes=true` from the Plan job.
@@ -281,25 +276,14 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 
 | Secret | Description | Example |
 |--------|-------------|---------|
-| `AZURE_CLIENT_ID` | Service Principal App ID | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
-| `AZURE_CLIENT_SECRET` | Service Principal secret | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` |
+| `AZURE_CLIENT_ID` | Entra application/client ID for GitHub OIDC | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
 | `AZURE_SUBSCRIPTION_ID` | Target Azure subscription | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
-| `AZURE_TENANT_ID` | Azure AD tenant ID | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
-| `AZURE_CREDENTIALS` | JSON credentials object | See below |
+| `AZURE_TENANT_ID` | Microsoft Entra tenant ID | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
 | `TF_STATE_RG` | Resource group for tfstate | `rg-terraform-state` |
 | `TF_STATE_SA` | Storage account for tfstate | `stterraformstateXXXX` |
 | `INFRACOST_API_KEY` | (Optional) enables cost-estimate stage | - |
 
-### AZURE_CREDENTIALS Format
-
-```json
-{
-  "clientId": "<AZURE_CLIENT_ID>",
-  "clientSecret": "<AZURE_CLIENT_SECRET>",
-  "subscriptionId": "<AZURE_SUBSCRIPTION_ID>",
-  "tenantId": "<AZURE_TENANT_ID>"
-}
-```
+The workflow uses GitHub Actions OIDC. Do not create or store an Azure client secret for the pipeline.
 
 ## Service Principal & Authentication
 
@@ -311,8 +295,8 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 │  (Runner)       │     │  (az login)     │     │  (ARM)          │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
         │                       │                       │
-        │ AZURE_CREDENTIALS     │ OAuth Token           │ API Calls
-        │ (from secrets)        │                       │
+        │ OIDC token request    │ OAuth Token           │ API Calls
+        │                       │                       │
         ▼                       ▼                       ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Service Principal                            │
@@ -333,8 +317,8 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 ### Authentication Flow in Pipeline
 
 1. **GitHub Runner starts** - Spins up Ubuntu container
-2. **Azure Login action** - Uses `AZURE_CREDENTIALS` secret to authenticate
-3. **Token acquired** - Azure AD issues OAuth token for the Service Principal
+2. **Azure Login action** - Exchanges a GitHub OIDC token for an Azure token
+3. **Token acquired** - Microsoft Entra ID issues an OAuth token for the service principal
 4. **Terraform uses token** - AzureRM provider uses the authenticated session
 5. **API calls made** - All Azure resource operations use the SP identity
 
@@ -354,14 +338,11 @@ az ad sp show --id <APP_ID>
 az role assignment list --assignee <APP_ID> -o table
 ```
 
-**Rotate the secret:**
+**Rotate credentials:**
 ```bash
-# Create new secret (old ones remain valid until expiry)
-az ad sp credential reset --id <APP_ID> --append
-
-# Update GitHub secret
-gh secret set AZURE_CLIENT_SECRET --body "<NEW_SECRET>"
-gh secret set AZURE_CREDENTIALS --body '{"clientId":"...","clientSecret":"<NEW_SECRET>",...}'
+# OIDC has no pipeline client secret to rotate. Recreate the federated credential if
+# the repository, branch, or environment subject changes.
+az ad app federated-credential list --id <APP_ID> -o table
 ```
 
 **Delete the Service Principal:**
@@ -562,7 +543,7 @@ Runs [TFLint](https://github.com/terraform-linters/tflint) with Azure ruleset:
 
 ```bash
 # Via GitHub CLI
-gh workflow run "Terraform Pipeline" -f action=apply -f environment=lab
+gh workflow run "Terraform Pipeline" -f action=apply -f environment=cheap-lab
 
 # Watch the run
 gh run watch
@@ -571,7 +552,7 @@ gh run watch
 ### Plan Only (No Changes)
 
 ```bash
-gh workflow run "Terraform Pipeline" -f action=plan -f environment=lab
+gh workflow run "Terraform Pipeline" -f action=plan -f environment=cheap-lab
 ```
 
 ### Destroy Environment
@@ -579,7 +560,7 @@ gh workflow run "Terraform Pipeline" -f action=plan -f environment=lab
 ```bash
 gh workflow run "Terraform Pipeline" \
   -f action=destroy \
-  -f environment=lab \
+  -f environment=cheap-lab \
   -f destroy_confirm=DESTROY
 ```
 

@@ -81,7 +81,7 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 ### Providers and backend
 - Providers: AzureRM ~> 4.x and AzAPI ~> 2.x (AzAPI needed for modern features like VNet Flow Logs).
 - Backend: azurerm with container `tfstate`; key is `<environment>.terraform.tfstate`; set via pipeline/backend config.
-- State isolation: each environment (lab/dev/prod) maps to its own key; locks are blob leases.
+- State isolation: each environment (`cheap-lab`, `lab`, `dev`, `prod`) maps to its own key; locks are blob leases.
 
 ### Feature flags and profiles
 - MASTER CONTROL PANEL in `terraform.tfvars` groups all `deploy_*` / `enable_*` flags.
@@ -173,16 +173,16 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 ### Overview
 - File: `.github/workflows/terraform.yml`
 - Jobs: 15 visible stages with concurrency guard `terraform-${ref}-${environment}`.
-- Secrets required: `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`, `AZURE_CREDENTIALS`, `TF_STATE_RG`, `TF_STATE_SA`, optional `INFRACOST_API_KEY`.
+- Secrets required: `AZURE_CLIENT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`, `TF_STATE_RG`, `TF_STATE_SA`, optional `INFRACOST_API_KEY`.
 
 ### Job sequence
 1) 1xx Format Check - `terraform fmt -check -recursive`
 2) 2xx Validate - `terraform init -backend=false` + `terraform validate`
-3) 3xx Security - tfsec - SARIF upload (soft-fail)
-4) 3xx Security - Checkov - SARIF upload (soft-fail)
+3) 3xx Security - tfsec - SARIF upload (blocking)
+4) 3xx Security - Checkov - SARIF upload (blocking)
 5) 3xx Security - Secrets - Gitleaks scan
 6) 4xx Lint - TFLint - Azure rules (soft-fail)
-7) 4xx Lint - Policy - Conftest OPA policies against `tfplan.json` (soft-fail by default)
+7) 4xx Lint - Policy - Conftest OPA policies against `tfplan.json` (blocking)
 8) 4xx Lint - Docs - `terraform-docs` for root and modules (artifact)
 9) 5xx Analysis - Graph - Terraform graph -> SVG (artifact)
 10) 5xx Analysis - Versions - Terraform + provider versions (summary)

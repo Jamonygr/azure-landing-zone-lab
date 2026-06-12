@@ -76,16 +76,34 @@ module "app_nsg" {
   ]
 }
 
+locals {
+  private_endpoint_public_network_enabled = !var.deploy_private_endpoints
+  shared_service_network_acls = {
+    bypass                     = "AzureServices"
+    default_action             = var.deploy_private_endpoints ? "Deny" : "Allow"
+    ip_rules                   = []
+    virtual_network_subnet_ids = var.deploy_private_endpoints ? [module.app_subnet.id] : []
+  }
+  storage_network_rules = {
+    default_action             = var.deploy_private_endpoints ? "Deny" : "Allow"
+    bypass                     = ["AzureServices"]
+    ip_rules                   = []
+    virtual_network_subnet_ids = var.deploy_private_endpoints ? [module.app_subnet.id] : []
+  }
+}
+
 # Key Vault
 module "keyvault" {
   source = "../../../modules/keyvault"
   count  = var.deploy_keyvault ? 1 : 0
 
-  name                = "kv-${var.project}-${var.random_suffix}"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  tenant_id           = var.tenant_id
-  tags                = var.tags
+  name                          = "kv-${var.project}-${var.random_suffix}"
+  resource_group_name           = var.resource_group_name
+  location                      = var.location
+  tenant_id                     = var.tenant_id
+  tags                          = var.tags
+  public_network_access_enabled = local.private_endpoint_public_network_enabled
+  network_acls                  = local.shared_service_network_acls
 
   secrets = {
     "vm-admin-password" = {
@@ -100,11 +118,13 @@ module "storage" {
   source = "../../../modules/storage"
   count  = var.deploy_storage ? 1 : 0
 
-  name                     = var.storage_account_name
-  resource_group_name      = var.resource_group_name
-  location                 = var.location
-  account_replication_type = "LRS"
-  tags                     = var.tags
+  name                          = var.storage_account_name
+  resource_group_name           = var.resource_group_name
+  location                      = var.location
+  account_replication_type      = "LRS"
+  tags                          = var.tags
+  public_network_access_enabled = local.private_endpoint_public_network_enabled
+  network_rules                 = local.storage_network_rules
 
   containers = [
     { name = "scripts" },
@@ -122,15 +142,16 @@ module "sql" {
   source = "../../../modules/sql"
   count  = var.deploy_sql ? 1 : 0
 
-  server_name          = "sql-${var.project}-${var.random_suffix}"
-  database_name        = "sqldb-${var.project}-${var.environment}"
-  resource_group_name  = var.resource_group_name
-  location             = var.location
-  admin_login          = var.sql_admin_login
-  admin_password       = var.sql_admin_password
-  sku_name             = "Basic"
-  allow_azure_services = true
-  tags                 = var.tags
+  server_name                   = "sql-${var.project}-${var.random_suffix}"
+  database_name                 = "sqldb-${var.project}-${var.environment}"
+  resource_group_name           = var.resource_group_name
+  location                      = var.location
+  admin_login                   = var.sql_admin_login
+  admin_password                = var.sql_admin_password
+  sku_name                      = "Basic"
+  public_network_access_enabled = local.private_endpoint_public_network_enabled
+  allow_azure_services          = false
+  tags                          = var.tags
 }
 
 # Route Table (via Firewall)

@@ -59,10 +59,11 @@ deploy_private_endpoints = true  # Private Endpoints          ~FREE
 deploy_private_dns_zones = true  # Private DNS Zones          ~FREE
 
 # Monitoring & Observability
-deploy_log_analytics      = true  # Log Analytics              ~FREE(30d)
-deploy_workbooks          = true  # Azure Workbooks            FREE
-deploy_connection_monitor = true  # Connection Monitor         ~$1
-deploy_cost_management    = true  # Budget Alerts              FREE
+deploy_log_analytics      = true # Log Analytics              ~FREE(30d)
+deploy_workbooks          = true # Azure Workbooks            FREE
+deploy_connection_monitor = true # Connection Monitor         ~$1
+deploy_cost_management    = true # Budget Alerts              FREE
+cost_alert_emails         = ["replace-me@example.com"]
 enable_vnet_flow_logs     = false # VNet Flow Logs             ~$1-5
 enable_traffic_analytics  = false # Traffic Analytics          ~$3
 

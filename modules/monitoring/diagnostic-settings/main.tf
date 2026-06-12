@@ -1,6 +1,10 @@
 # Diagnostic Settings Module
 # Creates diagnostic settings to send logs and metrics to Log Analytics
 
+locals {
+  nsg_diagnostic_targets = length(var.nsg_resource_ids) > 0 ? var.nsg_resource_ids : { for id in var.nsg_ids : id => id }
+}
+
 # Firewall Diagnostic Settings
 resource "azurerm_monitor_diagnostic_setting" "firewall" {
   count                      = var.enable_firewall_diagnostics ? 1 : 0
@@ -199,8 +203,8 @@ resource "azurerm_monitor_diagnostic_setting" "storage" {
 
 # NSG Flow Logs (for network security groups)
 resource "azurerm_monitor_diagnostic_setting" "nsg" {
-  for_each                   = var.enable_nsg_diagnostics ? toset(var.nsg_ids) : toset([])
-  name                       = "${var.diagnostic_name_prefix}-nsg"
+  for_each                   = var.enable_nsg_diagnostics ? local.nsg_diagnostic_targets : {}
+  name                       = "${var.diagnostic_name_prefix}-${each.key}-nsg"
   target_resource_id         = each.value
   log_analytics_workspace_id = var.log_analytics_workspace_id
 

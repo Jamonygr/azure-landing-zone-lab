@@ -39,14 +39,15 @@ warn[msg] {
 }
 
 # Deny resources in non-approved regions
-approved_regions := ["westus2", "eastus", "eastus2", "centralus"]
+approved_regions := ["westus2", "eastus", "eastus2", "centralus", "westeurope", "northeurope", "canadacentral"]
 
 deny[msg] {
     resource := input.resource_changes[_]
     resource.change.actions[_] == "create"
     location := resource.change.after.location
     location != null
-    not array_contains(approved_regions, location)
+    normalized_location := replace(lower(location), " ", "")
+    not array_contains(approved_regions, normalized_location)
     msg := sprintf("Resource '%s' in region '%s' - only %v are approved", [resource.address, location, approved_regions])
 }
 

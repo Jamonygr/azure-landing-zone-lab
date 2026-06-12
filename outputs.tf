@@ -28,7 +28,7 @@ output "hub_vpn_gateway_public_ip" {
 
 output "application_gateway_public_ip" {
   description = "Application Gateway public IP"
-  value       = var.deploy_application_gateway ? module.networking.application_gateway_public_ip : null
+  value       = var.deploy_application_gateway ? module.application_gateway[0].public_ip_address : null
 }
 
 # -----------------------------------------------------------------------------

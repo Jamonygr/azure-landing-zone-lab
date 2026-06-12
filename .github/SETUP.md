@@ -85,42 +85,37 @@ echo "TF_STATE_SA: $STORAGE_ACCOUNT"
 
 ---
 
-## Step 3: Create Service Principal
+## Step 3: Create GitHub OIDC Identity
 
-Create a service principal for GitHub Actions to authenticate with Azure.
+Create a Microsoft Entra app registration, service principal, and federated credential for GitHub Actions. The workflow uses OIDC and does not need a long-lived client secret.
 
-### PowerShell
-```powershell
-# Get subscription ID
-$SUBSCRIPTION_ID = az account show --query id -o tsv
-
-# Create service principal with Contributor role
-$SP = az ad sp create-for-rbac `
-  --name "sp-github-actions-terraform" `
-  --role "Contributor" `
-  --scopes "/subscriptions/$SUBSCRIPTION_ID" `
-  --sdk-auth | ConvertFrom-Json
-
-# Display credentials
-Write-Host "`n=== SAVE THESE FOR GITHUB SECRETS ===" -ForegroundColor Green
-Write-Host "AZURE_CREDENTIALS: (copy full JSON output above)"
-Write-Host "AZURE_CLIENT_ID: $($SP.clientId)"
-Write-Host "AZURE_CLIENT_SECRET: $($SP.clientSecret)"
-Write-Host "AZURE_SUBSCRIPTION_ID: $($SP.subscriptionId)"
-Write-Host "AZURE_TENANT_ID: $($SP.tenantId)"
-```
-
-### Bash
 ```bash
 SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+TENANT_ID=$(az account show --query tenantId -o tsv)
+APP_ID=$(az ad app create --display-name "sp-github-actions-terraform" --query appId -o tsv)
 
-az ad sp create-for-rbac \
-  --name "sp-github-actions-terraform" \
+az ad sp create --id "$APP_ID"
+az role assignment create \
+  --assignee "$APP_ID" \
   --role "Contributor" \
-  --scopes "/subscriptions/$SUBSCRIPTION_ID" \
-  --sdk-auth
+  --scope "/subscriptions/$SUBSCRIPTION_ID"
 
-# Copy the full JSON output for AZURE_CREDENTIALS
+cat > federated-credential.json <<EOF
+{
+  "name": "github-main",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:<OWNER>/<REPO>:ref:refs/heads/main",
+  "audiences": ["api://AzureADTokenExchange"]
+}
+EOF
+
+az ad app federated-credential create \
+  --id "$APP_ID" \
+  --parameters federated-credential.json
+
+echo "AZURE_CLIENT_ID: $APP_ID"
+echo "AZURE_SUBSCRIPTION_ID: $SUBSCRIPTION_ID"
+echo "AZURE_TENANT_ID: $TENANT_ID"
 ```
 
 ---
@@ -133,11 +128,9 @@ az ad sp create-for-rbac \
 
 | Secret Name | Description | Example |
 |-------------|-------------|---------|
-| `AZURE_CREDENTIALS` | Full JSON from service principal creation | `{"clientId":"...", ...}` |
-| `AZURE_CLIENT_ID` | Service principal client/app ID | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
-| `AZURE_CLIENT_SECRET` | Service principal password | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
+| `AZURE_CLIENT_ID` | Entra app client ID for GitHub OIDC | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
 | `AZURE_SUBSCRIPTION_ID` | Your Azure subscription ID | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
-| `AZURE_TENANT_ID` | Your Azure AD tenant ID | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
+| `AZURE_TENANT_ID` | Your Entra tenant ID | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
 | `TF_STATE_RG` | Resource group for state storage | `rg-terraform-state` |
 | `TF_STATE_SA` | Storage account name | `stterraformstate1234` |
 
@@ -173,7 +166,7 @@ The **Terraform Validate** workflow will run automatically.
 1. Go to **Actions** tab
 2. Select **Terraform Plan** or **Terraform Apply**
 3. Click **Run workflow**
-4. Select environment (`lab`, `dev`, or `prod`)
+4. Select environment (`cheap-lab`, `lab`, `dev`, or `prod`)
 
 ---
 

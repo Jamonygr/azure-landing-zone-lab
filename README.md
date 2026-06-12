@@ -5,15 +5,6 @@
 [![AzAPI](https://img.shields.io/badge/AzAPI-~>2.0-blue?logo=microsoftazure)](https://registry.terraform.io/providers/Azure/azapi/latest)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-<p align="center">
-  <img src="docs/images/hero-landing-zone.svg" alt="Azure Landing Zone Lab banner" width="1000" />
-</p>
-
-<p align="center">
-  <img src="docs/images/overview-components.svg" alt="Core pillars overview" width="1000" />
-</p>
-
-
 Learn Azure the right way—by building it. This Terraform project deploys a complete enterprise cloud environment you can explore, break, and rebuild. Covers networking, security, hybrid connectivity, containers, and Windows workloads following Microsoft Cloud Adoption Framework (CAF) best practices.
 
 > 💡 **Hands-on Learning**: Deploy real enterprise infrastructure in minutes. Perfect for Azure certifications (AZ-104, AZ-305, AZ-700), team training, or validating architectures before production.
@@ -81,7 +72,7 @@ Enable these when you need tighter control or visibility. Check prerequisites to
 | `enable_traffic_analytics` | Traffic flow visualization | `enable_vnet_flow_logs`, `deploy_log_analytics`, `deploy_storage` | Log Analytics ingest |
 | `create_network_watcher` | Creates NetworkWatcherRG if missing | Set true only for new subscriptions | None |
 
-> **Note**: VNet Flow Logs are the modern replacement for NSG Flow Logs (retired June 2025). Uses **AzAPI** provider.
+> **Note**: New NSG Flow Logs cannot be created after June 30, 2025, and existing NSG Flow Logs retire on September 30, 2027. VNet Flow Logs are the recommended replacement and are implemented with the **AzAPI** provider.
 
 ### ☁️ PaaS Services (Cloud-Native Workloads)
 
@@ -114,15 +105,14 @@ All PaaS services are **optional** and controlled via deployment flags:
 
 ## ⚡ Deployment Profiles
 
-| Profile | Components | Deploy Time | Est. Monthly Cost |
-|---------|------------|-------------|------------------|
-| **Minimal** | Core VNets + Identity + Management (no Firewall) | ~8 min | ~$100-150 |
-| **Standard** | Minimal + Firewall + Load Balancer + IIS | ~15 min | ~$450-500 |
-| **Standard + PaaS** | Standard + All PaaS Services | ~25 min | ~$500-550 |
-| **Full Hybrid** | Standard + VPN + On-Prem Simulation | ~45 min | ~$650-700 |
-| **Enterprise** | Full Hybrid + AKS + App Gateway | ~55 min | ~$850-950 |
+| Profile | File | Best for | Default posture | Est. Monthly Cost |
+|---------|------|----------|-----------------|------------------|
+| **cheap-lab** | `environments/cheap-lab.tfvars` | Lowest-cost learning | No Firewall/AppGW/NAT/LB RDP/AKS/PaaS bundle | Lowest |
+| **standard-lab** | `environments/lab.tfvars` | Full lab exploration | Firewall, AppGW, NAT, prod/dev spokes, private endpoints, PaaS | Higher |
+| **dev** | `environments/dev.tfvars` | Development testing | Dev workload, AKS, no Firewall/VPN | Medium |
+| **production-like** | `environments/prod.tfvars` | Production-pattern validation | Firewall/VPN/secondary DC/AKS enabled | Highest |
 
-> **Current Default Config** (`terraform.tfvars`): Standard + PaaS + Network Add-ons + Dev VNet (VPN/AKS/Flow Logs/Backup off; ~$500-600/month)
+> Start with `cheap-lab` unless you specifically need WAF, Firewall, NAT Gateway, AKS, or the full PaaS bundle.
 
 ---
 
@@ -176,16 +166,14 @@ deploy_onprem_simulation = false
 | Test load balancer distribution | 5-tuple hash, health probes |
 | Simulate VM failure (stop a VM) | Backend pool health, failover |
 | Configure custom health probes | HTTP probes, intervals |
-| Access VMs via NAT rules | Inbound NAT, port mapping |
+| Manage VMs through private paths | Jumpbox, VPN, or Bastion-style access |
 
 ```bash
 # Test load balancing
 curl http://<lb_frontend_ip>  # Observe round-robin between web01-prd and web02-prd
-
-# RDP to individual servers
-mstsc /v:<lb_frontend_ip>:3389  # web01
-mstsc /v:<lb_frontend_ip>:3390  # web02
 ```
+
+Public Load Balancer RDP NAT rules are disabled by default. Set `enable_lb_rdp_nat_rules = true` only for a short-lived lab exception and restrict management access to trusted CIDRs.
 
 ### Scenario 3: Hybrid Connectivity (VPN)
 **Objective**: Configure site-to-site VPN and hybrid networking
@@ -604,42 +592,60 @@ Azure Storage Account
 
 | Secret | Description |
 |--------|-------------|
-| `AZURE_CLIENT_ID` | Service Principal App ID |
-| `AZURE_CLIENT_SECRET` | Service Principal Secret |
+| `AZURE_CLIENT_ID` | Microsoft Entra application/client ID used for GitHub OIDC |
 | `AZURE_SUBSCRIPTION_ID` | Target Azure Subscription |
-| `AZURE_TENANT_ID` | Azure AD Tenant ID |
-| `AZURE_CREDENTIALS` | JSON credentials object (see below) |
+| `AZURE_TENANT_ID` | Microsoft Entra tenant ID |
 | `TF_STATE_RG` | Resource group for state storage |
 | `TF_STATE_SA` | Storage account for state storage |
 | `INFRACOST_API_KEY` | (Optional) enables the cost estimation stage |
 
-**AZURE_CREDENTIALS format:**
-```json
-{
-  "clientId": "<AZURE_CLIENT_ID>",
-  "clientSecret": "<AZURE_CLIENT_SECRET>",
-  "subscriptionId": "<AZURE_SUBSCRIPTION_ID>",
-  "tenantId": "<AZURE_TENANT_ID>"
-}
-```
+The pipeline uses GitHub Actions OIDC. Do not store a long-lived Azure client secret for Terraform.
 
 ### Quick Commands
 
 ```bash
-# Create Service Principal with Owner role
+# Create an app registration and service principal
+APP_ID=$(az ad app create --display-name "terraform-alz-pipeline" --query appId -o tsv)
+az ad sp create --id "$APP_ID"
+
+# Grant the role needed by your lab scope
+az role assignment create \
+  --assignee "$APP_ID" \
+  --role Contributor \
+  --scope /subscriptions/<SUBSCRIPTION_ID>
+
+# Add a GitHub OIDC federated credential for the main branch
+cat > federated-credential.json <<EOF
+{
+  "name": "github-main",
+  "issuer": "https://token.actions.githubusercontent.com",
+  "subject": "repo:<OWNER>/<REPO>:ref:refs/heads/main",
+  "audiences": ["api://AzureADTokenExchange"]
+}
+EOF
+az ad app federated-credential create --id "$APP_ID" --parameters federated-credential.json
+
+# Save GitHub Actions secrets
+gh secret set AZURE_CLIENT_ID --body "$APP_ID"
+gh secret set AZURE_SUBSCRIPTION_ID --body "<SUBSCRIPTION_ID>"
+gh secret set AZURE_TENANT_ID --body "<TENANT_ID>"
+
+# Deploy infrastructure (manual apply)
+gh workflow run "Terraform Pipeline" -f action=apply -f environment=cheap-lab
+```
+
+```bash
+# Alternative: create a service principal for local use only
 az ad sp create-for-rbac \
   --name "terraform-alz-pipeline" \
   --role Owner \
   --scopes /subscriptions/<SUBSCRIPTION_ID> \
-  --sdk-auth
-
-# Deploy infrastructure (manual apply)
-gh workflow run "Terraform Pipeline" -f action=apply -f environment=lab
+  --json-auth
 
 # Destroy infrastructure (requires confirmation)
 gh workflow run "Terraform Pipeline" \
   -f action=destroy \
-  -f environment=lab \
+  -f environment=cheap-lab \
   -f destroy_confirm=DESTROY
 
 # Watch pipeline progress
@@ -685,8 +691,9 @@ deploy_application_gateway   = true   # App Gateway with WAF (~$36/mo)
 
 # Identity & Management
 deploy_secondary_dc          = false  # Second Domain Controller (~$30/mo)
-enable_jumpbox_public_ip     = true   # Public RDP to jumpbox
-allowed_jumpbox_source_ips   = ["0.0.0.0/0"]  # TODO: Restrict to your IP
+enable_jumpbox_public_ip     = false  # Prefer VPN/Bastion/private management
+allowed_jumpbox_source_ips   = ["203.0.113.10/32"]  # Replace with your trusted IP/CIDR
+allow_public_rdp_from_internet = false
 
 # Shared Services
 deploy_keyvault              = true
@@ -706,6 +713,7 @@ deploy_workload_dev          = true   # Dev environment (similar to prod)
 
 # Load Balancer
 deploy_load_balancer         = true
+enable_lb_rdp_nat_rules      = false  # Do not expose web-server RDP through public LB
 lb_type                      = "public"
 lb_web_server_count          = 2
 lb_web_server_size           = "Standard_B1ms"

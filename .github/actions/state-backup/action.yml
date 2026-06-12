@@ -2,8 +2,14 @@ name: 'State Backup'
 description: 'Backup Terraform state before changes'
 
 inputs:
-  azure_credentials:
-    description: 'Azure credentials JSON'
+  azure_client_id:
+    description: 'Azure client ID for OIDC login'
+    required: true
+  azure_tenant_id:
+    description: 'Azure tenant ID for OIDC login'
+    required: true
+  azure_subscription_id:
+    description: 'Azure subscription ID for OIDC login'
     required: true
   storage_account:
     description: 'State storage account'
@@ -25,26 +31,9 @@ runs:
     - name: Azure Login
       uses: azure/login@v2
       with:
-        creds: ${{ inputs.azure_credentials }}
-
-    - name: Backup State
-      shell: bash
-      run: |
-        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-        BACKUP_NAME="${{ inputs.state_key }}.backup-${TIMESTAMP}"
-        
-        # Copy current state to backup
-        az storage blob copy start \
-          --account-name ${{ inputs.storage_account }} \
-          --destination-container ${{ inputs.container }}-backups \
-          --destination-blob "$BACKUP_NAME" \
-          --source-account-name ${{ inputs.storage_account }} \
-          --source-container ${{ inputs.container }} \
-          --source-blob ${{ inputs.state_key }} \
-          2>/dev/null || true
-        
-        echo "## 💾 State Backup" >> $GITHUB_STEP_SUMMARY
-        echo "Backed up state to: $BACKUP_NAME" >> $GITHUB_STEP_SUMMARY
+        client-id: ${{ inputs.azure_client_id }}
+        tenant-id: ${{ inputs.azure_tenant_id }}
+        subscription-id: ${{ inputs.azure_subscription_id }}
 
     - name: Create Backup Container if Missing
       shell: bash
@@ -52,4 +41,39 @@ runs:
         az storage container create \
           --account-name ${{ inputs.storage_account }} \
           --name ${{ inputs.container }}-backups \
-          2>/dev/null || true
+          --auth-mode login \
+          --only-show-errors \
+          1>/dev/null
+
+    - name: Backup State
+      shell: bash
+      run: |
+        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+        BACKUP_NAME="${{ inputs.state_key }}.backup-${TIMESTAMP}"
+
+        EXISTS=$(az storage blob exists \
+          --account-name ${{ inputs.storage_account }} \
+          --container-name ${{ inputs.container }} \
+          --name "${{ inputs.state_key }}" \
+          --auth-mode login \
+          --query exists \
+          --output tsv)
+
+        echo "## 💾 State Backup" >> $GITHUB_STEP_SUMMARY
+        if [ "$EXISTS" != "true" ]; then
+          echo "No existing state blob found for ${{ inputs.state_key }}; skipping first-run backup." >> $GITHUB_STEP_SUMMARY
+          exit 0
+        fi
+
+        az storage blob copy start \
+          --account-name ${{ inputs.storage_account }} \
+          --destination-container ${{ inputs.container }}-backups \
+          --destination-blob "$BACKUP_NAME" \
+          --source-account-name ${{ inputs.storage_account }} \
+          --source-container ${{ inputs.container }} \
+          --source-blob "${{ inputs.state_key }}" \
+          --auth-mode login \
+          --only-show-errors \
+          1>/dev/null
+
+        echo "Backed up state to: $BACKUP_NAME" >> $GITHUB_STEP_SUMMARY

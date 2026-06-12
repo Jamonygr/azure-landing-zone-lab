@@ -238,9 +238,9 @@ module "management" {
 
   deploy_monitoring = true
   alert_email_receivers = [
-    {
-      name          = "admin"
-      email_address = "admin@example.com"
+    for idx, email in var.cost_alert_emails : {
+      name          = "email-${idx + 1}"
+      email_address = email
     }
   ]
   monitored_vm_ids = concat(
@@ -379,13 +379,14 @@ module "workload_prod" {
   log_analytics_workspace_id = var.deploy_log_analytics ? module.management.log_analytics_workspace_id : null
   enable_diagnostics         = var.deploy_log_analytics
 
-  deploy_load_balancer = var.deploy_load_balancer
-  lb_type              = var.lb_type
-  lb_private_ip        = var.lb_private_ip
-  lb_web_server_count  = var.lb_web_server_count
-  lb_web_server_size   = var.lb_web_server_size
-  admin_username       = var.admin_username
-  admin_password       = local.effective_admin_password
+  deploy_load_balancer    = var.deploy_load_balancer
+  enable_lb_rdp_nat_rules = var.enable_lb_rdp_nat_rules
+  lb_type                 = var.lb_type
+  lb_private_ip           = var.lb_private_ip
+  lb_web_server_count     = var.lb_web_server_count
+  lb_web_server_size      = var.lb_web_server_size
+  admin_username          = var.admin_username
+  admin_password          = local.effective_admin_password
 
   deploy_functions      = var.deploy_functions
   deploy_static_web_app = var.deploy_static_web_app
@@ -423,6 +424,80 @@ module "workload_dev" {
 
   enable_diagnostics = var.deploy_log_analytics
   cosmos_location    = var.cosmos_location != "" ? var.cosmos_location : null
+}
+
+moved {
+  from = module.networking.module.hub.module.application_gateway[0].azurerm_public_ip.this
+  to   = module.application_gateway[0].azurerm_public_ip.this
+}
+
+moved {
+  from = module.networking.module.hub.module.application_gateway[0].azurerm_application_gateway.this
+  to   = module.application_gateway[0].azurerm_application_gateway.this
+}
+
+module "application_gateway" {
+  source = "./modules/application-gateway"
+  count  = var.deploy_application_gateway ? 1 : 0
+
+  name_suffix         = "hub-${local.environment}-${local.location_short}"
+  resource_group_name = azurerm_resource_group.hub.name
+  location            = var.location
+  subnet_id           = module.networking.appgw_subnet_id
+  zones               = []
+
+  sku_name = "WAF_v2"
+  sku_tier = "WAF_v2"
+  capacity = 1
+
+  backend_pools = {
+    "workload-web-servers" = {
+      ip_addresses = var.deploy_workload_prod && var.deploy_load_balancer ? module.workload_prod[0].web_server_ips : []
+    }
+  }
+
+  backend_http_settings = {
+    "http-80" = {
+      port                                = 80
+      protocol                            = "Http"
+      probe_name                          = "web-probe"
+      pick_host_name_from_backend_address = true
+    }
+  }
+
+  default_backend_pool_name          = "workload-web-servers"
+  default_backend_http_settings_name = "http-80"
+
+  health_probes = {
+    "web-probe" = {
+      protocol                                  = "Http"
+      path                                      = "/"
+      pick_host_name_from_backend_http_settings = false
+      host                                      = "localhost"
+      interval                                  = 30
+      timeout                                   = 30
+      unhealthy_threshold                       = 3
+      match = {
+        status_code = ["200-399"]
+      }
+    }
+  }
+
+  waf_configuration = {
+    enabled          = true
+    firewall_mode    = var.appgw_waf_mode
+    rule_set_type    = "OWASP"
+    rule_set_version = "3.2"
+  }
+
+  log_analytics_workspace_id = var.deploy_log_analytics ? module.management.log_analytics_workspace_id : null
+  enable_diagnostics         = var.deploy_log_analytics
+  tags                       = local.common_tags
+
+  depends_on = [
+    module.networking,
+    module.workload_prod
+  ]
 }
 
 # =============================================================================
@@ -475,10 +550,48 @@ module "networking_connectivity" {
   deploy_application_security_groups = var.deploy_application_security_groups
 
   deploy_application_gateway = var.deploy_application_gateway
-  application_gateway_name   = module.networking.application_gateway_name
-  application_gateway_id     = module.networking.application_gateway_id
-  appgw_backend_ips          = var.deploy_workload_prod && var.deploy_load_balancer ? module.workload_prod[0].web_server_ips : []
-  enable_appgw_diagnostics   = var.deploy_application_gateway && var.deploy_log_analytics
+  application_gateway_name   = var.deploy_application_gateway ? module.application_gateway[0].application_gateway_name : null
+  application_gateway_id     = var.deploy_application_gateway ? module.application_gateway[0].application_gateway_id : null
+  enable_appgw_diagnostics   = false
+}
+
+module "post_deployment_diagnostics" {
+  source = "./modules/monitoring/diagnostic-settings"
+  count  = var.deploy_log_analytics ? 1 : 0
+
+  diagnostic_name_prefix     = "diag-${local.environment}-${local.location_short}"
+  log_analytics_workspace_id = module.management.log_analytics_workspace_id
+
+  aks_cluster_id         = var.deploy_aks && var.deploy_workload_prod ? module.workload_prod[0].aks_id : ""
+  enable_aks_diagnostics = var.deploy_aks && var.deploy_workload_prod
+
+  sql_server_id          = var.deploy_sql ? module.security.sql_server_id : ""
+  sql_database_id        = var.deploy_sql ? module.security.sql_database_id : ""
+  enable_sql_diagnostics = var.deploy_sql
+
+  keyvault_id                 = var.deploy_keyvault ? module.security.keyvault_id : ""
+  enable_keyvault_diagnostics = var.deploy_keyvault
+  storage_account_id          = var.deploy_storage ? module.security.storage_account_id : ""
+  enable_storage_diagnostics  = var.deploy_storage
+
+  nsg_resource_ids = merge(
+    {
+      identity_dc        = module.identity.dc_nsg_id
+      management_jumpbox = module.management.jumpbox_nsg_id
+      shared_app         = module.security.app_nsg_id
+    },
+    var.deploy_workload_prod ? {
+      prod_web  = module.workload_prod[0].web_nsg_id
+      prod_app  = module.workload_prod[0].app_nsg_id
+      prod_data = module.workload_prod[0].data_nsg_id
+    } : {},
+    var.deploy_workload_dev ? {
+      dev_web  = module.workload_dev[0].web_nsg_id
+      dev_app  = module.workload_dev[0].app_nsg_id
+      dev_data = module.workload_dev[0].data_nsg_id
+    } : {}
+  )
+  enable_nsg_diagnostics = true
 }
 
 # =============================================================================
