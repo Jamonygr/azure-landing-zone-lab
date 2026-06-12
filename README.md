@@ -129,6 +129,10 @@ All PaaS services are **optional** and controlled via deployment flags:
 ## 🏛️ Architecture Diagram
 
 <p align="center">
+  <img src="docs/images/azure_architecture_with_icons_v2.png" alt="Actual Azure Architecture Plan" width="1200" />
+</p>
+
+<p align="center">
   <img src="docs/images/architecture-overview.svg" alt="Architecture overview diagram" width="1000" />
 </p>
 
@@ -1440,4 +1444,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ for learning Azure infrastructure**
 
-*Last Updated: December 2025*
+*Last Updated: June 2026*
