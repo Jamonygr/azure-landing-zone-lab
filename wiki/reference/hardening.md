@@ -5,12 +5,13 @@
 </p>
 
 
-Use this to tighten the lab after initial deployment. The current profile runs with VPN off and a public jumpbox; firewall is on; LB is public; Application Gateway is enabled; several PaaS services are enabled.
+Use this to keep the lab private-first after initial deployment. Firewall is on in the richer lab profile; LB and Application Gateway can be public entry points for web traffic, but management access is closed by default.
 
 ## Highest-priority fixes
 
-- **RDP scope**: Set `allowed_jumpbox_source_ips` in `terraform.tfvars` to your public IP/CIDR instead of `0.0.0.0/0`. For example: `["203.0.113.10/32"]`.
-- **Public entry path**: If you want no public exposure, set `enable_jumpbox_public_ip = false` and `deploy_vpn_gateway = true`; then connect via the VPN client pool.
+- **RDP scope**: Keep `enable_jumpbox_public_ip = false` for normal lab use. If you temporarily enable it, set `allowed_jumpbox_source_ips` to trusted CIDRs only. Terraform blocks `0.0.0.0/0` unless `allow_public_rdp_from_internet = true` is set intentionally.
+- **Workload RDP NAT**: Keep `enable_lb_rdp_nat_rules = false`; use private management paths instead of exposing web VM RDP through the load balancer.
+- **Public entry path**: If you want no management exposure, keep public RDP disabled and set `deploy_vpn_gateway = true`; then connect via the VPN client pool.
 - **Admin secrets**: Rotate `admin_password`, `sql_admin_password`, and `vpn_shared_key` to unique, strong values before apply; avoid reusing across services.
 
 ## Monitoring and diagnostics
@@ -20,7 +21,7 @@ Use this to tighten the lab after initial deployment. The current profile runs w
 
 ## Networking notes
 
-- Firewall is on; VPN and on-prem simulation are off, so inbound access is only via the jumpbox public IP and LB NAT rules.
+- Firewall is on; VPN and on-prem simulation may be off, so management access should be via private paths or tightly scoped temporary public RDP.
 - Private endpoints and Private DNS are on; SQL is on. Confirm Private Link DNS resolves correctly from spokes before relying on private-only endpoints.
 - Application Gateway is on by default in the current profile. If you don't need it, set `deploy_application_gateway = false` to reduce cost and simplify traffic paths.
 

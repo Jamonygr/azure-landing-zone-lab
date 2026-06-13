@@ -249,29 +249,6 @@ module "vnet_flow_logs_shared" {
 }
 
 # -----------------------------------------------------------------------------
-# App Gateway backend update (post-deployment)
-# -----------------------------------------------------------------------------
-
-resource "null_resource" "appgw_backend_update" {
-  count = var.deploy_application_gateway && length(var.appgw_backend_ips) > 0 ? 1 : 0
-
-  triggers = {
-    web_server_ips = join(",", var.appgw_backend_ips)
-  }
-
-  provisioner "local-exec" {
-    command     = <<-EOT
-      az network application-gateway address-pool update `
-        --gateway-name "${var.application_gateway_name}" `
-        --resource-group "${var.hub_resource_group_name}" `
-        --name "workload-web-servers" `
-        --servers ${join(" ", var.appgw_backend_ips)}
-    EOT
-    interpreter = ["pwsh", "-Command"]
-  }
-}
-
-# -----------------------------------------------------------------------------
 # App Gateway diagnostic settings
 # -----------------------------------------------------------------------------
 

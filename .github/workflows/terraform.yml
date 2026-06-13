@@ -101,10 +101,9 @@ jobs:
 
       - uses: aquasecurity/tfsec-action@v1.0.3
         with:
-          soft_fail: true
+          soft_fail: false
           format: sarif
           additional_args: --out tfsec-results.sarif
-        continue-on-error: true
 
       - name: Upload tfsec SARIF
         if: always()
@@ -138,10 +137,9 @@ jobs:
         with:
           directory: .
           framework: terraform
-          soft_fail: true
+          soft_fail: false
           output_format: cli,sarif
           output_file_path: console,checkov-results.sarif
-        continue-on-error: true
 
       - uses: github/codeql-action/upload-sarif@v4
         if: always()
@@ -197,7 +195,7 @@ jobs:
   policy-check:
     name: '4️⃣ Lint - Policy'
     runs-on: ubuntu-latest
-    needs: validate
+    needs: plan
     steps:
       - uses: actions/checkout@v4
 
@@ -205,13 +203,16 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Init for Policy Check
-        run: terraform init -backend=false
+      - name: Download Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-${{ env.ENVIRONMENT }}-${{ github.sha }}
+          path: .
 
       - uses: ./.github/actions/policy-check
         with:
           policy_dir: policies
-          soft_fail: 'true'
+          soft_fail: 'false'
 
   # =========================================================================
   # STAGE 4: TERRAFORM DOCS (NEW)
@@ -233,7 +234,7 @@ jobs:
   graph:
     name: '5️⃣ Analysis - Graph'
     runs-on: ubuntu-latest
-    needs: [security-tfsec, security-checkov, secret-scan, tflint, policy-check]
+    needs: [security-tfsec, security-checkov, secret-scan, tflint]
     steps:
       - uses: actions/checkout@v4
 
@@ -251,7 +252,7 @@ jobs:
   module-versions:
     name: '5️⃣ Analysis - Versions'
     runs-on: ubuntu-latest
-    needs: [security-tfsec, security-checkov, secret-scan, tflint, policy-check]
+    needs: [security-tfsec, security-checkov, secret-scan, tflint]
     steps:
       - uses: actions/checkout@v4
 
@@ -307,7 +308,9 @@ jobs:
         uses: ./.github/actions/plan
         with:
           terraform_version: ${{ env.TF_VERSION }}
-          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+          azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           backend_resource_group: ${{ secrets.TF_STATE_RG }}
           backend_storage_account: ${{ secrets.TF_STATE_SA }}
           state_key: ${{ env.ENVIRONMENT }}.terraform.tfstate
@@ -320,10 +323,11 @@ jobs:
   apply:
     name: '8️⃣ Apply'
     runs-on: ubuntu-latest
-    needs: [plan, cost-estimate]
+    needs: [plan, cost-estimate, policy-check]
     if: |
       always() &&
       needs.plan.result == 'success' &&
+      needs['policy-check'].result == 'success' &&
       github.event_name == 'workflow_dispatch' && 
       github.event.inputs.action == 'apply'
     environment: ${{ github.event.inputs.environment }}
@@ -339,7 +343,9 @@ jobs:
       - name: State Backup
         uses: ./.github/actions/state-backup
         with:
-          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+          azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           storage_account: ${{ secrets.TF_STATE_SA }}
           resource_group: ${{ secrets.TF_STATE_RG }}
           state_key: ${{ env.ENVIRONMENT }}.terraform.tfstate
@@ -348,7 +354,9 @@ jobs:
         uses: ./.github/actions/apply
         with:
           terraform_version: ${{ env.TF_VERSION }}
-          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+          azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           backend_resource_group: ${{ secrets.TF_STATE_RG }}
           backend_storage_account: ${{ secrets.TF_STATE_SA }}
           state_key: ${{ env.ENVIRONMENT }}.terraform.tfstate
@@ -405,7 +413,9 @@ jobs:
       - name: State Backup Before Destroy
         uses: ./.github/actions/state-backup
         with:
-          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+          azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           storage_account: ${{ secrets.TF_STATE_SA }}
           resource_group: ${{ secrets.TF_STATE_RG }}
           state_key: ${{ env.ENVIRONMENT }}.terraform.tfstate
@@ -414,7 +424,9 @@ jobs:
         uses: ./.github/actions/destroy
         with:
           terraform_version: ${{ env.TF_VERSION }}
-          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+          azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           backend_resource_group: ${{ secrets.TF_STATE_RG }}
           backend_storage_account: ${{ secrets.TF_STATE_SA }}
           state_key: ${{ env.ENVIRONMENT }}.terraform.tfstate

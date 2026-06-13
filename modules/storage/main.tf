@@ -12,6 +12,7 @@ resource "azurerm_storage_account" "this" {
   access_tier                     = var.access_tier
   min_tls_version                 = var.min_tls_version
   allow_nested_items_to_be_public = var.allow_nested_items_to_be_public
+  public_network_access_enabled   = var.public_network_access_enabled
   tags                            = var.tags
 
   dynamic "network_rules" {

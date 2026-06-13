@@ -10,8 +10,14 @@ inputs:
     description: 'Working directory'
     required: false
     default: '.'
-  azure_credentials:
-    description: 'Azure credentials JSON'
+  azure_client_id:
+    description: 'Azure client/application ID for OIDC'
+    required: true
+  azure_tenant_id:
+    description: 'Azure tenant ID for OIDC'
+    required: true
+  azure_subscription_id:
+    description: 'Azure subscription ID for OIDC'
     required: true
   backend_resource_group:
     description: 'Backend resource group'
@@ -59,15 +65,18 @@ runs:
     - name: Azure Login
       uses: azure/login@v2
       with:
-        creds: ${{ inputs.azure_credentials }}
+        client-id: ${{ inputs.azure_client_id }}
+        tenant-id: ${{ inputs.azure_tenant_id }}
+        subscription-id: ${{ inputs.azure_subscription_id }}
 
     - name: Set ARM Environment Variables
       shell: bash
       run: |
-        echo "ARM_CLIENT_ID=$(echo '${{ inputs.azure_credentials }}' | jq -r '.clientId')" >> $GITHUB_ENV
-        echo "ARM_CLIENT_SECRET=$(echo '${{ inputs.azure_credentials }}' | jq -r '.clientSecret')" >> $GITHUB_ENV
-        echo "ARM_SUBSCRIPTION_ID=$(echo '${{ inputs.azure_credentials }}' | jq -r '.subscriptionId')" >> $GITHUB_ENV
-        echo "ARM_TENANT_ID=$(echo '${{ inputs.azure_credentials }}' | jq -r '.tenantId')" >> $GITHUB_ENV
+        echo "ARM_USE_OIDC=true" >> $GITHUB_ENV
+        echo "ARM_USE_AZUREAD=true" >> $GITHUB_ENV
+        echo "ARM_CLIENT_ID=${{ inputs.azure_client_id }}" >> $GITHUB_ENV
+        echo "ARM_SUBSCRIPTION_ID=${{ inputs.azure_subscription_id }}" >> $GITHUB_ENV
+        echo "ARM_TENANT_ID=${{ inputs.azure_tenant_id }}" >> $GITHUB_ENV
 
     - name: Terraform Init
       shell: bash
@@ -77,7 +86,8 @@ runs:
           -backend-config="resource_group_name=${{ inputs.backend_resource_group }}" \
           -backend-config="storage_account_name=${{ inputs.backend_storage_account }}" \
           -backend-config="container_name=${{ inputs.backend_container }}" \
-          -backend-config="key=${{ inputs.state_key }}"
+          -backend-config="key=${{ inputs.state_key }}" \
+          -backend-config="use_azuread_auth=true"
 
     - name: Terraform Plan
       id: plan

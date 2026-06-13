@@ -90,7 +90,9 @@ The plan action handles initialization and planning with change detection.
 |-------|------|----------|---------|-------------|
 | `terraform_version` | string | No | `1.9.0` | Terraform version |
 | `working_directory` | string | No | `.` | Working directory |
-| `azure_credentials` | string | Yes | - | Azure credentials JSON |
+| `azure_client_id` | string | Yes | - | App/client ID for GitHub OIDC |
+| `azure_tenant_id` | string | Yes | - | Azure tenant ID |
+| `azure_subscription_id` | string | Yes | - | Azure subscription ID |
 | `backend_resource_group` | string | Yes | - | State storage RG |
 | `backend_storage_account` | string | Yes | - | State storage account |
 | `backend_container` | string | No | `tfstate` | State container |
@@ -108,8 +110,8 @@ The plan action handles initialization and planning with change detection.
 
 **What it does:**
 1. Sets up Terraform with specified version
-2. Logs into Azure using credentials JSON
-3. Extracts ARM environment variables from credentials
+2. Logs into Azure using GitHub OIDC federation
+3. Sets `ARM_USE_OIDC=true` and AzureRM provider identity variables
 4. Initializes backend with dynamic configuration
 5. Runs `terraform plan -detailed-exitcode`
 6. Parses plan output for resource counts
@@ -123,7 +125,9 @@ The apply action downloads the plan artifact and applies it.
 | Input | Type | Required | Description |
 |-------|------|----------|-------------|
 | `terraform_version` | string | No | Terraform version |
-| `azure_credentials` | string | Yes | Azure credentials JSON |
+| `azure_client_id` | string | Yes | App/client ID for GitHub OIDC |
+| `azure_tenant_id` | string | Yes | Azure tenant ID |
+| `azure_subscription_id` | string | Yes | Azure subscription ID |
 | `backend_resource_group` | string | Yes | State storage RG |
 | `backend_storage_account` | string | Yes | State storage account |
 | `state_key` | string | Yes | State file key |
@@ -145,7 +149,9 @@ The destroy action requires explicit confirmation before destroying infrastructu
 | Input | Type | Required | Description |
 |-------|------|----------|-------------|
 | `terraform_version` | string | No | Terraform version |
-| `azure_credentials` | string | Yes | Azure credentials JSON |
+| `azure_client_id` | string | Yes | App/client ID for GitHub OIDC |
+| `azure_tenant_id` | string | Yes | Azure tenant ID |
+| `azure_subscription_id` | string | Yes | Azure subscription ID |
 | `backend_*` | string | Yes | Backend configuration |
 | `var_file` | string | Yes | Variables file |
 | `environment` | string | Yes | Environment name |
@@ -245,7 +251,9 @@ plan:
     - uses: ./.github/actions/plan
       with:
         terraform_version: ${{ env.TF_VERSION }}
-        azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+        azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+        azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+        azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         backend_resource_group: ${{ secrets.TF_STATE_RG }}
         backend_storage_account: ${{ secrets.TF_STATE_SA }}
         state_key: ${{ env.ENVIRONMENT }}.terraform.tfstate

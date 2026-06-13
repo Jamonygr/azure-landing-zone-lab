@@ -11,7 +11,7 @@ This workbook is a long-form, hands-on path through the lab. It is designed to s
 
 - Review the current configuration in `../reference/current-config.md`.
 - Decide which certification path you are following and apply the profile deltas.
-- Set `allowed_jumpbox_source_ips` to your public IP range.
+- Keep public RDP disabled where possible. If you temporarily enable it, set `allowed_jumpbox_source_ips` to your trusted public CIDR only.
 - Plan for cost. Firewall, VPN, and AKS are the largest drivers.
 
 ## Phase 0: Baseline deployment
