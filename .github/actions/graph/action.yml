@@ -24,8 +24,21 @@ runs:
       run: |
         set -euo pipefail
         GRAPH_DIR="$RUNNER_TEMP/terraform-graph"
-        mkdir -p "$GRAPH_DIR"
+        GRAPH_WORK_DIR="$RUNNER_TEMP/terraform-graph-work"
+        rm -rf "$GRAPH_DIR" "$GRAPH_WORK_DIR"
+        mkdir -p "$GRAPH_DIR" "$GRAPH_WORK_DIR"
 
+        tar \
+          --exclude='.git' \
+          --exclude='.terraform' \
+          --exclude='terraform.tfvars' \
+          --exclude='terraform.tfvars.json' \
+          --exclude='*.auto.tfvars' \
+          --exclude='*.auto.tfvars.json' \
+          -cf - . | tar -xf - -C "$GRAPH_WORK_DIR"
+        rm -f "$GRAPH_WORK_DIR/backend.tf"
+
+        cd "$GRAPH_WORK_DIR"
         terraform init -backend=false -reconfigure -lockfile=readonly
         terraform graph > "$GRAPH_DIR/graph.dot"
         dot -T"${{ inputs.output_format }}" "$GRAPH_DIR/graph.dot" -o "$GRAPH_DIR/terraform-graph.${{ inputs.output_format }}"
