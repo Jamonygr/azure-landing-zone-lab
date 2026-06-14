@@ -50,6 +50,7 @@ regexes = [
     '''0\.0\.0\.0''',
     '''<.*>''',  # Placeholder values
     '''xxxxxxxx''',  # Masked values
+    '''00000000-0000-0000-0000-000000000000''',  # Placeholder GUID
 ]
 
 # Specific commits to ignore
