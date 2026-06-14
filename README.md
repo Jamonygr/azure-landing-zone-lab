@@ -9,9 +9,21 @@
   <img src="docs/images/hero-landing-zone.svg" alt="Azure Landing Zone Lab banner" width="1000" />
 </p>
 
-<p align="center">
-  <img src="docs/images/overview-components.svg" alt="Core pillars overview" width="1000" />
-</p>
+## 🎯 Overview
+
+Azure Landing Zone Lab is a Terraform-first sandbox for building and understanding an enterprise Azure foundation. It brings together hub-spoke networking, identity, governance, security, monitoring, and optional workload services so you can learn the moving parts of a landing zone in a real deployable environment.
+
+- **Terraform-first**: every resource is defined as code, with reusable modules and environment-driven configuration.
+- **CAF-aligned architecture**: the lab follows Microsoft Cloud Adoption Framework landing zone patterns for platform, governance, and operations.
+- **Real network and security flows**: hub-spoke VNets, Azure Firewall, NSGs, private endpoints, routing, diagnostics, and optional VPN are wired together for hands-on testing.
+- **Flexible lab profiles**: start small, then enable PaaS, Application Gateway, AKS, hybrid connectivity, and observability features as needed.
+
+| What you can practice | How this lab helps |
+|-----------------------|-------------------|
+| Azure learning | Explore networking, security, identity, monitoring, and infrastructure as code in one environment. |
+| Architecture testing | Validate hub-spoke, private endpoint, load balancing, firewall, and routing decisions before production. |
+| Certification prep | Build hands-on evidence for AZ-104, AZ-305, AZ-700, and AZ-400 study paths. |
+| Proof of concept work | Toggle features in `terraform.tfvars`, run a plan, and compare deployment profiles quickly. |
 
 ## 🏛️ Architecture Diagram
 
@@ -21,15 +33,10 @@
 
 ### Architecture at a Glance
 
-- **Topology**: Hub VNet with optional VPN/App Gateway; peered spokes for identity, management, shared services, and workload. On-premises simulation connects via site-to-site VPN when enabled.
-- **Connectivity Control**: Azure Firewall centralizes egress; workload web subnet skips a firewall UDR when using a public LB to avoid asymmetric return paths; optional NAT Gateway gives the web subnet a fixed outbound IP.
-- **Name Resolution**: Identity DNS servers are shared across spokes; optional Private DNS zones in the hub cover blob, Key Vault, and SQL Private Link.
-- **Segmentation**: NSGs on every subnet; optional Application Security Groups group web/app/data tiers for cleaner rules.
-- **Observability**: Log Analytics workspace lives in management; optional VNet Flow Logs go to storage with Traffic Analytics; enable `create_network_watcher` if your subscription lacks NetworkWatcherRG.
-
-Learn Azure the right way—by building it. This Terraform project deploys a complete enterprise cloud environment you can explore, break, and rebuild. Covers networking, security, hybrid connectivity, containers, and Windows workloads following Microsoft Cloud Adoption Framework (CAF) best practices.
-
-> 💡 **Hands-on Learning**: Deploy real enterprise infrastructure in minutes. Perfect for Azure certifications (AZ-104, AZ-305, AZ-700), team training, or validating architectures before production.
+- **Topology**: A hub VNet connects identity, management, shared services, workload, dev, and optional on-premises spokes.
+- **Traffic control**: Azure Firewall, route tables, NSGs, NAT Gateway, Load Balancer, and Application Gateway model realistic ingress and egress paths.
+- **Private access**: Private DNS and Private Link can keep Key Vault, Storage, and SQL access on the Azure backbone.
+- **Operations**: Log Analytics, diagnostics, flow logs, alerts, and budget controls show how the landing zone is monitored after deployment.
 
 ## 🎛️ Master Control Panel (feature toggles)
 
@@ -39,15 +46,15 @@ At the top of `terraform.tfvars` there is a **MASTER CONTROL PANEL** section tha
 
 ## 📋 Table of Contents
 
-- [Architecture Diagram](#-architecture-diagram)
 - [Overview](#-overview)
+- [Architecture Diagram](#-architecture-diagram)
+- [Quick Start](#-quick-start)
+- [Deployment Profiles](#-deployment-profiles)
 - [Lab Scenarios](#-lab-scenarios)
 - [What Gets Deployed](#-what-gets-deployed)
-- [Optional Components](#-optional-components)
 - [Network Add-Ons & Observability](#-network-add-ons--observability)
 - [Network Topology](#-network-topology)
 - [Traffic Flow](#-traffic-flow)
-- [Quick Start](#-quick-start)
 - [CI/CD Pipeline](#-cicd-pipeline)
 - [Configuration Options](#-configuration-options)
 - [Testing the Environment](#-testing-the-environment)
@@ -57,28 +64,6 @@ At the top of `terraform.tfvars` there is a **MASTER CONTROL PANEL** section tha
 - [License](#-license)
 
 ---
-
-## 🎯 Overview
-
-This Terraform project creates a complete Azure Landing Zone lab environment that simulates an enterprise hybrid cloud setup. Perfect for learning, training, and proof-of-concept work.
-
-### Core Components (Always Deployed)
-- **🌐 Hub-Spoke Network Topology** - Centralized connectivity with VNet peering
-- **🔐 Identity Services** - Windows Server 2022 Domain Controller (DC01)
-- **🖥️ Management Zone** - Jumpbox VM with public IP for secure RDP access
-- **🔑 Shared Services** - Azure Key Vault for secrets, Storage Account for file shares
-- **📊 Monitoring** - Log Analytics workspace with 30-day retention
-
-### Configurable Components
-- **🛡️ Azure Firewall** (~$350/mo) - Central network security with DNAT/SNAT rules
-- **⚖️ Load Balanced Web Tier** - IIS Web Servers behind Azure Load Balancer
-- **🗄️ Azure SQL Database** - Managed SQL with optional private endpoint
-- **🔗 VPN Gateway** (~$140/mo) - Site-to-site VPN for hybrid scenarios
-- **🏠 Simulated On-Premises** - VPN Gateway + File Server for hybrid testing
-- **☸️ Azure Kubernetes Service (AKS)** - Managed Kubernetes cluster
-- **🛡️ Application Gateway with WAF** (~$36/mo) - Layer 7 load balancing
-- **🔒 Private Endpoints** - Private Link for Key Vault, Storage, SQL
-- **🌐 NAT Gateway** - Fixed outbound IP for workload subnet
 
 ## 🔌 Network Add-Ons & Observability
 
