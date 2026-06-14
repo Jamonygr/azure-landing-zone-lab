@@ -1,13 +1,23 @@
-<p align="center">
-  <img src="docs/images/azure_architecture_with_icons_v2.png" alt="Actual Azure Architecture Plan" width="1200" />
-</p>
-
 # 🏗️ Azure Landing Zone Lab
 
 [![Terraform](https://img.shields.io/badge/Terraform->=1.9.0-623CE4?logo=terraform)](https://terraform.io)
 [![Azure](https://img.shields.io/badge/Azure-AzureRM%204.x-0078D4?logo=microsoftazure)](https://azure.microsoft.com)
 [![AzAPI](https://img.shields.io/badge/AzAPI-~>2.0-blue?logo=microsoftazure)](https://registry.terraform.io/providers/Azure/azapi/latest)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+## 🏛️ Architecture Plan
+
+<p align="center">
+  <img src="docs/images/azure_architecture_with_icons_v2.png" alt="Actual Azure Architecture Plan" width="1200" />
+</p>
+
+### Architecture at a Glance
+
+- **Topology**: Hub VNet with optional VPN/App Gateway; peered spokes for identity, management, shared services, and workload. On-premises simulation connects via site-to-site VPN when enabled.
+- **Connectivity Control**: Azure Firewall centralizes egress; workload web subnet skips a firewall UDR when using a public LB to avoid asymmetric return paths; optional NAT Gateway gives the web subnet a fixed outbound IP.
+- **Name Resolution**: Identity DNS servers are shared across spokes; optional Private DNS zones in the hub cover blob, Key Vault, and SQL Private Link.
+- **Segmentation**: NSGs on every subnet; optional Application Security Groups group web/app/data tiers for cleaner rules.
+- **Observability**: Log Analytics workspace lives in management; optional VNet Flow Logs go to storage with Traffic Analytics; enable `create_network_watcher` if your subscription lacks NetworkWatcherRG.
 
 <p align="center">
   <img src="docs/images/hero-landing-zone.svg" alt="Azure Landing Zone Lab banner" width="1000" />
@@ -22,16 +32,6 @@ Learn Azure the right way—by building it. This Terraform project deploys a com
 
 > 💡 **Hands-on Learning**: Deploy real enterprise infrastructure in minutes. Perfect for Azure certifications (AZ-104, AZ-305, AZ-700), team training, or validating architectures before production.
 
-## 🏛️ Architecture Diagram
-
-### Architecture at a Glance
-
-- **Topology**: Hub VNet with optional VPN/App Gateway; peered spokes for identity, management, shared services, and workload. On-premises simulation connects via site-to-site VPN when enabled.
-- **Connectivity Control**: Azure Firewall centralizes egress; workload web subnet skips a firewall UDR when using a public LB to avoid asymmetric return paths; optional NAT Gateway gives the web subnet a fixed outbound IP.
-- **Name Resolution**: Identity DNS servers are shared across spokes; optional Private DNS zones in the hub cover blob, Key Vault, and SQL Private Link.
-- **Segmentation**: NSGs on every subnet; optional Application Security Groups group web/app/data tiers for cleaner rules.
-- **Observability**: Log Analytics workspace lives in management; optional VNet Flow Logs go to storage with Traffic Analytics; enable `create_network_watcher` if your subscription lacks NetworkWatcherRG.
-
 ## 🎛️ Master Control Panel (feature toggles)
 
 At the top of `terraform.tfvars` there is a **MASTER CONTROL PANEL** section that contains all the main `deploy_*` / `enable_*` switches in one place. Flip those values to quickly change what gets deployed, then run `terraform plan` and `terraform apply`.
@@ -41,7 +41,7 @@ At the top of `terraform.tfvars` there is a **MASTER CONTROL PANEL** section tha
 ## 📋 Table of Contents
 
 - [Overview](#-overview)
-- [Architecture Diagram](#-architecture-diagram)
+- [Architecture Plan](#-architecture-plan)
 - [Lab Scenarios](#-lab-scenarios)
 - [What Gets Deployed](#-what-gets-deployed)
 - [Optional Components](#-optional-components)
