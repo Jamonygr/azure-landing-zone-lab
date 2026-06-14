@@ -29,6 +29,7 @@ path = '''\.tfstate$'''
 # Allowlist - paths to ignore
 [allowlist]
 description = "Global allowlist"
+regexTarget = "match"
 paths = [
     '''\.terraform/''',
     '''\.terraform\.lock\.hcl$''',
