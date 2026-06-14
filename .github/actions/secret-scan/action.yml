@@ -21,7 +21,7 @@ runs:
   steps:
     - name: Run Gitleaks
       id: scan
-      uses: gitleaks/gitleaks-action@v2
+      uses: gitleaks/gitleaks-action@v3
       env:
         GITHUB_TOKEN: ${{ github.token }}
       continue-on-error: true
@@ -31,12 +31,12 @@ runs:
       shell: bash
       run: |
         if [ "${{ steps.scan.outcome }}" == "failure" ]; then
-          echo "## 🚨 Secret Scan - LEAKS DETECTED" >> $GITHUB_STEP_SUMMARY
-          echo "leaks_found=true" >> $GITHUB_OUTPUT
-          echo "⚠️ Potential secrets found in code. Review and rotate immediately!" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚨 Secret Scan - LEAKS DETECTED" >> "$GITHUB_STEP_SUMMARY"
+          echo "leaks_found=true" >> "$GITHUB_OUTPUT"
+          echo "⚠️ Potential secrets found in code. Review and rotate immediately!" >> "$GITHUB_STEP_SUMMARY"
           exit 1
         else
-          echo "## ✅ Secret Scan - Clean" >> $GITHUB_STEP_SUMMARY
-          echo "leaks_found=false" >> $GITHUB_OUTPUT
-          echo "No secrets detected in code." >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Secret Scan - Clean" >> "$GITHUB_STEP_SUMMARY"
+          echo "leaks_found=false" >> "$GITHUB_OUTPUT"
+          echo "No secrets detected in code." >> "$GITHUB_STEP_SUMMARY"
         fi

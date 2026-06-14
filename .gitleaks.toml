@@ -10,14 +10,14 @@ useDefault = true
 [[rules]]
 id = "azure-subscription-id"
 description = "Azure Subscription ID"
-regex = '''[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'''
-keywords = ["subscription"]
+regex = '''(?i)(subscription[_-]?id|subscriptionId)\s*[:=]\s*["']?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}["']?'''
+keywords = ["subscription_id", "subscriptionId"]
 entropy = 3.0
 
 [[rules]]
 id = "azure-storage-key"
 description = "Azure Storage Account Key"
-regex = '''(?i)(DefaultEndpointsProtocol|AccountKey|SharedAccessSignature)'''
+regex = '''(?i)(AccountKey|SharedAccessSignature)\s*=\s*[A-Za-z0-9+/=]{40,}'''
 keywords = ["storage", "account", "key"]
 
 [[rules]]

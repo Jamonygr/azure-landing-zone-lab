@@ -83,11 +83,11 @@ jobs:
       - name: Format Check
         run: |
           if ! terraform fmt -check -recursive -diff; then
-            echo "## ❌ Format Check Failed" >> $GITHUB_STEP_SUMMARY
-            echo "Run \`terraform fmt -recursive\` locally to fix." >> $GITHUB_STEP_SUMMARY
+            echo "## ❌ Format Check Failed" >> "$GITHUB_STEP_SUMMARY"
+            echo "Run \`terraform fmt -recursive\` locally to fix." >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
-          echo "## ✅ Format Check Passed" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Format Check Passed" >> "$GITHUB_STEP_SUMMARY"
 
   # =========================================================================
   # STAGE 2: VALIDATE
@@ -107,7 +107,7 @@ jobs:
         run: |
           terraform init -backend=false
           terraform validate
-          echo "## ✅ Validation Passed" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Validation Passed" >> "$GITHUB_STEP_SUMMARY"
 
   # =========================================================================
   # STAGE 3: SECURITY - TFSEC
@@ -141,7 +141,7 @@ jobs:
           sarif_file: tfsec-results.sarif
         continue-on-error: true
 
-      - run: echo "## 🔒 tfsec scan completed" >> $GITHUB_STEP_SUMMARY
+      - run: echo "## 🔒 tfsec scan completed" >> "$GITHUB_STEP_SUMMARY"
 
   # =========================================================================
   # STAGE 3: SECURITY - CHECKOV
@@ -168,7 +168,7 @@ jobs:
           sarif_file: checkov-results.sarif
         continue-on-error: true
 
-      - run: echo "## 🛡️ Checkov scan completed" >> $GITHUB_STEP_SUMMARY
+      - run: echo "## 🛡️ Checkov scan completed" >> "$GITHUB_STEP_SUMMARY"
 
   # =========================================================================
   # STAGE 3: SECRET SCANNING (NEW)
@@ -180,7 +180,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - uses: ./.github/actions/secret-scan
 
@@ -206,7 +206,7 @@ jobs:
           }
           EOF
           tflint --init
-          echo "## 📏 TFLint Results" >> $GITHUB_STEP_SUMMARY
+          echo "## 📏 TFLint Results" >> "$GITHUB_STEP_SUMMARY"
           tflint --recursive || true
         continue-on-error: true
 
@@ -262,6 +262,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.23.x'
+          cache: false
 
       - name: Run actionlint
         run: |
@@ -379,7 +380,7 @@ jobs:
 
       - name: Start Timer
         id: timer
-        run: echo "start=$(date +%s)" >> $GITHUB_OUTPUT
+        run: echo "start=$(date +%s)" >> "$GITHUB_OUTPUT"
 
       - name: State Backup
         uses: ./.github/actions/state-backup
