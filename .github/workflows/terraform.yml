@@ -336,6 +336,7 @@ jobs:
     name: '7️⃣ Plan'
     runs-on: ubuntu-latest
     needs: [graph, module-versions]
+    environment: ${{ github.event.inputs.environment || 'lab' }}
     outputs:
       has_changes: ${{ steps.plan.outputs.has_changes }}
       add: ${{ steps.plan.outputs.add }}
