@@ -9,10 +9,30 @@ name: 'Terraform Pipeline'
 on:
   push:
     branches: [main]
-    paths: ['**.tf', '**.tfvars', 'modules/**', 'landing-zones/**', 'environments/**']
+    paths:
+      - '**.tf'
+      - '**.tfvars'
+      - '.github/**'
+      - 'modules/**'
+      - 'landing-zones/**'
+      - 'environments/**'
+      - 'policies/**'
+      - 'README.md'
+      - 'wiki/**'
+      - 'docs/**'
   pull_request:
     branches: [main]
-    paths: ['**.tf', '**.tfvars']
+    paths:
+      - '**.tf'
+      - '**.tfvars'
+      - '.github/**'
+      - 'modules/**'
+      - 'landing-zones/**'
+      - 'environments/**'
+      - 'policies/**'
+      - 'README.md'
+      - 'wiki/**'
+      - 'docs/**'
   workflow_dispatch:
     inputs:
       environment:
@@ -137,6 +157,7 @@ jobs:
         with:
           directory: .
           framework: terraform
+          config_file: .checkov.yml
           soft_fail: false
           output_format: cli,sarif
           output_file_path: console,checkov-results.sarif
@@ -229,12 +250,31 @@ jobs:
           recursive: 'true'
 
   # =========================================================================
+  # STAGE 4: ACTIONLINT
+  # =========================================================================
+  actionlint:
+    name: '4️⃣ Lint - Actions'
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+
+      - name: Run actionlint
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+          actionlint
+
+  # =========================================================================
   # STAGE 5: GRAPH VISUALIZATION (NEW)
   # =========================================================================
   graph:
     name: '5️⃣ Analysis - Graph'
     runs-on: ubuntu-latest
-    needs: [security-tfsec, security-checkov, secret-scan, tflint]
+    needs: [security-tfsec, security-checkov, secret-scan, tflint, actionlint]
     steps:
       - uses: actions/checkout@v4
 
@@ -252,7 +292,7 @@ jobs:
   module-versions:
     name: '5️⃣ Analysis - Versions'
     runs-on: ubuntu-latest
-    needs: [security-tfsec, security-checkov, secret-scan, tflint]
+    needs: [security-tfsec, security-checkov, secret-scan, tflint, actionlint]
     steps:
       - uses: actions/checkout@v4
 
@@ -327,6 +367,7 @@ jobs:
     if: |
       always() &&
       needs.plan.result == 'success' &&
+      needs.plan.outputs.has_changes == 'true' &&
       needs['policy-check'].result == 'success' &&
       github.event_name == 'workflow_dispatch' && 
       github.event.inputs.action == 'apply'

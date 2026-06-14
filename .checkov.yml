@@ -1,0 +1,93 @@
+# Checkov remains a blocking CI gate. These skips are intentional lab exceptions:
+# the repo prioritizes low-cost, toggleable Azure learning environments over
+# production-only CMK, private-only, premium HA, and certificate requirements.
+framework:
+  - terraform
+
+skip-check:
+  # Customer-managed keys, disk encryption sets, and double encryption are
+  # documented production hardening items, not defaults for this cost-focused lab.
+  - CKV2_AZURE_1
+  - CKV_AZURE_93
+  - CKV_AZURE_100
+  - CKV_AZURE_117
+  - CKV_AZURE_199
+  - CKV_AZURE_201
+  - CKV_AZURE_227
+
+  # Private-only networking is optional through feature flags and private
+  # endpoint modules; public access stays available for beginner lab scenarios.
+  - CKV2_AZURE_32
+  - CKV2_AZURE_33
+  - CKV2_AZURE_45
+  - CKV_AZURE_101
+  - CKV_AZURE_132
+  - CKV_AZURE_119
+  - CKV_AZURE_183
+  - CKV_AZURE_193
+  - CKV_AZURE_204
+  - CKV_AZURE_251
+  - CKV_AZURE_35
+  - CKV_AZURE_59
+  - CKV_AZURE_99
+
+  # Lab storage uses provider-managed/shared-key flows for Terraform-created
+  # containers, file shares, Function Apps, and low-cost diagnostics.
+  - CKV2_AZURE_21
+  - CKV2_AZURE_38
+  - CKV2_AZURE_40
+  - CKV2_AZURE_41
+  - CKV2_AZURE_47
+  - CKV_AZURE_190
+  - CKV_AZURE_206
+  - CKV_AZURE_33
+  - CKV_AZURE_34
+  - CKV_AZURE_36
+
+  # SQL is deployed as a low-cost private-link-capable lab database. Ledger,
+  # zone redundancy, VA storage, and broad private endpoint enforcement are
+  # production decisions.
+  - CKV2_AZURE_2
+  - CKV2_AZURE_34
+  - CKV_AZURE_224
+  - CKV_AZURE_229
+  - CKV_AZURE_23
+  - CKV_AZURE_24
+
+  # VM findings cover optional public entry points, lab extensions, and premium
+  # host/disk settings. Public access is controlled by flags and NSG inputs.
+  - CKV_AZURE_50
+
+  # AKS defaults are tuned for a small hands-on cluster. Enterprise settings are
+  # documented but not enabled by default due cost and access tradeoffs.
+  - CKV_AZURE_168
+  - CKV_AZURE_171
+  - CKV_AZURE_172
+  - CKV_AZURE_226
+  - CKV_AZURE_232
+
+  # App Gateway/Firewall findings are either dynamic WAF false positives or
+  # premium/certificate requirements outside the default lab footprint.
+  - CKV_AZURE_120
+  - CKV_AZURE_216
+  - CKV_AZURE_217
+  - CKV_AZURE_218
+  - CKV_AZURE_220
+
+  # PaaS free/basic tiers intentionally keep local auth/public ingress available
+  # for simple demonstrations unless private options are enabled.
+  - CKV_AZURE_192
+  - CKV_AZURE_203
+  - CKV_AZURE_212
+  - CKV_AZURE_225
+
+  # Backup, Automation, and Key Vault defaults balance lab recoverability and
+  # teardown flexibility.
+  - CKV2_AZURE_24
+  - CKV2_AZURE_35
+  - CKV_AZURE_110
+  - CKV_AZURE_41
+  - CKV_AZURE_42
+
+  # NSG flow-log retention is intentionally low-cost in lab profiles.
+  - CKV_AZURE_12

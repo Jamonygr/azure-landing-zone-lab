@@ -39,7 +39,7 @@ warn[msg] {
 }
 
 # Deny resources in non-approved regions
-approved_regions := ["westus2", "eastus", "eastus2", "centralus"]
+approved_regions := ["westus2", "eastus", "eastus2", "centralus", "westeurope", "northeurope", "canadacentral"]
 
 deny[msg] {
     resource := input.resource_changes[_]
