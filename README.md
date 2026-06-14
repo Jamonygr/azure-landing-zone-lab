@@ -5,10 +5,10 @@
 [![AzAPI](https://img.shields.io/badge/AzAPI-~>2.0-blue?logo=microsoftazure)](https://registry.terraform.io/providers/Azure/azapi/latest)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-## 🏛️ Architecture Plan
+## 🏛️ Architecture Diagram
 
 <p align="center">
-  <img src="docs/images/azure_architecture_with_icons_v2.png" alt="Actual Azure Architecture Plan" width="1200" />
+  <img src="docs/images/azure_architecture_with_icons_v2.png" alt="Actual Azure Architecture Diagram" width="1200" />
 </p>
 
 ### Architecture at a Glance
@@ -40,8 +40,8 @@ At the top of `terraform.tfvars` there is a **MASTER CONTROL PANEL** section tha
 
 ## 📋 Table of Contents
 
+- [Architecture Diagram](#-architecture-diagram)
 - [Overview](#-overview)
-- [Architecture Plan](#-architecture-plan)
 - [Lab Scenarios](#-lab-scenarios)
 - [What Gets Deployed](#-what-gets-deployed)
 - [Optional Components](#-optional-components)
