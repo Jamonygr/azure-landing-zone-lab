@@ -5,6 +5,14 @@
 [![AzAPI](https://img.shields.io/badge/AzAPI-~>2.0-blue?logo=microsoftazure)](https://registry.terraform.io/providers/Azure/azapi/latest)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+<p align="center">
+  <img src="docs/images/hero-landing-zone.svg" alt="Azure Landing Zone Lab banner" width="1000" />
+</p>
+
+<p align="center">
+  <img src="docs/images/overview-components.svg" alt="Core pillars overview" width="1000" />
+</p>
+
 ## 🏛️ Architecture Diagram
 
 <p align="center">
@@ -18,15 +26,6 @@
 - **Name Resolution**: Identity DNS servers are shared across spokes; optional Private DNS zones in the hub cover blob, Key Vault, and SQL Private Link.
 - **Segmentation**: NSGs on every subnet; optional Application Security Groups group web/app/data tiers for cleaner rules.
 - **Observability**: Log Analytics workspace lives in management; optional VNet Flow Logs go to storage with Traffic Analytics; enable `create_network_watcher` if your subscription lacks NetworkWatcherRG.
-
-<p align="center">
-  <img src="docs/images/hero-landing-zone.svg" alt="Azure Landing Zone Lab banner" width="1000" />
-</p>
-
-<p align="center">
-  <img src="docs/images/overview-components.svg" alt="Core pillars overview" width="1000" />
-</p>
-
 
 Learn Azure the right way—by building it. This Terraform project deploys a complete enterprise cloud environment you can explore, break, and rebuild. Covers networking, security, hybrid connectivity, containers, and Windows workloads following Microsoft Cloud Adoption Framework (CAF) best practices.
 
