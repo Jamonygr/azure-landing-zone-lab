@@ -31,8 +31,8 @@ The pipeline requires two main components for secure operation:
 │  └─────────────────────────────────────────────────────────────┘   │
 │                                                                     │
 │  ┌─────────────────────────────────────────────────────────────┐   │
-│  │  Service Principal: terraform-alz-pipeline                   │   │
-│  │  Role: Owner @ /subscriptions/<subscription-id>              │   │
+│  │  OIDC app registration: terraform-alz-pipeline               │   │
+│  │  Federated credentials for GitHub Actions                    │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
                                     │
@@ -42,10 +42,8 @@ The pipeline requires two main components for secure operation:
 │                                                                     │
 │  Repository Secrets:                                                │
 │  ├── AZURE_CLIENT_ID                                                │
-│  ├── AZURE_CLIENT_SECRET                                            │
 │  ├── AZURE_SUBSCRIPTION_ID                                          │
 │  ├── AZURE_TENANT_ID                                                │
-│  ├── AZURE_CREDENTIALS (JSON)                                       │
 │  ├── TF_STATE_RG                                                    │
 │  └── TF_STATE_SA                                                    │
 └─────────────────────────────────────────────────────────────────────┘
@@ -208,76 +206,67 @@ terraform init -reconfigure \
 
 ---
 
-## Part 2: Service Principal
+## Part 2: GitHub OIDC Identity
 
-### Why Service Principal?
+### Why OIDC?
 
-The pipeline needs an identity to authenticate with Azure. A Service Principal provides:
+The pipeline needs a non-interactive Azure identity. GitHub OIDC provides that identity without storing a long-lived client secret in GitHub.
 
-- **Non-interactive authentication** - No human login required
-- **Scoped permissions** - Only access what's needed
-- **Auditable** - All actions logged under SP identity
-- **Secret rotation** - Credentials can be rotated without code changes
+- **Short-lived credentials** - Tokens are minted per workflow run.
+- **Scoped trust** - Federated credentials can target a repo, branch, tag, or pull request event.
+- **Auditable** - Azure activity is attributed to the app registration/service principal.
+- **No secret rotation burden** - There is no Azure client secret to rotate.
 
-### Create Service Principal
+### Create the OIDC App Registration
 
 ```bash
-# Create SP with Owner role (required for role assignments)
-az ad sp create-for-rbac \
-  --name "terraform-alz-pipeline" \
-  --role Owner \
-  --scopes /subscriptions/<SUBSCRIPTION_ID> \
-  --sdk-auth
+SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+TENANT_ID=$(az account show --query tenantId -o tsv)
+REPO="OWNER/REPO"
+
+APP_ID=$(az ad app create \
+  --display-name "terraform-alz-pipeline" \
+  --query appId \
+  --output tsv)
+
+az ad sp create --id "$APP_ID"
+
+az ad app federated-credential create \
+  --id "$APP_ID" \
+  --parameters "{
+    \"name\": \"github-main\",
+    \"issuer\": \"https://token.actions.githubusercontent.com\",
+    \"subject\": \"repo:${REPO}:ref:refs/heads/main\",
+    \"audiences\": [\"api://AzureADTokenExchange\"]
+  }"
+
+az ad app federated-credential create \
+  --id "$APP_ID" \
+  --parameters "{
+    \"name\": \"github-pr\",
+    \"issuer\": \"https://token.actions.githubusercontent.com\",
+    \"subject\": \"repo:${REPO}:pull_request\",
+    \"audiences\": [\"api://AzureADTokenExchange\"]
+  }"
 ```
 
-**Output (save this!):**
-```json
-{
-  "clientId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-  "clientSecret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "subscriptionId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-  "tenantId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-}
-```
+### Required Azure Roles
 
-### Why Owner Role?
+Assign only the roles required by the profile you deploy:
 
-The landing zone creates resources that require elevated permissions:
+| Role | Purpose |
+|---|---|
+| Contributor or equivalent custom role | Create and update Azure resources |
+| User Access Administrator | Create role assignments |
+| Resource Policy Contributor | Create policy assignments |
+| Storage Blob Data Contributor | Read/write Terraform state blobs |
 
-| Permission Required | Resources Created |
-|---------------------|-------------------|
-| `Microsoft.Authorization/roleAssignments/write` | RBAC role assignments |
-| `Microsoft.Authorization/policyAssignments/write` | Azure Policy assignments |
-| `Microsoft.Authorization/roleDefinitions/write` | Custom role definitions |
+### Manage the OIDC Principal
 
-Only **Owner** (or a custom combination of User Access Administrator + Contributor + Resource Policy Contributor) provides all these permissions.
-
-### Manage Service Principal
-
-**View your Service Principal:**
 ```bash
 az ad sp list --display-name "terraform" --query "[].{Name:displayName, AppId:appId}" -o table
 az ad sp show --id <APP_ID>
-```
-
-**Check role assignments:**
-```bash
 az role assignment list --assignee <APP_ID> -o table
-```
-
-**Rotate the secret:**
-```bash
-# Create new secret (old ones remain valid until expiry)
-az ad sp credential reset --id <APP_ID> --append
-
-# Update GitHub secrets with new values
-gh secret set AZURE_CLIENT_SECRET --body "<NEW_SECRET>"
-gh secret set AZURE_CREDENTIALS --body '{"clientId":"...","clientSecret":"<NEW_SECRET>",...}'
-```
-
-**Delete the Service Principal:**
-```bash
-az ad sp delete --id <APP_ID>
 ```
 
 ---
@@ -290,24 +279,11 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 
 | Secret | Description | Example |
 |--------|-------------|---------|
-| `AZURE_CLIENT_ID` | Service Principal App ID | `801a5cf9-3e14-4283-a07a-087e0f0351d4` |
-| `AZURE_CLIENT_SECRET` | Service Principal secret | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` |
+| `AZURE_CLIENT_ID` | App/client ID for GitHub OIDC | `801a5cf9-3e14-4283-a07a-087e0f0351d4` |
 | `AZURE_SUBSCRIPTION_ID` | Target Azure subscription | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
 | `AZURE_TENANT_ID` | Azure AD tenant ID | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
-| `AZURE_CREDENTIALS` | JSON credentials object | See below |
 | `TF_STATE_RG` | State storage resource group | `rg-terraform-state` |
 | `TF_STATE_SA` | State storage account name | `stterraformstate1009` |
-
-### AZURE_CREDENTIALS Format
-
-```json
-{
-  "clientId": "<AZURE_CLIENT_ID>",
-  "clientSecret": "<AZURE_CLIENT_SECRET>",
-  "subscriptionId": "<AZURE_SUBSCRIPTION_ID>",
-  "tenantId": "<AZURE_TENANT_ID>"
-}
-```
 
 ### Set Secrets via GitHub CLI
 
@@ -317,19 +293,10 @@ gh auth login
 
 # Set individual secrets
 gh secret set AZURE_CLIENT_ID --body "<CLIENT_ID>"
-gh secret set AZURE_CLIENT_SECRET --body "<CLIENT_SECRET>"
 gh secret set AZURE_SUBSCRIPTION_ID --body "<SUBSCRIPTION_ID>"
 gh secret set AZURE_TENANT_ID --body "<TENANT_ID>"
 gh secret set TF_STATE_RG --body "rg-terraform-state"
 gh secret set TF_STATE_SA --body "<STORAGE_ACCOUNT_NAME>"
-
-# Set AZURE_CREDENTIALS as JSON
-gh secret set AZURE_CREDENTIALS --body '{
-  "clientId": "<CLIENT_ID>",
-  "clientSecret": "<CLIENT_SECRET>",
-  "subscriptionId": "<SUBSCRIPTION_ID>",
-  "tenantId": "<TENANT_ID>"
-}'
 
 # Verify secrets are set
 gh secret list
@@ -342,7 +309,7 @@ gh secret list
 3. Click **New repository secret**
 4. Enter the secret name and value
 5. Click **Add secret**
-6. Repeat for all 7 secrets
+6. Repeat for all required secrets
 
 ### How Secrets Are Used
 
@@ -352,7 +319,9 @@ The pipeline uses secrets in the composite actions:
 # In .github/workflows/terraform.yml
 - uses: ./.github/actions/plan
   with:
-    azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+    azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+    azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+    azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     backend_resource_group: ${{ secrets.TF_STATE_RG }}
     backend_storage_account: ${{ secrets.TF_STATE_SA }}
 
@@ -360,14 +329,16 @@ The pipeline uses secrets in the composite actions:
 - name: Azure Login
   uses: azure/login@v2
   with:
-    creds: ${{ inputs.azure_credentials }}
+    client-id: ${{ inputs.azure_client_id }}
+    tenant-id: ${{ inputs.azure_tenant_id }}
+    subscription-id: ${{ inputs.azure_subscription_id }}
 
 - name: Set ARM Environment Variables
   run: |
-    echo "ARM_CLIENT_ID=$(echo '${{ inputs.azure_credentials }}' | jq -r '.clientId')" >> $GITHUB_ENV
-    echo "ARM_CLIENT_SECRET=$(echo '${{ inputs.azure_credentials }}' | jq -r '.clientSecret')" >> $GITHUB_ENV
-    echo "ARM_SUBSCRIPTION_ID=$(echo '${{ inputs.azure_credentials }}' | jq -r '.subscriptionId')" >> $GITHUB_ENV
-    echo "ARM_TENANT_ID=$(echo '${{ inputs.azure_credentials }}' | jq -r '.tenantId')" >> $GITHUB_ENV
+    echo "ARM_USE_OIDC=true" >> $GITHUB_ENV
+    echo "ARM_CLIENT_ID=${{ inputs.azure_client_id }}" >> $GITHUB_ENV
+    echo "ARM_SUBSCRIPTION_ID=${{ inputs.azure_subscription_id }}" >> $GITHUB_ENV
+    echo "ARM_TENANT_ID=${{ inputs.azure_tenant_id }}" >> $GITHUB_ENV
 ```
 
 ---
@@ -382,23 +353,16 @@ The pipeline uses secrets in the composite actions:
 | **TLS 1.2 minimum** | `--min-tls-version TLS1_2` |
 | **No public access** | `--allow-blob-public-access false` |
 | **HTTPS only** | `--https-only true` |
-| **Authentication** | Service Principal with Azure RBAC |
+| **Authentication** | GitHub OIDC principal with Azure RBAC |
 
-### Secret Rotation
+### Credential Hygiene
 
-**Recommended rotation schedule:**
+The pipeline does not store an Azure client secret. Keep these practices in place:
 
-| Secret Type | Rotation Frequency |
-|-------------|-------------------|
-| Service Principal secret | Every 90 days |
-| Storage access keys | Every 180 days (if used) |
-
-**Rotation procedure:**
-
-1. Create new SP secret: `az ad sp credential reset --id <APP_ID> --append`
-2. Update GitHub secrets with new values
-3. Test pipeline with a plan-only run
-4. Remove old SP secret after verification
+- Review federated credentials whenever branch or environment protection changes.
+- Rotate storage account keys if anyone uses key-based access outside the pipeline.
+- Prefer RBAC data-plane permissions for state storage.
+- Remove stale app registrations and role assignments that are no longer used.
 
 ### Least Privilege (Production)
 
@@ -439,16 +403,16 @@ terraform force-unlock -force <LOCK_ID>
 
 ### "AuthorizationFailed"
 
-Service Principal lacks required permissions.
+The OIDC principal lacks required permissions.
 
 ```bash
 # Verify role assignments
 az role assignment list --assignee <APP_ID> -o table
 
-# Add Owner role if missing
+# Add missing least-privilege roles as needed
 az role assignment create \
   --assignee <APP_ID> \
-  --role Owner \
+  --role "Contributor" \
   --scope /subscriptions/<SUB_ID>
 
 # Wait 5-10 minutes for propagation, then retry
@@ -463,7 +427,7 @@ GitHub secret is not configured or has wrong name.
 gh secret list
 
 # Check for typos in secret names
-# AZURE_CREDENTIALS vs AZURE_CREDENTIAL (missing S)
+# AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
 ```
 
 ### "Storage account not found"

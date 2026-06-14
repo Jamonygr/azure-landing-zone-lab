@@ -46,7 +46,7 @@ For the full list of feature flags, see the **MASTER CONTROL PANEL** section at 
 - **Application Security Groups** for micro-segmentation
 
 ### Pillar 5: Management
-- **Jumpbox** with public IP enabled (RDP allowed from `allowed_jumpbox_source_ips`)
+- **Jumpbox** deployed without public RDP by default; use VPN/Bastion/private access or explicitly trusted CIDRs if you enable the public IP
 - **Log Analytics** workspace (`log_retention_days = 30`, `log_daily_quota_gb = 2`)
 - **Azure Workbooks** for monitoring dashboards
 - **Connection Monitor** enabled (uses DC01 as the source VM)
@@ -70,13 +70,14 @@ For the full list of feature flags, see the **MASTER CONTROL PANEL** section at 
 
 ## Access path
 
-1. **RDP to Jumpbox**: `terraform output -raw jumpbox_public_ip`
+1. **Management access**: use VPN/Bastion/private access by default; public jumpbox RDP requires `enable_jumpbox_public_ip = true` and trusted `allowed_jumpbox_source_ips`.
 2. **Web Application**: Access via Application Gateway public IP or Load Balancer
 3. **Firewall egress**: All spoke traffic routes through Azure Firewall
 
 ## Key caveats and recommendations
 
-- Restrict `allowed_jumpbox_source_ips` from `0.0.0.0/0` to your IP range.
+- Do not use `0.0.0.0/0` for RDP. Terraform validation blocks it unless `allow_public_rdp_from_internet = true` is set as a short-lived break-glass exception.
+- Keep `enable_lb_rdp_nat_rules = false` unless you need temporary RDP NAT to workload VMs.
 - Replace `cost_alert_emails` with real recipients for budget notifications.
 - For production, enable `deploy_secondary_dc = true` for HA.
 - Consider `deploy_vpn_gateway = true` for private access instead of public jumpbox.
@@ -123,12 +124,14 @@ deploy_application_security_groups = true
 
 ### Pillar 5: Management
 ```hcl
-enable_jumpbox_public_ip   = true
-deploy_log_analytics       = true
-deploy_backup              = false
-deploy_workbooks           = true
-deploy_connection_monitor  = true
-enable_scheduled_startstop = true
+enable_jumpbox_public_ip       = false
+allowed_jumpbox_source_ips     = []
+allow_public_rdp_from_internet = false
+deploy_log_analytics           = true
+deploy_backup                  = false
+deploy_workbooks               = true
+deploy_connection_monitor      = true
+enable_scheduled_startstop     = true
 ```
 
 ### Workloads & PaaS
@@ -136,6 +139,7 @@ enable_scheduled_startstop = true
 deploy_workload_prod      = true
 deploy_workload_dev       = true
 deploy_load_balancer      = true
+enable_lb_rdp_nat_rules   = false
 deploy_aks                = false
 deploy_onprem_simulation  = false
 

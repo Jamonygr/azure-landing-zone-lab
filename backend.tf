@@ -33,11 +33,13 @@ terraform {
 #      --resource-group $RESOURCE_GROUP `
 #      --sku Standard_LRS `
 #      --encryption-services blob `
-#      --min-tls-version TLS1_2
+#      --min-tls-version TLS1_2 `
+#      --allow-blob-public-access false
 #    
 #    az storage container create `
 #      --name tfstate `
-#      --account-name $STORAGE_ACCOUNT
+#      --account-name $STORAGE_ACCOUNT `
+#      --auth-mode login
 #
 # 2. Add these GitHub Secrets:
 #    - TF_STATE_RG: rg-terraform-state
@@ -48,6 +50,7 @@ terraform {
 #      -backend-config="resource_group_name=$TF_STATE_RG" \
 #      -backend-config="storage_account_name=$TF_STATE_SA" \
 #      -backend-config="container_name=tfstate" \
-#      -backend-config="key=<environment>.terraform.tfstate"
+#      -backend-config="key=<environment>.terraform.tfstate" \
+#      -backend-config="use_azuread_auth=true"
 #
 # =============================================================================

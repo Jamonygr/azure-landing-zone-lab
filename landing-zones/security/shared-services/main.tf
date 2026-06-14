@@ -76,16 +76,36 @@ module "app_nsg" {
   ]
 }
 
+locals {
+  shared_services_public_network_access_enabled = !var.deploy_private_endpoints
+
+  shared_service_network_acls = {
+    bypass                     = "AzureServices"
+    default_action             = var.deploy_private_endpoints ? "Deny" : "Allow"
+    ip_rules                   = []
+    virtual_network_subnet_ids = var.deploy_private_endpoints ? [module.app_subnet.id] : []
+  }
+
+  storage_network_rules = {
+    default_action             = var.deploy_private_endpoints ? "Deny" : "Allow"
+    bypass                     = ["AzureServices"]
+    ip_rules                   = []
+    virtual_network_subnet_ids = var.deploy_private_endpoints ? [module.app_subnet.id] : []
+  }
+}
+
 # Key Vault
 module "keyvault" {
   source = "../../../modules/keyvault"
   count  = var.deploy_keyvault ? 1 : 0
 
-  name                = "kv-${var.project}-${var.random_suffix}"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  tenant_id           = var.tenant_id
-  tags                = var.tags
+  name                          = "kv-${var.project}-${var.random_suffix}"
+  resource_group_name           = var.resource_group_name
+  location                      = var.location
+  tenant_id                     = var.tenant_id
+  public_network_access_enabled = local.shared_services_public_network_access_enabled
+  network_acls                  = local.shared_service_network_acls
+  tags                          = var.tags
 
   secrets = {
     "vm-admin-password" = {
@@ -115,6 +135,9 @@ module "storage" {
   file_shares = [
     { name = "shared", quota = 5 }
   ]
+
+  public_network_access_enabled = local.shared_services_public_network_access_enabled
+  network_rules                 = local.storage_network_rules
 }
 
 # Azure SQL Database
@@ -122,15 +145,16 @@ module "sql" {
   source = "../../../modules/sql"
   count  = var.deploy_sql ? 1 : 0
 
-  server_name          = "sql-${var.project}-${var.random_suffix}"
-  database_name        = "sqldb-${var.project}-${var.environment}"
-  resource_group_name  = var.resource_group_name
-  location             = var.location
-  admin_login          = var.sql_admin_login
-  admin_password       = var.sql_admin_password
-  sku_name             = "Basic"
-  allow_azure_services = true
-  tags                 = var.tags
+  server_name                   = "sql-${var.project}-${var.random_suffix}"
+  database_name                 = "sqldb-${var.project}-${var.environment}"
+  resource_group_name           = var.resource_group_name
+  location                      = var.location
+  admin_login                   = var.sql_admin_login
+  admin_password                = var.sql_admin_password
+  sku_name                      = "Basic"
+  allow_azure_services          = false
+  public_network_access_enabled = local.shared_services_public_network_access_enabled
+  tags                          = var.tags
 }
 
 # Route Table (via Firewall)

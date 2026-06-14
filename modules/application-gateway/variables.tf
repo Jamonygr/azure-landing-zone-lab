@@ -133,6 +133,11 @@ variable "health_probes" {
     timeout                                   = optional(number, 30)
     unhealthy_threshold                       = optional(number, 3)
     pick_host_name_from_backend_http_settings = optional(bool, false)
+    minimum_servers                           = optional(number, 0)
+    match = optional(object({
+      status_code = list(string)
+      body        = optional(string)
+    }))
   }))
   default = {}
 }

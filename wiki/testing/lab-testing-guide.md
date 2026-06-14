@@ -48,7 +48,7 @@ deploy_sql                = true
 deploy_private_endpoints  = true
 
 # Pillar 5: Management
-enable_jumpbox_public_ip  = true   # Or connect through the VPN client
+enable_jumpbox_public_ip  = false  # Prefer VPN/Bastion/private management
 deploy_log_analytics      = true
 deploy_backup             = true
 deploy_workbooks          = true
@@ -56,6 +56,7 @@ deploy_workbooks          = true
 # Workloads
 deploy_workload_prod      = true
 deploy_load_balancer      = true
+enable_lb_rdp_nat_rules   = false
 deploy_onprem_simulation  = true
 ```
 
@@ -67,9 +68,9 @@ deploy_onprem_simulation  = true
 | 2. Deploy + outputs | Apply and gather the connection map | `terraform apply tfplan`, `terraform output connection_info` |
 | 3. Hub + routing | Verify forced tunneling via firewall | `Invoke-WebRequest https://ifconfig.me` from jumpbox |
 | 4. Identity VNet | Confirm the identity VM answers on its IPs | `Test-NetConnection $dc -Port 3389` |
-| 5. Management entry | Reach the jumpbox and traverse spokes | RDP to `jumpbox_public_ip` or via VPN |
+| 5. Management entry | Reach the jumpbox and traverse spokes | VPN/Bastion/private access; public RDP only with trusted CIDRs |
 | 6. Shared services | Test Key Vault/Storage/SQL reachability | `Invoke-WebRequest $(terraform output -raw keyvault_uri)` |
-| 7. Workload + LB | Hit the IIS sample and NAT RDP | `Invoke-WebRequest http://$LB_IP` |
+| 7. Workload + LB | Hit the IIS sample through HTTP | `Invoke-WebRequest http://$LB_IP` |
 | 8. VPN + on-prem | Prove the tunnel works both ways | `Test-NetConnection 10.2.1.4 -Port 3389` from on-prem VM |
 | 9. Observability | Spot-check Log Analytics/diagnostics | `az monitor log-analytics workspace show --ids $(terraform output -raw log_analytics_workspace_id)` |
 | 10. Clean up | Tear down when you are done | `terraform destroy` |

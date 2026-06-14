@@ -324,15 +324,15 @@ module "load_balancer" {
     }
   }
 
-  # NAT rules for RDP access to each web server
-  nat_rules = {
+  # Public RDP NAT rules are opt-in; use jumpbox, VPN, or private management by default.
+  nat_rules = var.enable_lb_rdp_nat_rules ? {
     for i in range(var.lb_web_server_count) :
     "rdp-web${format("%02d", i + 1)}" => {
       protocol      = "Tcp"
       frontend_port = 3389 + i
       backend_port  = 3389
     }
-  }
+  } : {}
 
   enable_outbound_rule = var.lb_type == "public"
 }
@@ -353,7 +353,7 @@ module "web_servers" {
   # Load Balancer association
   associate_with_lb  = true
   lb_backend_pool_id = module.load_balancer[0].backend_pool_id
-  lb_nat_rule_ids    = [module.load_balancer[0].nat_rule_ids["rdp-web${format("%02d", count.index + 1)}"]]
+  lb_nat_rule_ids    = var.enable_lb_rdp_nat_rules ? [module.load_balancer[0].nat_rule_ids["rdp-web${format("%02d", count.index + 1)}"]] : []
 
   # IIS with custom content showing hostname
   install_iis        = true

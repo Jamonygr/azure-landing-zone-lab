@@ -129,6 +129,12 @@ variable "deploy_load_balancer" {
   default     = false
 }
 
+variable "enable_lb_rdp_nat_rules" {
+  description = "Enable public Load Balancer inbound NAT rules for RDP to workload web servers"
+  type        = bool
+  default     = false
+}
+
 variable "lb_type" {
   description = "Type of load balancer: 'public' or 'internal'"
   type        = string

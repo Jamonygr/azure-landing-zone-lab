@@ -17,6 +17,7 @@ resource "azurerm_key_vault" "this" {
   enabled_for_deployment          = var.enabled_for_deployment
   enabled_for_disk_encryption     = var.enabled_for_disk_encryption
   enabled_for_template_deployment = var.enabled_for_template_deployment
+  public_network_access_enabled   = var.public_network_access_enabled
   tags                            = var.tags
 
   network_acls {

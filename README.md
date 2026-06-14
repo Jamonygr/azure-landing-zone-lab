@@ -5,6 +5,20 @@
 [![AzAPI](https://img.shields.io/badge/AzAPI-~>2.0-blue?logo=microsoftazure)](https://registry.terraform.io/providers/Azure/azapi/latest)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+## 🏛️ Architecture Diagram
+
+<p align="center">
+  <img src="docs/images/azure_architecture_with_icons_v2.png" alt="Actual Azure Architecture Diagram" width="1200" />
+</p>
+
+### Architecture at a Glance
+
+- **Topology**: Hub VNet with optional VPN/App Gateway; peered spokes for identity, management, shared services, and workload. On-premises simulation connects via site-to-site VPN when enabled.
+- **Connectivity Control**: Azure Firewall centralizes egress; workload web subnet skips a firewall UDR when using a public LB to avoid asymmetric return paths; optional NAT Gateway gives the web subnet a fixed outbound IP.
+- **Name Resolution**: Identity DNS servers are shared across spokes; optional Private DNS zones in the hub cover blob, Key Vault, and SQL Private Link.
+- **Segmentation**: NSGs on every subnet; optional Application Security Groups group web/app/data tiers for cleaner rules.
+- **Observability**: Log Analytics workspace lives in management; optional VNet Flow Logs go to storage with Traffic Analytics; enable `create_network_watcher` if your subscription lacks NetworkWatcherRG.
+
 <p align="center">
   <img src="docs/images/hero-landing-zone.svg" alt="Azure Landing Zone Lab banner" width="1000" />
 </p>
@@ -26,8 +40,8 @@ At the top of `terraform.tfvars` there is a **MASTER CONTROL PANEL** section tha
 
 ## 📋 Table of Contents
 
-- [Overview](#-overview)
 - [Architecture Diagram](#-architecture-diagram)
+- [Overview](#-overview)
 - [Lab Scenarios](#-lab-scenarios)
 - [What Gets Deployed](#-what-gets-deployed)
 - [Optional Components](#-optional-components)
@@ -123,22 +137,6 @@ All PaaS services are **optional** and controlled via deployment flags:
 | **Enterprise** | Full Hybrid + AKS + App Gateway | ~55 min | ~$850-950 |
 
 > **Current Default Config** (`terraform.tfvars`): Standard + PaaS + Network Add-ons + Dev VNet (VPN/AKS/Flow Logs/Backup off; ~$500-600/month)
-
----
-
-## 🏛️ Architecture Diagram
-
-<p align="center">
-  <img src="docs/images/azure_architecture_with_icons_v2.png" alt="Actual Azure Architecture Plan" width="1200" />
-</p>
-
-### Architecture at a Glance
-
-- **Topology**: Hub VNet with optional VPN/App Gateway; peered spokes for identity, management, shared services, and workload. On-premises simulation connects via site-to-site VPN when enabled.
-- **Connectivity Control**: Azure Firewall centralizes egress; workload web subnet skips a firewall UDR when using a public LB to avoid asymmetric return paths; optional NAT Gateway gives the web subnet a fixed outbound IP.
-- **Name Resolution**: Identity DNS servers are shared across spokes; optional Private DNS zones in the hub cover blob, Key Vault, and SQL Private Link.
-- **Segmentation**: NSGs on every subnet; optional Application Security Groups group web/app/data tiers for cleaner rules.
-- **Observability**: Log Analytics workspace lives in management; optional VNet Flow Logs go to storage with Traffic Analytics; enable `create_network_watcher` if your subscription lacks NetworkWatcherRG.
 
 ---
 
@@ -604,34 +602,21 @@ Azure Storage Account
 
 | Secret | Description |
 |--------|-------------|
-| `AZURE_CLIENT_ID` | Service Principal App ID |
-| `AZURE_CLIENT_SECRET` | Service Principal Secret |
-| `AZURE_SUBSCRIPTION_ID` | Target Azure Subscription |
-| `AZURE_TENANT_ID` | Azure AD Tenant ID |
-| `AZURE_CREDENTIALS` | JSON credentials object (see below) |
+| `AZURE_CLIENT_ID` | App registration/client ID used by GitHub OIDC |
+| `AZURE_TENANT_ID` | Azure tenant ID used by GitHub OIDC |
+| `AZURE_SUBSCRIPTION_ID` | Target Azure subscription |
 | `TF_STATE_RG` | Resource group for state storage |
 | `TF_STATE_SA` | Storage account for state storage |
 | `INFRACOST_API_KEY` | (Optional) enables the cost estimation stage |
 
-**AZURE_CREDENTIALS format:**
-```json
-{
-  "clientId": "<AZURE_CLIENT_ID>",
-  "clientSecret": "<AZURE_CLIENT_SECRET>",
-  "subscriptionId": "<AZURE_SUBSCRIPTION_ID>",
-  "tenantId": "<AZURE_TENANT_ID>"
-}
-```
+The pipeline uses GitHub Actions OIDC federation. Do not store a long-lived Azure client secret JSON in repository secrets.
 
 ### Quick Commands
 
 ```bash
-# Create Service Principal with Owner role
-az ad sp create-for-rbac \
-  --name "terraform-alz-pipeline" \
-  --role Owner \
-  --scopes /subscriptions/<SUBSCRIPTION_ID> \
-  --sdk-auth
+# Create an app registration and add a federated credential for this repo.
+# Then grant least-privilege Azure roles required by your selected profile.
+az ad app create --display-name "terraform-alz-pipeline"
 
 # Deploy infrastructure (manual apply)
 gh workflow run "Terraform Pipeline" -f action=apply -f environment=lab
@@ -668,10 +653,10 @@ owner           = "Lab-User"
 # SECURITY (CHANGE THESE!)
 # =============================================================================
 admin_username     = "azureadmin"
-admin_password     = "YourSecurePassword123!"   # Change this!
+admin_password     = null                       # Prefer TF_VAR_admin_password or a private tfvars file
 sql_admin_login    = "sqladmin"
-sql_admin_password = "SqlP@ssw0rd123!"          # Change this!
-vpn_shared_key     = "YourVPNSharedKey123!"     # Required if VPN enabled
+sql_admin_password = null                       # Prefer TF_VAR_sql_admin_password or a private tfvars file
+vpn_shared_key     = null                       # Required only if VPN is enabled
 
 # =============================================================================
 # INFRASTRUCTURE FLAGS
@@ -685,8 +670,9 @@ deploy_application_gateway   = true   # App Gateway with WAF (~$36/mo)
 
 # Identity & Management
 deploy_secondary_dc          = false  # Second Domain Controller (~$30/mo)
-enable_jumpbox_public_ip     = true   # Public RDP to jumpbox
-allowed_jumpbox_source_ips   = ["0.0.0.0/0"]  # TODO: Restrict to your IP
+enable_jumpbox_public_ip     = false  # Prefer VPN/Bastion/private management
+allowed_jumpbox_source_ips   = []     # Add trusted CIDRs only when public RDP is required
+allow_public_rdp_from_internet = false
 
 # Shared Services
 deploy_keyvault              = true
@@ -706,6 +692,7 @@ deploy_workload_dev          = true   # Dev environment (similar to prod)
 
 # Load Balancer
 deploy_load_balancer         = true
+enable_lb_rdp_nat_rules      = false  # Keep web VM RDP NAT closed by default
 lb_type                      = "public"
 lb_web_server_count          = 2
 lb_web_server_size           = "Standard_B1ms"

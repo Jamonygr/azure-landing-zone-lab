@@ -1,242 +1,132 @@
-# 🚀 GitHub Actions Pipeline Setup Guide
+# GitHub Actions Pipeline Setup Guide
 
-This guide helps you set up the CI/CD pipeline for your own Azure subscription.
+This guide configures the Terraform pipeline with GitHub Actions OIDC. The repo no longer requires a long-lived Azure client secret JSON.
 
 ## Prerequisites
 
 - Azure subscription
-- GitHub account
+- GitHub repository admin access
 - Azure CLI installed locally
-- Contributor access to the Azure subscription
+- Permission to create app registrations, federated credentials, role assignments, and the Terraform state storage account
 
----
+## 1. Create Azure State Storage
 
-## Step 1: Fork or Clone the Repository
-
-```bash
-# Fork via GitHub UI, then clone
-git clone https://github.com/YOUR-USERNAME/azure-landing-zone-lab.git
-cd azure-landing-zone-lab
-```
-
----
-
-## Step 2: Create Azure State Storage
-
-The pipeline needs a storage account to store Terraform state remotely.
-
-### PowerShell
 ```powershell
-# Login to Azure
 az login
 
-# Set variables
 $RESOURCE_GROUP = "rg-terraform-state"
-$LOCATION = "westus2"  # Change to your preferred region
+$LOCATION = "westus2"
 $STORAGE_ACCOUNT = "stterraformstate$(Get-Random -Maximum 9999)"
 
-# Create resource group
 az group create --name $RESOURCE_GROUP --location $LOCATION
 
-# Create storage account
 az storage account create `
   --name $STORAGE_ACCOUNT `
   --resource-group $RESOURCE_GROUP `
   --sku Standard_LRS `
   --encryption-services blob `
-  --min-tls-version TLS1_2
+  --min-tls-version TLS1_2 `
+  --allow-blob-public-access false
 
-# Create container
 az storage container create `
   --name tfstate `
-  --account-name $STORAGE_ACCOUNT
+  --account-name $STORAGE_ACCOUNT `
+  --auth-mode login
 
-# Display values to save
-Write-Host "`n=== SAVE THESE FOR GITHUB SECRETS ===" -ForegroundColor Green
-Write-Host "TF_STATE_RG: $RESOURCE_GROUP"
-Write-Host "TF_STATE_SA: $STORAGE_ACCOUNT"
+Write-Host "TF_STATE_RG=$RESOURCE_GROUP"
+Write-Host "TF_STATE_SA=$STORAGE_ACCOUNT"
 ```
 
-### Bash
-```bash
-# Login to Azure
-az login
+## 2. Create the OIDC App Registration
 
-# Set variables
-RESOURCE_GROUP="rg-terraform-state"
-LOCATION="westus2"
-STORAGE_ACCOUNT="stterraformstate$RANDOM"
-
-# Create resources
-az group create --name $RESOURCE_GROUP --location $LOCATION
-az storage account create \
-  --name $STORAGE_ACCOUNT \
-  --resource-group $RESOURCE_GROUP \
-  --sku Standard_LRS \
-  --encryption-services blob
-
-az storage container create \
-  --name tfstate \
-  --account-name $STORAGE_ACCOUNT
-
-echo "TF_STATE_RG: $RESOURCE_GROUP"
-echo "TF_STATE_SA: $STORAGE_ACCOUNT"
-```
-
----
-
-## Step 3: Create Service Principal
-
-Create a service principal for GitHub Actions to authenticate with Azure.
-
-### PowerShell
-```powershell
-# Get subscription ID
-$SUBSCRIPTION_ID = az account show --query id -o tsv
-
-# Create service principal with Contributor role
-$SP = az ad sp create-for-rbac `
-  --name "sp-github-actions-terraform" `
-  --role "Contributor" `
-  --scopes "/subscriptions/$SUBSCRIPTION_ID" `
-  --sdk-auth | ConvertFrom-Json
-
-# Display credentials
-Write-Host "`n=== SAVE THESE FOR GITHUB SECRETS ===" -ForegroundColor Green
-Write-Host "AZURE_CREDENTIALS: (copy full JSON output above)"
-Write-Host "AZURE_CLIENT_ID: $($SP.clientId)"
-Write-Host "AZURE_CLIENT_SECRET: $($SP.clientSecret)"
-Write-Host "AZURE_SUBSCRIPTION_ID: $($SP.subscriptionId)"
-Write-Host "AZURE_TENANT_ID: $($SP.tenantId)"
-```
-
-### Bash
 ```bash
 SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+TENANT_ID=$(az account show --query tenantId -o tsv)
+REPO="OWNER/REPO"
 
-az ad sp create-for-rbac \
-  --name "sp-github-actions-terraform" \
-  --role "Contributor" \
-  --scopes "/subscriptions/$SUBSCRIPTION_ID" \
-  --sdk-auth
+APP_ID=$(az ad app create \
+  --display-name "terraform-alz-pipeline" \
+  --query appId \
+  --output tsv)
 
-# Copy the full JSON output for AZURE_CREDENTIALS
+az ad sp create --id "$APP_ID"
+
+az ad app federated-credential create \
+  --id "$APP_ID" \
+  --parameters "{
+    \"name\": \"github-main\",
+    \"issuer\": \"https://token.actions.githubusercontent.com\",
+    \"subject\": \"repo:${REPO}:ref:refs/heads/main\",
+    \"audiences\": [\"api://AzureADTokenExchange\"]
+  }"
+
+az ad app federated-credential create \
+  --id "$APP_ID" \
+  --parameters "{
+    \"name\": \"github-pr\",
+    \"issuer\": \"https://token.actions.githubusercontent.com\",
+    \"subject\": \"repo:${REPO}:pull_request\",
+    \"audiences\": [\"api://AzureADTokenExchange\"]
+  }"
+
+echo "AZURE_CLIENT_ID=$APP_ID"
+echo "AZURE_TENANT_ID=$TENANT_ID"
+echo "AZURE_SUBSCRIPTION_ID=$SUBSCRIPTION_ID"
 ```
 
----
+Grant the app registration the least-privilege roles your selected profile needs. A production-aligned profile usually needs resource deployment permissions plus role assignment and policy assignment permissions.
 
-## Step 4: Add GitHub Secrets
+## 3. Add GitHub Secrets
 
-1. Go to your GitHub repository
-2. Navigate to **Settings** → **Secrets and variables** → **Actions**
-3. Click **New repository secret** and add each secret:
+Add these repository secrets under **Settings -> Secrets and variables -> Actions**:
 
-| Secret Name | Description | Example |
-|-------------|-------------|---------|
-| `AZURE_CREDENTIALS` | Full JSON from service principal creation | `{"clientId":"...", ...}` |
-| `AZURE_CLIENT_ID` | Service principal client/app ID | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
-| `AZURE_CLIENT_SECRET` | Service principal password | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
-| `AZURE_SUBSCRIPTION_ID` | Your Azure subscription ID | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
-| `AZURE_TENANT_ID` | Your Azure AD tenant ID | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
-| `TF_STATE_RG` | Resource group for state storage | `rg-terraform-state` |
-| `TF_STATE_SA` | Storage account name | `stterraformstate1234` |
+| Secret | Purpose |
+|---|---|
+| `AZURE_CLIENT_ID` | App/client ID from the OIDC app registration |
+| `AZURE_TENANT_ID` | Azure tenant ID |
+| `AZURE_SUBSCRIPTION_ID` | Target Azure subscription |
+| `TF_STATE_RG` | Terraform state resource group |
+| `TF_STATE_SA` | Terraform state storage account |
+| `INFRACOST_API_KEY` | Optional cost-estimation token |
 
----
+Do not add a client secret or JSON credential secret. The workflow exchanges a GitHub OIDC token for Azure access at run time.
 
-## Step 5: Create GitHub Environments (Optional but Recommended)
+## 4. Create GitHub Environments
 
-1. Go to **Settings** → **Environments**
-2. Create these environments:
+Create these environments in **Settings -> Environments**:
 
-| Environment | Protection Rules |
-|-------------|------------------|
-| `lab` | None (auto-deploy) |
-| `dev` | Optional: Require reviewer |
-| `prod` | Required: Require reviewer + wait timer |
-| `lab-destroy` | Required: Require reviewer |
-| `dev-destroy` | Required: Require reviewer |
+| Environment | Protection |
+|---|---|
+| `lab` | Optional reviewer |
+| `dev` | Optional reviewer |
+| `prod` | Required reviewer |
+| `lab-destroy` | Required reviewer |
+| `dev-destroy` | Required reviewer |
+| `prod-destroy` | Required reviewer |
 
----
+## 5. Test the Pipeline
 
-## Step 6: Test the Pipeline
-
-### Option A: Push to trigger validation
 ```bash
-git add .
-git commit -m "feat: configure CI/CD pipeline"
-git push
+gh workflow run "Terraform Pipeline" -f action=plan -f environment=lab
+gh run watch
 ```
 
-The **Terraform Validate** workflow will run automatically.
+Apply and destroy are manual only:
 
-### Option B: Manual trigger
-1. Go to **Actions** tab
-2. Select **Terraform Plan** or **Terraform Apply**
-3. Click **Run workflow**
-4. Select environment (`lab`, `dev`, or `prod`)
+```bash
+gh workflow run "Terraform Pipeline" -f action=apply -f environment=lab
 
----
-
-## Workflow Overview
-
-| Workflow | Trigger | Description |
-|----------|---------|-------------|
-| **Terraform Validate** | Push/PR to main | Format, validate, security scans |
-| **Terraform Plan** | PR to main | Generate and comment plan on PR |
-| **Terraform Apply** | Merge to main / Manual | Deploy infrastructure |
-| **Terraform Destroy** | Manual only | Destroy with "DESTROY" confirmation |
-
----
-
-## Customizing Environments
-
-Edit the files in `environments/` folder:
-
-- `lab.tfvars` - Minimal cost deployment for testing
-- `dev.tfvars` - Development environment
-- `prod.tfvars` - Full production deployment
-
----
+gh workflow run "Terraform Pipeline" \
+  -f action=destroy \
+  -f environment=lab \
+  -f destroy_confirm=DESTROY
+```
 
 ## Troubleshooting
 
-### "Error: No configuration files"
-- Ensure you're in the repository root
-- Check that `.tf` files exist
-
-### "Error: Authorization failed"
-- Verify service principal has Contributor role
-- Check secrets are correctly set in GitHub
-
-### "Error: Backend initialization failed"
-- Verify storage account exists
-- Check `TF_STATE_RG` and `TF_STATE_SA` secrets
-
-### "Error: Resource provider not registered"
-Run:
-```bash
-az provider register --namespace Microsoft.Network
-az provider register --namespace Microsoft.Compute
-az provider register --namespace Microsoft.Storage
-```
-
----
-
-## Security Best Practices
-
-1. **Rotate secrets regularly** - Update service principal credentials every 90 days
-2. **Use environment protection** - Require approval for prod deployments
-3. **Review security scans** - Check tfsec and Checkov results in Actions
-4. **Enable branch protection** - Require PR reviews before merge
-
----
-
-## Cost Management
-
-The `lab.tfvars` is optimized for minimal cost:
-- Auto-shutdown enabled (7 PM daily)
-- Firewall disabled (~$300/month savings)
-- VPN Gateway disabled (~$140/month savings)
-- Smaller VM sizes (B2s)
-
-Estimated lab cost: **~$50-100/month** with auto-shutdown
+| Symptom | Check |
+|---|---|
+| Azure login fails | Federated credential subject matches the repo and branch or PR event |
+| Backend init fails | `TF_STATE_RG`, `TF_STATE_SA`, and `tfstate` container exist |
+| Role or policy assignment fails | The OIDC principal has the required Azure RBAC permissions |
+| Plan cannot read state | The OIDC principal has Storage Blob Data Contributor on the state storage account |

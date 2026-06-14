@@ -70,6 +70,12 @@ variable "allow_nested_items_to_be_public" {
   default     = false
 }
 
+variable "public_network_access_enabled" {
+  description = "Allow public network access to the storage account data plane"
+  type        = bool
+  default     = true
+}
+
 variable "containers" {
   description = "Blob containers to create"
   type = list(object({

@@ -61,7 +61,7 @@ variable "min_tls_version" {
 variable "public_network_access_enabled" {
   description = "Enable public network access"
   type        = bool
-  default     = true # For lab simplicity
+  default     = false
 }
 
 variable "allowed_ip_addresses" {
@@ -77,7 +77,7 @@ variable "allowed_ip_addresses" {
 variable "allow_azure_services" {
   description = "Allow Azure services to access"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "azuread_admin" {

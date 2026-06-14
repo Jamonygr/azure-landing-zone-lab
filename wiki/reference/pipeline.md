@@ -37,52 +37,17 @@ The pipeline uses a 2-level architecture for reuse and visibility:
 
 ## Initial Setup (One-Time Configuration)
 
-Before using the pipeline, you must complete these one-time setup steps.
+Before using the pipeline, create remote state storage and a GitHub OIDC app registration. The workflow does not use a stored Azure client secret.
 
 ### Step 1: Authenticate with Azure
 
 ```bash
-# Login to Azure CLI
 az login
-
-# Set your subscription
 az account set --subscription "<SUBSCRIPTION_ID>"
-
-# Verify
-az account show --query "{Name:name, ID:id}" -o table
+az account show --query "{Name:name, ID:id, Tenant:tenantId}" -o table
 ```
 
-### Step 2: Create Service Principal
-
-The pipeline needs a Service Principal with sufficient permissions to manage Azure resources.
-
-```bash
-# Create SP with Owner role
-az ad sp create-for-rbac \
-  --name "terraform-alz-pipeline" \
-  --role Owner \
-  --scopes /subscriptions/<SUBSCRIPTION_ID> \
-  --sdk-auth
-```
-
-**Save the output** - you'll need these values:
-```json
-{
-  "clientId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-  "clientSecret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "subscriptionId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-  "tenantId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-}
-```
-
-> **Why Owner role?** The landing zone creates role assignments, policy assignments, and role definitions which require:
-> - `Microsoft.Authorization/roleAssignments/write`
-> - `Microsoft.Authorization/policyAssignments/write`
-> - `Microsoft.Authorization/roleDefinitions/write`
->
-> Only Owner (or custom combination of User Access Administrator + Contributor + Resource Policy Contributor) provides these.
-
-### Step 3: Create Terraform State Storage
+### Step 2: Create Terraform State Storage
 
 Terraform requires a remote backend to store state files. Create an Azure Storage Account:
 
@@ -111,7 +76,8 @@ az storage account create `
 # Create container for state files
 az storage container create `
   --name tfstate `
-  --account-name $STORAGE_ACCOUNT
+  --account-name $STORAGE_ACCOUNT `
+  --auth-mode login
 
 # Output the storage account name (save this!)
 Write-Host "Storage Account: $STORAGE_ACCOUNT"
@@ -134,10 +100,50 @@ az storage account create \
 
 az storage container create \
   --name tfstate \
-  --account-name $STORAGE_ACCOUNT
+  --account-name $STORAGE_ACCOUNT \
+  --auth-mode login
 
 echo "Storage Account: $STORAGE_ACCOUNT"
 ```
+
+### Step 3: Create the GitHub OIDC App Registration
+
+```bash
+SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+TENANT_ID=$(az account show --query tenantId -o tsv)
+REPO="OWNER/REPO"
+
+APP_ID=$(az ad app create \
+  --display-name "terraform-alz-pipeline" \
+  --query appId \
+  --output tsv)
+
+az ad sp create --id "$APP_ID"
+
+az ad app federated-credential create \
+  --id "$APP_ID" \
+  --parameters "{
+    \"name\": \"github-main\",
+    \"issuer\": \"https://token.actions.githubusercontent.com\",
+    \"subject\": \"repo:${REPO}:ref:refs/heads/main\",
+    \"audiences\": [\"api://AzureADTokenExchange\"]
+  }"
+
+az ad app federated-credential create \
+  --id "$APP_ID" \
+  --parameters "{
+    \"name\": \"github-pr\",
+    \"issuer\": \"https://token.actions.githubusercontent.com\",
+    \"subject\": \"repo:${REPO}:pull_request\",
+    \"audiences\": [\"api://AzureADTokenExchange\"]
+  }"
+
+echo "AZURE_CLIENT_ID=$APP_ID"
+echo "AZURE_TENANT_ID=$TENANT_ID"
+echo "AZURE_SUBSCRIPTION_ID=$SUBSCRIPTION_ID"
+```
+
+Grant the OIDC principal the Azure RBAC permissions required by the selected profile. Policy and role assignment features require elevated permissions such as User Access Administrator and Resource Policy Contributor, or an equivalent custom role model.
 
 ### Step 4: Configure GitHub Secrets
 
@@ -149,19 +155,10 @@ gh auth login
 
 # Set secrets (replace with your actual values)
 gh secret set AZURE_CLIENT_ID --body "<CLIENT_ID>"
-gh secret set AZURE_CLIENT_SECRET --body "<CLIENT_SECRET>"
 gh secret set AZURE_SUBSCRIPTION_ID --body "<SUBSCRIPTION_ID>"
 gh secret set AZURE_TENANT_ID --body "<TENANT_ID>"
 gh secret set TF_STATE_RG --body "rg-terraform-state"
 gh secret set TF_STATE_SA --body "<STORAGE_ACCOUNT_NAME>"
-
-# Set AZURE_CREDENTIALS as JSON object
-gh secret set AZURE_CREDENTIALS --body '{
-  "clientId": "<CLIENT_ID>",
-  "clientSecret": "<CLIENT_SECRET>",
-  "subscriptionId": "<SUBSCRIPTION_ID>",
-  "tenantId": "<TENANT_ID>"
-}'
 ```
 
 ### Step 5: Verify Setup
@@ -181,8 +178,10 @@ After completing setup, you will have:
 
 ```
 Azure Subscription
-├── Service Principal: terraform-alz-pipeline
-│   └── Role: Owner at subscription scope
+├── App registration / service principal: terraform-alz-pipeline
+│   ├── Federated credential: repo main branch
+│   ├── Federated credential: pull requests
+│   └── Least-privilege Azure RBAC for selected profile
 │
 └── Resource Group: rg-terraform-state
     └── Storage Account: stterraformstateXXXX
@@ -194,10 +193,8 @@ Azure Subscription
 GitHub Repository
 └── Secrets
     ├── AZURE_CLIENT_ID
-    ├── AZURE_CLIENT_SECRET
     ├── AZURE_SUBSCRIPTION_ID
     ├── AZURE_TENANT_ID
-    ├── AZURE_CREDENTIALS (JSON)
     ├── TF_STATE_RG
     └── TF_STATE_SA
 ```
@@ -212,11 +209,11 @@ The pipeline now has **15 visible jobs**:
 |---|------|---------|----------------|
 | 1 | **1?? Format Check** | `terraform fmt -check -recursive` | ✅ Yes |
 | 2 | **2?? Validate** | `terraform init -backend=false` + `terraform validate` | ✅ Yes |
-| 3 | **3?? Security - tfsec** | Static security scan (SARIF upload, soft-fail) | ⚠️ Soft |
-| 4 | **3?? Security - Checkov** | Policy-as-code scan (SARIF upload, soft-fail) | ⚠️ Soft |
+| 3 | **3?? Security - tfsec** | Static security scan (SARIF upload) | ✅ Yes |
+| 4 | **3?? Security - Checkov** | Policy-as-code scan (SARIF upload) | ✅ Yes |
 | 5 | **3?? Security - Secrets** | Gitleaks secret scan | ✅ Fails on leak |
 | 6 | **4?? Lint - TFLint** | Azure rules linting | ⚠️ Soft |
-| 7 | **4?? Lint - Policy** | OPA/Conftest against tfplan | ⚠️ Soft by default |
+| 7 | **4?? Lint - Policy** | OPA/Conftest against saved `tfplan` artifact | ✅ Yes |
 | 8 | **4?? Lint - Docs** | Generate terraform-docs artifact | ✅ Yes |
 | 9 | **5?? Analysis - Graph** | Terraform dependency graph artifact | ✅ Yes |
 | 10 | **5?? Analysis - Versions** | Provider/module version snapshot | ✅ Yes |
@@ -281,66 +278,50 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 
 | Secret | Description | Example |
 |--------|-------------|---------|
-| `AZURE_CLIENT_ID` | Service Principal App ID | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
-| `AZURE_CLIENT_SECRET` | Service Principal secret | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` |
+| `AZURE_CLIENT_ID` | App/client ID for GitHub OIDC | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
 | `AZURE_SUBSCRIPTION_ID` | Target Azure subscription | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
 | `AZURE_TENANT_ID` | Azure AD tenant ID | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
-| `AZURE_CREDENTIALS` | JSON credentials object | See below |
 | `TF_STATE_RG` | Resource group for tfstate | `rg-terraform-state` |
 | `TF_STATE_SA` | Storage account for tfstate | `stterraformstateXXXX` |
 | `INFRACOST_API_KEY` | (Optional) enables cost-estimate stage | - |
 
-### AZURE_CREDENTIALS Format
+Do not store a client secret or JSON credential object. The workflow uses the GitHub OIDC token exchange at runtime.
 
-```json
-{
-  "clientId": "<AZURE_CLIENT_ID>",
-  "clientSecret": "<AZURE_CLIENT_SECRET>",
-  "subscriptionId": "<AZURE_SUBSCRIPTION_ID>",
-  "tenantId": "<AZURE_TENANT_ID>"
-}
-```
-
-## Service Principal & Authentication
+## OIDC Identity & Authentication
 
 ### How Authentication Works
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  GitHub Actions │────▶│  Azure Login    │────▶│  Azure APIs     │
-│  (Runner)       │     │  (az login)     │     │  (ARM)          │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-        │                       │                       │
-        │ AZURE_CREDENTIALS     │ OAuth Token           │ API Calls
-        │ (from secrets)        │                       │
-        ▼                       ▼                       ▼
+┌─────────────────┐     ┌────────────────────┐     ┌─────────────────┐
+│  GitHub Actions │────▶│ GitHub OIDC token  │────▶│  Azure Login    │
+│  (Runner)       │     │ short-lived JWT    │     │  (federated)    │
+└─────────────────┘     └────────────────────┘     └─────────────────┘
+                                                        │
+                                                        ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Service Principal                            │
-│                    terraform-alz-pipeline                       │
+│         App registration / service principal                    │
+│         terraform-alz-pipeline                                  │
 │                                                                 │
 │  Client ID:     xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx           │
-│  Object ID:     yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy           │
 │  Tenant ID:     zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz           │
 │                                                                 │
-│  Assigned Roles:                                                │
-│  └── Owner @ /subscriptions/<subscription-id>                   │
-│      ├── Microsoft.Resources/*         (create resources)      │
-│      ├── Microsoft.Authorization/*     (role assignments)      │
-│      └── Microsoft.Authorization/*     (policy assignments)    │
+│  Federated credentials:                                         │
+│  ├── repo main branch                                           │
+│  └── pull_request events                                        │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Authentication Flow in Pipeline
 
 1. **GitHub Runner starts** - Spins up Ubuntu container
-2. **Azure Login action** - Uses `AZURE_CREDENTIALS` secret to authenticate
-3. **Token acquired** - Azure AD issues OAuth token for the Service Principal
-4. **Terraform uses token** - AzureRM provider uses the authenticated session
-5. **API calls made** - All Azure resource operations use the SP identity
+2. **GitHub issues OIDC token** - Token is scoped to the repo and event
+3. **Azure Login action exchanges token** - Azure validates the federated credential
+4. **Terraform uses token** - AzureRM provider uses `ARM_USE_OIDC=true`
+5. **API calls made** - All Azure operations use the app registration identity
 
-### Service Principal Management
+### OIDC Principal Management
 
-**View your Service Principal:**
+**View your app/service principal:**
 ```bash
 # List all SPs with "terraform" in name
 az ad sp list --display-name "terraform" --query "[].{Name:displayName, AppId:appId}" -o table
@@ -354,16 +335,6 @@ az ad sp show --id <APP_ID>
 az role assignment list --assignee <APP_ID> -o table
 ```
 
-**Rotate the secret:**
-```bash
-# Create new secret (old ones remain valid until expiry)
-az ad sp credential reset --id <APP_ID> --append
-
-# Update GitHub secret
-gh secret set AZURE_CLIENT_SECRET --body "<NEW_SECRET>"
-gh secret set AZURE_CREDENTIALS --body '{"clientId":"...","clientSecret":"<NEW_SECRET>",...}'
-```
-
 **Delete the Service Principal:**
 ```bash
 az ad sp delete --id <APP_ID>
@@ -371,15 +342,16 @@ az ad sp delete --id <APP_ID>
 
 ### Required Permissions
 
-The Service Principal needs these permissions:
+The OIDC principal needs these permissions:
 
 | Permission | Purpose |
 |------------|---------|
-| **Owner** or **Contributor** | Create/manage Azure resources |
+| **Contributor** or equivalent custom role | Create/manage Azure resources |
 | **User Access Administrator** | Create role assignments |
 | **Resource Policy Contributor** | Create policy assignments |
+| **Storage Blob Data Contributor** | Read/write Terraform state blobs |
 
-> **Note**: Using `Owner` role provides all required permissions. For production, use least-privilege with specific roles.
+Use the smallest role set that supports the profile you deploy. Lab-only profiles may need fewer permissions than production-like governance profiles.
 
 ## Backend Configuration
 
@@ -609,7 +581,7 @@ terraform force-unlock -force <LOCK_ID>
 ### Permission Errors
 
 If you see "AuthorizationFailed" errors:
-1. Verify Service Principal has Owner role
+1. Verify the OIDC principal has the required Azure role assignments
 2. Wait 5-10 minutes for role propagation
 3. Re-run the pipeline
 

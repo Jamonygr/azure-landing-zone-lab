@@ -13,7 +13,7 @@ inputs:
   soft_fail:
     description: 'Continue on policy violations'
     required: false
-    default: 'true'
+    default: 'false'
 
 outputs:
   violations:
@@ -37,7 +37,8 @@ runs:
         if [ -f tfplan ]; then
           terraform show -json tfplan > tfplan.json
         else
-          echo '{}' > tfplan.json
+          echo "Terraform plan file 'tfplan' was not found. Policy checks require the saved plan artifact." >&2
+          exit 1
         fi
 
     - name: Run Policy Check
