@@ -471,7 +471,7 @@ The configuration automatically excludes the web subnet from firewall routing wh
 | ├─ WebSubnet | 10.10.1.0/24 | **Load Balanced Web Tier** |
 | ├─ AppSubnet | 10.10.2.0/24 | App tier VMs |
 | ├─ DataSubnet | 10.10.3.0/24 | Database VMs |
-| ├─ ContainerAppsSubnet | 10.10.8.0/23 | Container Apps |
+| ├─ ContainerAppsSubnet | 10.10.8.0/23 | Reserved for future Container Apps support |
 | └─ AKSSubnet | 10.10.16.0/20 | AKS node pool (4094 IPs) |
 | **Workload Dev** | 10.11.0.0/16 | Development apps |
 | ├─ WebSubnet | 10.11.1.0/24 | Dev web tier |
@@ -546,25 +546,25 @@ terraform destroy
 </p>
 
 
-The GitHub Actions workflow (`.github/workflows/terraform.yml`) now has **15 visible jobs** that cover formatting, validation, security, linting, docs, analysis, cost estimation, plan/apply/destroy, and metrics. It orchestrates composite actions in `.github/actions/` for Terraform operations, state backup, inventories, changelog generation, graphs, and reporting.
+The GitHub Actions workflow (`.github/workflows/terraform.yml`) now has **16 visible jobs** that cover formatting, validation, security, linting, docs, workflow validation, analysis, cost estimation, plan/apply/destroy, and metrics. It orchestrates composite actions in `.github/actions/` for Terraform operations, state backup, inventories, changelog generation, graphs, and reporting.
 
 ### Pipeline Stages
 
-- **1?? Format Check** → **2?? Validate**
-- **3?? Security - tfsec**, **3?? Security - Checkov**, **3?? Security - Secrets** (Gitleaks)
-- **4?? Lint - TFLint**, **4?? Lint - Policy** (Conftest), **4?? Lint - Docs** (terraform-docs)
-- **5?? Analysis - Graph**, **5?? Analysis - Versions**
-- **6?? Analysis - Cost** (Infracost, soft-fail)
-- **7?? Plan** (change detection + plan artifact)
-- **8?? Apply** (manual `action=apply`; includes state backup, resource inventory, changelog)
-- **9?? Destroy** (manual `action=destroy` + `DESTROY` confirm)
-- **📊 Metrics** (after successful Apply)
+- **1️⃣ Format Check** → **2️⃣ Validate**
+- **3️⃣ Security - tfsec**, **3️⃣ Security - Checkov**, **3️⃣ Security - Secrets** (Gitleaks)
+- **4️⃣ Lint - TFLint**, **4️⃣ Lint - Policy** (Conftest), **4️⃣ Lint - Docs** (terraform-docs), **4️⃣ Lint - Actions** (actionlint)
+- **5️⃣ Analysis - Graph**, **5️⃣ Analysis - Versions**
+- **6️⃣ Analysis - Cost** (Infracost, soft-fail)
+- **7️⃣ Plan** (change detection + plan artifact)
+- **8️⃣ Apply** (manual `action=apply`; includes state backup, resource inventory, changelog)
+- **9️⃣ Destroy** (manual `action=destroy` + `DESTROY` confirm)
+- **🔟 Metrics** (after successful Apply)
 
 Artifacts include the saved plan, terraform-docs output, dependency graph SVG, module/provider versions, cost report, changelog, resource inventory, and metrics JSON.
 
 ### Triggers
 
-- **Push to `main` (Terraform paths)**: runs format/validate → security/linters → docs/graph/version → cost → plan. Apply/Destroy never auto-run.
+- **Push to `main` (repo health paths)**: runs format/validate → security/linters → docs/graph/version → cost → plan. Apply/Destroy never auto-run.
 - **Pull Request to `main`**: same checks plus plan for review; no PR comment is posted.
 - **Manual dispatch**: pick `action` (`plan|apply|destroy`) and `environment` (`lab|dev|prod`), plus `destroy_confirm=DESTROY` for destroys. Apply/Destroy only run via `workflow_dispatch`.
 

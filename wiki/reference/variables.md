@@ -56,7 +56,7 @@ This page summarizes the root input variables you set in `terraform.tfvars`. The
 ### Workloads (Pillar 5: Management/Workload)
 - `workload_prod_address_space` – Prod VNet CIDR (default: `10.10.0.0/16`)
 - `workload_prod_web_subnet_prefix`, `workload_prod_app_subnet_prefix`, `workload_prod_data_subnet_prefix`
-- `workload_prod_container_apps_subnet_prefix` – Container Apps subnet (default: `10.10.8.0/23`)
+- `workload_prod_container_apps_subnet_prefix` – reserved subnet prefix for future Container Apps support (default: `10.10.8.0/23`)
 - `aks_subnet_prefix` – AKS node pool subnet (default: `10.10.16.0/20`)
 - `workload_dev_address_space` – Dev VNet CIDR (default: `10.11.0.0/16`)
 
@@ -152,7 +152,7 @@ This page summarizes the root input variables you set in `terraform.tfvars`. The
 | `deploy_service_bus` | `true` | Service Bus (Basic) | ~$0.05/mo |
 | `deploy_app_service` | `true` | App Service (F1) | Free |
 | `deploy_cosmos_db` | `true` | Cosmos DB (Serverless) | ~$0-5/mo |
-| `deploy_container_apps` | `false` | Container Apps (placeholder) | - |
+| `deploy_container_apps` | `false` | Placeholder flag only; no module is deployed today | - |
 | `paas_alternative_location` | `westus2` | Alternate region for PaaS | - |
 | `cosmos_location` | `""` | Override for Cosmos DB region | - |
 

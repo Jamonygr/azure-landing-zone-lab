@@ -11,7 +11,7 @@ These modules provision popular Azure platform services used by the workload lan
 
 | Tier | Services | Est. Monthly Cost |
 |------|----------|-------------------|
-| **Tier 1 – Compute** | AKS, Functions, Static Web App, App Service, Logic Apps, Container Apps | Free - $30 |
+| **Tier 1 – Compute** | AKS, Functions, Static Web App, App Service, Logic Apps, Container Apps placeholder | Free - $30 |
 | **Tier 2 – Integration** | Event Grid, Service Bus, Event Hubs, API Management | Free - $5 |
 | **Tier 3 – Data** | Cosmos DB, Storage, SQL | $0 - $15 |
 
@@ -100,21 +100,17 @@ Creates a logic app workflow in consumption mode.
 **Outputs:** `logic_app_id`  
 **Cost:** ~$0 (pay per execution)
 
-### Container Apps (`modules/container-apps/` - placeholder)
+### Container Apps (placeholder flag)
 
-Creates a Container Apps Environment and Container App.
+`deploy_container_apps` is reserved for future Container Apps support. The current repo has no implementation behind that flag, so enabling it does not create Azure Container Apps resources today.
 
 | Input | Description | Default |
 |-------|-------------|---------|
-| `name_suffix` | Name suffix | Required |
-| `resource_group` | Resource group | Required |
-| `location` | Azure region | Required |
-| `workspace_id` | Log Analytics workspace | Required |
-| `cpu` | CPU allocation | `0.25` |
-| `memory` | Memory allocation | `0.5Gi` |
+| `deploy_container_apps` | Reserved feature flag | `false` |
+| `workload_prod_container_apps_subnet_prefix` | Reserved subnet prefix for future Container Apps support | `10.10.8.0/23` |
 
-**Outputs:** `container_app_id`, `environment_id`  
-**Cost:** ~$0 (Consumption, pay per use)
+**Outputs:** none today
+**Cost:** none until a module is added
 
 ## Tier 2 – Integration
 

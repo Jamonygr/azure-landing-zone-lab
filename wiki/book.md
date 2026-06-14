@@ -67,7 +67,7 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 - `landing-zones/` - per-zone compositions (hub, identity, management, shared, workload, on-prem).
 - `modules/` - reusable building blocks (networking, compute, security, monitoring, PaaS).
 - `environments/` - per-environment `*.tfvars` (lab/dev/prod) used by the pipeline to isolate state.
-- `.github/workflows/terraform.yml` - orchestrator workflow (15 visible jobs).
+- `.github/workflows/terraform.yml` - orchestrator workflow (16 visible jobs).
 - `.github/actions/` - composite actions for plan/apply/destroy plus cost, graph, docs, policy, secrets, inventory, changelog, metrics, terratest.
 - `wiki/` - documentation hub (this guide, reference pages, testing, hardening, etc.).
 
@@ -172,28 +172,29 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 
 ### Overview
 - File: `.github/workflows/terraform.yml`
-- Jobs: 15 visible stages with concurrency guard `terraform-${ref}-${environment}`.
+- Jobs: 16 visible stages with concurrency guard `terraform-${ref}-${environment}`.
 - Secrets required: `AZURE_CLIENT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`, `TF_STATE_RG`, `TF_STATE_SA`, optional `INFRACOST_API_KEY`.
 
 ### Job sequence
-1) 1xx Format Check - `terraform fmt -check -recursive`
-2) 2xx Validate - `terraform init -backend=false` + `terraform validate`
-3) 3xx Security - tfsec - SARIF upload and enforced scan
-4) 3xx Security - Checkov - SARIF upload and enforced scan
-5) 3xx Security - Secrets - Gitleaks scan
-6) 4xx Lint - TFLint - Azure rules (soft-fail)
-7) 4xx Lint - Policy - Conftest OPA policies against the saved `tfplan` artifact
-8) 4xx Lint - Docs - `terraform-docs` for root and modules (artifact)
-9) 5xx Analysis - Graph - Terraform graph -> SVG (artifact)
-10) 5xx Analysis - Versions - Terraform + provider versions (summary)
-11) 6xx Analysis - Cost - Infracost estimate (soft-fail, artifact)
-12) 7xx Plan - init with backend, plan with change detection, uploads plan artifact, outputs add/change/destroy counts
-13) 8xx Apply - manual (`workflow_dispatch` with `action=apply`), restores state backup, downloads plan artifact, applies, emits inventory + changelog artifacts
-14) 9xx Destroy - manual (`action=destroy` + `DESTROY` confirm), backs up state then destroys
-15) 9xx Metrics - after successful apply; records duration, counts, actor, run id
+1. 1️⃣ Format Check - `terraform fmt -check -recursive`
+2. 2️⃣ Validate - `terraform init -backend=false` + `terraform validate`
+3. 3️⃣ Security - tfsec - SARIF upload and enforced scan
+4. 3️⃣ Security - Checkov - SARIF upload and enforced scan with `.checkov.yml`
+5. 3️⃣ Security - Secrets - Gitleaks scan
+6. 4️⃣ Lint - TFLint - Azure rules (soft-fail)
+7. 4️⃣ Lint - Policy - Conftest OPA policies against the saved `tfplan` artifact
+8. 4️⃣ Lint - Docs - `terraform-docs` for root and modules (artifact)
+9. 4️⃣ Lint - Actions - actionlint workflow validation
+10. 5️⃣ Analysis - Graph - Terraform graph -> SVG (artifact)
+11. 5️⃣ Analysis - Versions - Terraform + provider versions (summary)
+12. 6️⃣ Analysis - Cost - Infracost estimate (soft-fail, artifact)
+13. 7️⃣ Plan - init with backend, plan with change detection, uploads plan artifact, outputs add/change/destroy counts
+14. 8️⃣ Apply - manual (`workflow_dispatch` with `action=apply`), restores state backup, downloads plan artifact, applies, emits inventory + changelog artifacts
+15. 9️⃣ Destroy - manual (`action=destroy` + `DESTROY` confirm), backs up state then destroys
+16. 🔟 Metrics - after successful apply; records duration, counts, actor, run id
 
 ### Triggers
-- Push to `main` with Terraform-path filter: runs all checks through plan; apply is never automatic.
+- Push to `main` with repo health path filters: runs all checks through plan; apply is never automatic.
 - Pull request to `main`: same checks plus plan; no PR comment is posted by default.
 - Manual (`workflow_dispatch`): choose `action` (`plan|apply|destroy`), `environment` (`lab|dev|prod`), and `destroy_confirm` for destroys. Apply runs only if plan reported `has_changes=true`.
 
@@ -201,7 +202,7 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 - Detailed exit codes prevent no-op plans from running apply.
 - Destroy requires a confirmation string.
 - State backups run before apply and destroy.
-- Soft-fail scanners provide feedback without blocking learning workflows.
+- Soft-fail tools such as TFLint and Infracost provide feedback without blocking learning workflows; tfsec, Checkov, secrets, policy, docs, and actionlint stay blocking.
 
 ### Composite actions (selected)
 - `plan/` - setup Terraform, Azure login, init backend, `terraform plan -detailed-exitcode`, parse counts, upload artifact.

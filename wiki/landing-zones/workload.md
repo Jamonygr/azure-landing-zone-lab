@@ -19,7 +19,7 @@ The workload landing zone is where you try application scenarios. It is managed 
 |-----------|---------|---------|
 | Workload VNet | Prod: `10.10.0.0/16`, Dev: `10.11.0.0/16` | Application network |
 | Web/App/Data Subnets | Created | Three-tier architecture |
-| Container Apps Subnet | `10.10.8.0/23` | Azure Container Apps |
+| Container Apps Subnet | `10.10.8.0/23` | Reserved prefix for future Container Apps support |
 | AKS Subnet | `10.10.16.0/20` | Kubernetes nodes |
 | NSGs | Per subnet | Traffic filtering |
 | Route Tables | Optional | Firewall steering |
@@ -35,7 +35,7 @@ The workload landing zone is where you try application scenarios. It is managed 
 | Web Subnet | `10.10.1.0/24` | Web tier VMs |
 | App Subnet | `10.10.2.0/24` | Application tier |
 | Data Subnet | `10.10.3.0/24` | Database tier |
-| Container Apps | `10.10.8.0/23` | Azure Container Apps |
+| Container Apps | `10.10.8.0/23` | Reserved prefix; no Container Apps module is deployed today |
 | AKS Nodes | `10.10.16.0/20` | Kubernetes nodes |
 
 ## Inputs to know about
@@ -78,7 +78,7 @@ The workload landing zone is where you try application scenarios. It is managed 
 | `deploy_service_bus` | Service Bus | `true` | Basic |
 | `deploy_app_service` | App Service | `true` | F1 (Free) |
 | `deploy_cosmos_db` | Cosmos DB | `true` | Serverless |
-| `deploy_container_apps` | Container Apps | `false` | Consumption |
+| `deploy_container_apps` | Reserved Container Apps placeholder | `false` | Not deployed |
 
 ## Outputs you will use
 
@@ -120,6 +120,8 @@ Toggle the individual flags to see how different Azure services are provisioned.
 | Service Bus | ~$0.05/month | Basic tier |
 | App Service | Free (F1) | 60 min CPU/day |
 | Cosmos DB | ~$0-5/month | Serverless, pay per RU |
+
+`deploy_container_apps` is a placeholder flag only. It is tracked for future work, but the current workload module does not deploy Azure Container Apps.
 
 ## When to deploy multiple copies
 

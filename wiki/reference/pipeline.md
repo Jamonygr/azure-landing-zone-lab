@@ -9,17 +9,17 @@ This document describes the GitHub Actions pipeline used to deploy and manage th
 
 ## Overview
 
-The pipeline is defined in [`.github/workflows/terraform.yml`](../../.github/workflows/terraform.yml) and provides a complete CI/CD workflow for Terraform with **15 visible job stages**:
+The pipeline is defined in [`.github/workflows/terraform.yml`](../../.github/workflows/terraform.yml) and provides a complete CI/CD workflow for Terraform with **16 visible job stages**:
 
-- **1?? Format Check** → **2?? Validate**
-- **3?? Security - tfsec**, **3?? Security - Checkov**, **3?? Security - Secrets** (Gitleaks)
-- **4?? Lint - TFLint**, **4?? Lint - Policy** (Conftest), **4?? Lint - Docs** (terraform-docs)
-- **5?? Analysis - Graph**, **5?? Analysis - Versions**
-- **6?? Analysis - Cost** (Infracost, soft-fail)
-- **7?? Plan** (change detection + plan artifact)
-- **8?? Apply** (manual `action=apply`; includes state backup, resource inventory, changelog)
-- **9?? Destroy** (manual `action=destroy` + `DESTROY` confirm)
-- **📊 Metrics** (after successful Apply)
+- **1️⃣ Format Check** → **2️⃣ Validate**
+- **3️⃣ Security - tfsec**, **3️⃣ Security - Checkov**, **3️⃣ Security - Secrets** (Gitleaks)
+- **4️⃣ Lint - TFLint**, **4️⃣ Lint - Policy** (Conftest), **4️⃣ Lint - Docs** (terraform-docs), **4️⃣ Lint - Actions** (actionlint)
+- **5️⃣ Analysis - Graph**, **5️⃣ Analysis - Versions**
+- **6️⃣ Analysis - Cost** (Infracost, soft-fail)
+- **7️⃣ Plan** (change detection + plan artifact)
+- **8️⃣ Apply** (manual `action=apply`; includes state backup, resource inventory, changelog)
+- **9️⃣ Destroy** (manual `action=destroy` + `DESTROY` confirm)
+- **🔟 Metrics** (after successful Apply)
 
 Artifacts: plan file + summary, terraform-docs output, dependency graph, provider/module versions, cost report, changelog, resource inventory, and metrics JSON.
 
@@ -27,7 +27,7 @@ Artifacts: plan file + summary, terraform-docs output, dependency graph, provide
 
 The pipeline uses a 2-level architecture for reuse and visibility:
 
-- **Level 2 – Orchestrator** (`.github/workflows/terraform.yml`): 15 jobs with dependencies: format → validate → security/linters/docs → graph + module versions → cost + plan → apply/destroy → metrics. Apply only runs on `workflow_dispatch` with `action=apply` and detected changes; destroy only runs with `action=destroy` and confirmation.
+- **Level 2 – Orchestrator** (`.github/workflows/terraform.yml`): 16 jobs with dependencies: format → validate → security/linters/docs/actionlint → graph + module versions → cost + plan → policy check → apply/destroy → metrics. Apply only runs on `workflow_dispatch` with `action=apply` and detected changes; destroy only runs with `action=destroy` and confirmation.
 - **Level 1 – Composite actions** (`.github/actions/`): reusable building blocks for plan, apply, destroy, state-backup, cost-estimate (Infracost), graph, module-version, policy-check (Conftest), terraform-docs generation, secret-scan (Gitleaks wrapper), resource-inventory, changelog, metrics, and terratest. Format/validate/tfsec/checkov/tflint stay inline for visibility.
 
 > Composite actions live in `.github/actions/` and do not appear as separate workflows in the Actions UI.
@@ -203,34 +203,37 @@ GitHub Repository
 
 ## Pipeline Jobs
 
-The pipeline now has **15 visible jobs**:
+The pipeline now has **16 visible jobs**:
 
 | # | Name | Purpose | Blocks Deploy? |
 |---|------|---------|----------------|
-| 1 | **1?? Format Check** | `terraform fmt -check -recursive` | ✅ Yes |
-| 2 | **2?? Validate** | `terraform init -backend=false` + `terraform validate` | ✅ Yes |
-| 3 | **3?? Security - tfsec** | Static security scan (SARIF upload) | ✅ Yes |
-| 4 | **3?? Security - Checkov** | Policy-as-code scan (SARIF upload) | ✅ Yes |
-| 5 | **3?? Security - Secrets** | Gitleaks secret scan | ✅ Fails on leak |
-| 6 | **4?? Lint - TFLint** | Azure rules linting | ⚠️ Soft |
-| 7 | **4?? Lint - Policy** | OPA/Conftest against saved `tfplan` artifact | ✅ Yes |
-| 8 | **4?? Lint - Docs** | Generate terraform-docs artifact | ✅ Yes |
-| 9 | **5?? Analysis - Graph** | Terraform dependency graph artifact | ✅ Yes |
-| 10 | **5?? Analysis - Versions** | Provider/module version snapshot | ✅ Yes |
-| 11 | **6?? Analysis - Cost** | Infracost estimate (uses `INFRACOST_API_KEY`) | ⚠️ Soft |
-| 12 | **7?? Plan** | Change detection + plan artifact + summary counts | ✅ Yes |
-| 13 | **8?? Apply** | Manual deploy (state backup → apply → inventory → changelog) | ▶️ Manual |
-| 14 | **9?? Destroy** | Manual destroy with `DESTROY` confirmation | ▶️ Manual |
-| 15 | **?? Metrics** | Post-apply metrics JSON + summary | ℹ️ Reporting |
+| 1 | **1️⃣ Format Check** | `terraform fmt -check -recursive` | ✅ Yes |
+| 2 | **2️⃣ Validate** | `terraform init -backend=false` + `terraform validate` | ✅ Yes |
+| 3 | **3️⃣ Security - tfsec** | Static security scan (SARIF upload) | ✅ Yes |
+| 4 | **3️⃣ Security - Checkov** | Policy-as-code scan using `.checkov.yml` (SARIF upload) | ✅ Yes |
+| 5 | **3️⃣ Security - Secrets** | Gitleaks secret scan | ✅ Fails on leak |
+| 6 | **4️⃣ Lint - TFLint** | Azure rules linting | ⚠️ Soft |
+| 7 | **4️⃣ Lint - Policy** | OPA/Conftest against saved `tfplan` artifact | ✅ Yes |
+| 8 | **4️⃣ Lint - Docs** | Generate terraform-docs artifact | ✅ Yes |
+| 9 | **4️⃣ Lint - Actions** | Validate GitHub Actions workflows with actionlint | ✅ Yes |
+| 10 | **5️⃣ Analysis - Graph** | Terraform dependency graph artifact | ✅ Yes |
+| 11 | **5️⃣ Analysis - Versions** | Provider/module version snapshot | ✅ Yes |
+| 12 | **6️⃣ Analysis - Cost** | Infracost estimate (uses `INFRACOST_API_KEY`) | ⚠️ Soft |
+| 13 | **7️⃣ Plan** | Change detection + plan artifact + summary counts | ✅ Yes |
+| 14 | **8️⃣ Apply** | Manual deploy when plan has changes (state backup → apply → inventory → changelog) | ▶️ Manual |
+| 15 | **9️⃣ Destroy** | Manual destroy with `DESTROY` confirmation | ▶️ Manual |
+| 16 | **🔟 Metrics** | Post-apply metrics JSON + summary | ℹ️ Reporting |
 
 ### Job Dependencies
 
 ```
-format → validate → [tfsec, checkov, secret-scan, tflint, policy-check, terraform-docs]
-                                   ↘                          ↙
+format → validate → [tfsec, checkov, secret-scan, tflint, actionlint, terraform-docs]
+                                   ↘
                                graph, module-versions
                       ↘                       ↙
                cost-estimate             plan (change counts)
+                                           ↓
+                                      policy-check
                       ↘                       ↙
                    apply (manual, action=apply, has_changes=true)
                    destroy (manual, action=destroy)
@@ -238,7 +241,8 @@ format → validate → [tfsec, checkov, secret-scan, tflint, policy-check, terr
                            metrics (after successful apply)
 ```
 
-- Graph and module-versions wait for all security/lint/doc jobs.
+- Graph and module-versions wait for security scanning, secrets, TFLint, and actionlint.
+- Policy-check runs after Plan because it evaluates the saved `tfplan` artifact.
 - Cost estimation soft-fails but still blocks apply until it finishes.
 - Apply runs only on `workflow_dispatch` with `action=apply` and `has_changes=true` from Plan.
 - Destroy runs only on `workflow_dispatch` with `action=destroy` and confirmation text.
@@ -259,6 +263,9 @@ format → validate → [tfsec, checkov, secret-scan, tflint, policy-check, terr
 - `modules/**` - Module changes
 - `landing-zones/**` - Landing zone changes
 - `environments/**` - Environment configurations
+- `.github/**` - Workflow and composite action changes
+- `policies/**` - OPA policy changes
+- `README.md`, `wiki/**`, `docs/**` - documentation and diagram updates
 
 ### Manual Trigger (workflow_dispatch)
 

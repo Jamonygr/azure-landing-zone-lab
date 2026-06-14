@@ -9,44 +9,27 @@ This document describes the 2-level templatized pipeline architecture for the Az
 
 ## Overview
 
-The pipeline uses a **2-level architecture** with composite actions for code reuse while maintaining a single visible workflow in GitHub Actions with **15 distinct job boxes**:
+The pipeline uses a **2-level architecture** with composite actions for code reuse while maintaining a single visible workflow in GitHub Actions with **16 distinct job boxes**:
 
 ```
-レ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃              LEVEL 2: ORCHESTRATOR WORKFLOW           ┃
-┃                                                       ┃
-┃  .github/workflows/terraform.yml                      ┃
-┃                                                       ┃
-┃  ┌──────┐ ┌──────┐ ┌──────┐ ┌─────┐ ┌─────┐           ┃
-┃  │1?? F│→│2?? V│→│3?? S│ │3?? S│ │4?? L│           ┃
-┃  │ormat│ │alid │ │tfsec│ │Check│ │TFLnt│           ┃
-┃  └──────┘ └──────┘ └──────┘ └─────┘ └─────┘           ┃
-┃          ↘     ↘     ↘     ↘     ↘                     ┃
-┃            ┌──────┐ ┌──────┐ ┌──────┐                  ┃
-┃            │3?? S│ │4?? L│ │4?? L│                  ┃
-┃            │ecrets│ │Policy│ │ Docs │                  ┃
-┃            └──────┘ └──────┘ └──────┘                  ┃
-┃                ↘      ↘       ↘                        ┃
-┃              ┌──────────────┐ ┌──────────────┐        ┃
-┃              │5?? Graph     │ │5?? Versions   │        ┃
-┃              └──────────────┘ └──────────────┘        ┃
-┃                      ↘              ↙                 ┃
-┃                 ┌──────────────┐                      ┃
-┃                 │6?? Cost      │                      ┃
-┃                 └──────────────┘                      ┃
-┃                       ↘                              ┃
-┃                ┌──────────────┐                      ┃
-┃                │7?? Plan      │                      ┃
-┃                └──────────────┘                      ┃
-┃                   ↙       ↘                          ┃
-┃      ┌──────────────┐ ┌──────────────┐               ┃
-┃      │8?? Apply     │ │9?? Destroy   │               ┃
-┃      └──────────────┘ └──────────────┘               ┃
-┃                     ↘                                ┃
-┃                 ┌──────────────┐                     ┃
-┃                 │📊 Metrics     │                     ┃
-┃                 └──────────────┘                     ┃
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+LEVEL 2: .github/workflows/terraform.yml
+
+1️⃣ Format Check
+  ↓
+2️⃣ Validate
+  ↓
+3️⃣ Security - tfsec      3️⃣ Security - Checkov      3️⃣ Security - Secrets
+4️⃣ Lint - TFLint         4️⃣ Lint - Actions          4️⃣ Lint - Docs
+  ↓
+5️⃣ Analysis - Graph      5️⃣ Analysis - Versions
+  ↓                       ↓
+6️⃣ Analysis - Cost       7️⃣ Plan
+                           ↓
+                         4️⃣ Lint - Policy
+                           ↓
+8️⃣ Apply (manual)       9️⃣ Destroy (manual)
+  ↓
+🔟 Metrics
 ```
 
 
@@ -55,7 +38,7 @@ The pipeline uses a **2-level architecture** with composite actions for code reu
 | Decision | Reason |
 |----------|--------|
 | Single visible workflow | Clean UI - only one "Terraform Pipeline" appears in GitHub Actions |
-| 15 separate job boxes | Visual progress tracking - each stage is visible as separate box |
+| 16 separate job boxes | Visual progress tracking - each stage is visible as separate box |
 | Composite actions for complex jobs | Plan/Apply/Destroy logic is reusable and maintainable; cost/graph/docs/version/policy are reusable blocks too |
 | Inline steps for simple jobs | Format/Validate/Security scans are simple enough to inline |
 
@@ -185,10 +168,30 @@ name: 'Terraform Pipeline'
 on:
   push:
     branches: [main]
-    paths: ['**.tf', '**.tfvars', 'modules/**', 'landing-zones/**', 'environments/**']
+    paths:
+      - '**.tf'
+      - '**.tfvars'
+      - '.github/**'
+      - 'modules/**'
+      - 'landing-zones/**'
+      - 'environments/**'
+      - 'policies/**'
+      - 'README.md'
+      - 'wiki/**'
+      - 'docs/**'
   pull_request:
     branches: [main]
-    paths: ['**.tf', '**.tfvars']
+    paths:
+      - '**.tf'
+      - '**.tfvars'
+      - '.github/**'
+      - 'modules/**'
+      - 'landing-zones/**'
+      - 'environments/**'
+      - 'policies/**'
+      - 'README.md'
+      - 'wiki/**'
+      - 'docs/**'
   workflow_dispatch:
     inputs:
       environment: [dev, lab, prod]
@@ -200,30 +203,33 @@ env:
   ENVIRONMENT: ${{ github.event.inputs.environment || 'lab' }}
 
 jobs:
-  format:           # 1?? Format Check
-  validate:         # 2?? Validate
-  security-tfsec:   # 3?? Security - tfsec
-  security-checkov: # 3?? Security - Checkov
-  secret-scan:      # 3?? Security - Secrets (Gitleaks)
-  tflint:           # 4?? Lint - TFLint
-  policy-check:     # 4?? Lint - Policy (Conftest)
-  terraform-docs:   # 4?? Lint - Docs (terraform-docs)
-  graph:            # 5?? Analysis - Graph
-  module-versions:  # 5?? Analysis - Versions
-  cost-estimate:    # 6?? Analysis - Cost (Infracost)
-  plan:             # 7?? Plan (composite)
-  apply:            # 8?? Apply (composite)
-  destroy:          # 9?? Destroy (composite)
-  metrics:          # 📊 Metrics
+  format:           # 1️⃣ Format Check
+  validate:         # 2️⃣ Validate
+  security-tfsec:   # 3️⃣ Security - tfsec
+  security-checkov: # 3️⃣ Security - Checkov
+  secret-scan:      # 3️⃣ Security - Secrets (Gitleaks)
+  tflint:           # 4️⃣ Lint - TFLint
+  policy-check:     # 4️⃣ Lint - Policy (Conftest)
+  terraform-docs:   # 4️⃣ Lint - Docs (terraform-docs)
+  actionlint:       # 4️⃣ Lint - Actions
+  graph:            # 5️⃣ Analysis - Graph
+  module-versions:  # 5️⃣ Analysis - Versions
+  cost-estimate:    # 6️⃣ Analysis - Cost (Infracost)
+  plan:             # 7️⃣ Plan (composite)
+  apply:            # 8️⃣ Apply (composite)
+  destroy:          # 9️⃣ Destroy (composite)
+  metrics:          # 🔟 Metrics
 ```
 ### Job Dependencies
 
 ```
-format → validate → [tfsec, checkov, secret-scan, tflint, policy-check, terraform-docs]
-                                   ↘                          ↙
+format → validate → [tfsec, checkov, secret-scan, tflint, actionlint, terraform-docs]
+                                   ↘
                                graph, module-versions
                       ↘                       ↙
                cost-estimate             plan (change counts)
+                                           ↓
+                                      policy-check
                       ↘                       ↙
                  apply (manual, action=apply, has_changes=true)
                  destroy (manual, action=destroy)
@@ -231,7 +237,8 @@ format → validate → [tfsec, checkov, secret-scan, tflint, policy-check, terr
                          metrics (after successful apply)
 ```
 
-- Graph and module-versions wait for all security/lint/doc jobs.
+- Graph and module-versions wait for security scanning, secrets, TFLint, and actionlint.
+- Policy-check runs after Plan because it evaluates the saved `tfplan` artifact.
 - Cost estimation soft-fails but still completes before apply.
 - Apply runs only when `action=apply` (manual dispatch) and `plan` reports changes.
 - Destroy runs only when `action=destroy` with confirmation.
@@ -244,8 +251,8 @@ format → validate → [tfsec, checkov, secret-scan, tflint, policy-check, terr
 **Plan Job:**
 ```yaml
 plan:
-  name: '5️⃣ Plan'
-  needs: [security-tfsec, security-checkov, tflint]
+  name: '7️⃣ Plan'
+  needs: [graph, module-versions]
   steps:
     - uses: actions/checkout@v4
     - uses: ./.github/actions/plan
@@ -264,8 +271,8 @@ plan:
 **Apply Job:**
 ```yaml
 apply:
-  name: '6️⃣ Apply'
-  needs: plan
+  name: '8️⃣ Apply'
+  needs: [plan, cost-estimate, policy-check]
   if: github.event.inputs.action == 'apply' && needs.plan.outputs.has_changes == 'true'
   steps:
     - uses: actions/checkout@v4
@@ -278,7 +285,8 @@ apply:
 **Destroy Job:**
 ```yaml
 destroy:
-  name: '7️⃣ Destroy'
+  name: '9️⃣ Destroy'
+  needs: plan
   if: github.event.inputs.action == 'destroy'
   steps:
     - uses: actions/checkout@v4
@@ -294,7 +302,7 @@ destroy:
 
 ### 1. Clean UI
 - Only ONE workflow appears in GitHub Actions sidebar
-- All 15 job stages are visible as separate boxes
+- All 16 job stages are visible as separate boxes
 - Clear visual progress through the pipeline
 
 ### 2. Code Reuse
@@ -379,7 +387,7 @@ my-job:
 │       └── action.yml         # ~90 lines
 │
 └── workflows/                  # Level 2: Orchestrator (visible)
-    └── terraform.yml          # ~250 lines, 15 jobs
+    └── terraform.yml          # ~300 lines, 16 jobs
 ```
 
 ---
