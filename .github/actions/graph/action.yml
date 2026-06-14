@@ -26,12 +26,12 @@ runs:
         GRAPH_DIR="$RUNNER_TEMP/terraform-graph"
         mkdir -p "$GRAPH_DIR"
 
-        terraform init -backend=false -lockfile=readonly
+        terraform init -backend=false -reconfigure -lockfile=readonly
         terraform graph > "$GRAPH_DIR/graph.dot"
-        dot -T${{ inputs.output_format }} "$GRAPH_DIR/graph.dot" -o "$GRAPH_DIR/terraform-graph.${{ inputs.output_format }}"
+        dot -T"${{ inputs.output_format }}" "$GRAPH_DIR/graph.dot" -o "$GRAPH_DIR/terraform-graph.${{ inputs.output_format }}"
 
-        echo "## 🗺️ Infrastructure Graph" >> $GITHUB_STEP_SUMMARY
-        echo "Graph generated successfully. Download from artifacts." >> $GITHUB_STEP_SUMMARY
+        echo "## 🗺️ Infrastructure Graph" >> "$GITHUB_STEP_SUMMARY"
+        echo "Graph generated successfully. Download from artifacts." >> "$GITHUB_STEP_SUMMARY"
 
     - name: Upload Graph
       uses: actions/upload-artifact@v4
