@@ -35,15 +35,19 @@ resource "azurerm_public_ip" "this" {
 
 # Windows Virtual Machine
 resource "azurerm_windows_virtual_machine" "this" {
-  name                = var.name
-  computer_name       = var.name
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  size                = var.size
-  admin_username      = var.admin_username
-  admin_password      = var.admin_password
-  zone                = var.zone
-  tags                = var.tags
+  name                       = var.name
+  computer_name              = var.name
+  resource_group_name        = var.resource_group_name
+  location                   = var.location
+  size                       = var.size
+  admin_username             = var.admin_username
+  admin_password             = var.admin_password
+  zone                       = var.zone
+  provision_vm_agent         = true
+  patch_mode                 = var.patch_mode
+  patch_assessment_mode      = var.patch_assessment_mode
+  encryption_at_host_enabled = var.encryption_at_host_enabled
+  tags                       = var.tags
 
   timeouts {
     create = "90m"

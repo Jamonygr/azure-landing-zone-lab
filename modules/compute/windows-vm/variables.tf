@@ -75,6 +75,24 @@ variable "zone" {
   default     = null
 }
 
+variable "patch_mode" {
+  description = "Windows patch mode"
+  type        = string
+  default     = "AutomaticByOS"
+}
+
+variable "patch_assessment_mode" {
+  description = "Windows patch assessment mode"
+  type        = string
+  default     = "AutomaticByPlatform"
+}
+
+variable "encryption_at_host_enabled" {
+  description = "Enable encryption at host for the VM"
+  type        = bool
+  default     = true
+}
+
 variable "data_disks" {
   description = "Additional data disks"
   type = list(object({

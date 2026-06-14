@@ -25,13 +25,28 @@ resource "azurerm_mssql_server" "this" {
 
 # SQL Database
 resource "azurerm_mssql_database" "this" {
-  name         = var.database_name
-  server_id    = azurerm_mssql_server.this.id
-  sku_name     = var.sku_name
-  max_size_gb  = var.max_size_gb
-  collation    = "SQL_Latin1_General_CP1_CI_AS"
-  license_type = "LicenseIncluded"
-  tags         = var.tags
+  name                                = var.database_name
+  server_id                           = azurerm_mssql_server.this.id
+  sku_name                            = var.sku_name
+  max_size_gb                         = var.max_size_gb
+  collation                           = "SQL_Latin1_General_CP1_CI_AS"
+  license_type                        = "LicenseIncluded"
+  transparent_data_encryption_enabled = true
+  tags                                = var.tags
+}
+
+# SQL auditing to Log Analytics. Storage-based vulnerability assessment is
+# intentionally left out of the low-cost lab profile.
+resource "azurerm_mssql_server_extended_auditing_policy" "this" {
+  server_id              = azurerm_mssql_server.this.id
+  log_monitoring_enabled = true
+  retention_in_days      = var.audit_retention_days
+}
+
+resource "azurerm_mssql_database_extended_auditing_policy" "this" {
+  database_id            = azurerm_mssql_database.this.id
+  log_monitoring_enabled = true
+  retention_in_days      = var.audit_retention_days
 }
 
 # Firewall Rules

@@ -10,9 +10,12 @@ resource "azurerm_storage_account" "this" {
   account_replication_type        = var.account_replication_type
   account_kind                    = var.account_kind
   access_tier                     = var.access_tier
+  https_traffic_only_enabled      = var.enable_https_traffic_only
   min_tls_version                 = var.min_tls_version
   allow_nested_items_to_be_public = var.allow_nested_items_to_be_public
   public_network_access_enabled   = var.public_network_access_enabled
+  local_user_enabled              = var.local_user_enabled
+  shared_access_key_enabled       = var.shared_access_key_enabled
   tags                            = var.tags
 
   dynamic "network_rules" {
@@ -22,6 +25,14 @@ resource "azurerm_storage_account" "this" {
       bypass                     = network_rules.value.bypass
       ip_rules                   = network_rules.value.ip_rules
       virtual_network_subnet_ids = network_rules.value.virtual_network_subnet_ids
+    }
+  }
+
+  dynamic "sas_policy" {
+    for_each = var.sas_expiration_period != null ? [var.sas_expiration_period] : []
+    content {
+      expiration_action = "Log"
+      expiration_period = sas_policy.value
     }
   }
 }

@@ -112,6 +112,12 @@ variable "vm_size" {
   default     = "Standard_B2s"
 }
 
+variable "encryption_at_host_enabled" {
+  description = "Enable encryption at host for the management VM"
+  type        = bool
+  default     = true
+}
+
 variable "admin_username" {
   description = "Admin username"
   type        = string

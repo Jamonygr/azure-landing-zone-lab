@@ -100,6 +100,12 @@ variable "vm_size" {
   default     = "Standard_B1s"
 }
 
+variable "encryption_at_host_enabled" {
+  description = "Enable encryption at host for the VM"
+  type        = bool
+  default     = true
+}
+
 variable "windows_sku" {
   description = "Windows Server SKU"
   type        = string

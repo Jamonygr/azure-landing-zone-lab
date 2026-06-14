@@ -76,6 +76,12 @@ variable "os_disk_type" {
   default     = "Standard_LRS"
 }
 
+variable "encryption_at_host_enabled" {
+  description = "Enable encryption at host for the VM"
+  type        = bool
+  default     = true
+}
+
 variable "lb_backend_pool_id" {
   description = "Load balancer backend pool ID to associate with"
   type        = string

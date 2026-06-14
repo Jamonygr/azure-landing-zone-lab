@@ -123,14 +123,15 @@ resource "azurerm_network_interface" "vm" {
 }
 
 resource "azurerm_windows_virtual_machine" "vm" {
-  count               = var.deploy_vm ? 1 : 0
-  name                = var.vm_name
-  resource_group_name = azurerm_resource_group.secondary.name
-  location            = var.location
-  size                = var.vm_size
-  admin_username      = var.admin_username
-  admin_password      = var.admin_password
-  tags                = merge(var.tags, { Role = "SecondaryRegion-DR" })
+  count                      = var.deploy_vm ? 1 : 0
+  name                       = var.vm_name
+  resource_group_name        = azurerm_resource_group.secondary.name
+  location                   = var.location
+  size                       = var.vm_size
+  admin_username             = var.admin_username
+  admin_password             = var.admin_password
+  encryption_at_host_enabled = var.encryption_at_host_enabled
+  tags                       = merge(var.tags, { Role = "SecondaryRegion-DR" })
 
   network_interface_ids = [azurerm_network_interface.vm[0].id]
 

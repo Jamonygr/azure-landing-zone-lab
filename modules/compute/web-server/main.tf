@@ -35,12 +35,13 @@ resource "azurerm_network_interface_nat_rule_association" "nat" {
 
 # Windows Virtual Machine
 resource "azurerm_windows_virtual_machine" "main" {
-  name                = var.name
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  size                = var.vm_size
-  admin_username      = var.admin_username
-  admin_password      = var.admin_password
+  name                       = var.name
+  resource_group_name        = var.resource_group_name
+  location                   = var.location
+  size                       = var.vm_size
+  admin_username             = var.admin_username
+  admin_password             = var.admin_password
+  encryption_at_host_enabled = var.encryption_at_host_enabled
 
   network_interface_ids = [
     azurerm_network_interface.main.id

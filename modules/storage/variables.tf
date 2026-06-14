@@ -70,6 +70,24 @@ variable "allow_nested_items_to_be_public" {
   default     = false
 }
 
+variable "local_user_enabled" {
+  description = "Enable storage local users for SFTP scenarios"
+  type        = bool
+  default     = false
+}
+
+variable "shared_access_key_enabled" {
+  description = "Enable shared access keys. Kept true by default because Terraform-managed containers, file shares, and Function Apps may require shared key data-plane access in this lab."
+  type        = bool
+  default     = true
+}
+
+variable "sas_expiration_period" {
+  description = "Maximum SAS token lifetime in DD.HH:MM:SS format. Set null to omit a SAS policy."
+  type        = string
+  default     = "1.00:00:00"
+}
+
 variable "public_network_access_enabled" {
   description = "Allow public network access to the storage account data plane"
   type        = bool

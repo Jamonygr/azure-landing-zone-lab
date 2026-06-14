@@ -52,6 +52,12 @@ variable "max_size_gb" {
   default     = 2 # Basic tier limit
 }
 
+variable "audit_retention_days" {
+  description = "SQL audit retention period in days"
+  type        = number
+  default     = 90
+}
+
 variable "min_tls_version" {
   description = "Minimum TLS version"
   type        = string

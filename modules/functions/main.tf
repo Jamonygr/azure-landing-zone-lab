@@ -4,12 +4,15 @@
 
 # Storage Account for Function App
 resource "azurerm_storage_account" "function" {
-  name                     = "stfunc${replace(replace(var.name_suffix, "-", ""), "_", "")}"
-  resource_group_name      = var.resource_group_name
-  location                 = var.location
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
-  min_tls_version          = "TLS1_2"
+  name                            = "stfunc${replace(replace(var.name_suffix, "-", ""), "_", "")}"
+  resource_group_name             = var.resource_group_name
+  location                        = var.location
+  account_tier                    = "Standard"
+  account_replication_type        = "LRS"
+  https_traffic_only_enabled      = true
+  min_tls_version                 = "TLS1_2"
+  allow_nested_items_to_be_public = false
+  local_user_enabled              = false
 
   tags = var.tags
 }

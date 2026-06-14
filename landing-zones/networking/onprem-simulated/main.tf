@@ -243,14 +243,15 @@ resource "azurerm_network_interface_security_group_association" "onprem_mgmt" {
 
 # On-Prem Management VM (small size with RDP access)
 resource "azurerm_windows_virtual_machine" "onprem_mgmt" {
-  name                  = "vmonpremmgmt01"
-  resource_group_name   = var.resource_group_name
-  location              = var.location
-  size                  = "Standard_B2s" # 4GB RAM for RDP sessions
-  admin_username        = var.admin_username
-  admin_password        = var.admin_password
-  network_interface_ids = [azurerm_network_interface.onprem_mgmt.id]
-  tags                  = merge(var.tags, { Role = "Management", Location = "OnPremises" })
+  name                       = "vmonpremmgmt01"
+  resource_group_name        = var.resource_group_name
+  location                   = var.location
+  size                       = "Standard_B2s" # 4GB RAM for RDP sessions
+  admin_username             = var.admin_username
+  admin_password             = var.admin_password
+  encryption_at_host_enabled = var.encryption_at_host_enabled
+  network_interface_ids      = [azurerm_network_interface.onprem_mgmt.id]
+  tags                       = merge(var.tags, { Role = "Management", Location = "OnPremises" })
 
   os_disk {
     name                 = "osdisk-vmonpremmgmt01"
