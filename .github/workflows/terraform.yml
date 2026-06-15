@@ -228,6 +228,11 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
+      - uses: ./.github/actions/provider-mirror
+
+      - name: Init Providers
+        run: terraform init -backend=false
+
       - name: Download Plan
         uses: actions/download-artifact@v4
         with:
