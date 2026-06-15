@@ -105,6 +105,8 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
+      - uses: ./.github/actions/provider-mirror
+
       - name: Validate
         run: |
           terraform init -backend=false
@@ -285,6 +287,8 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
+      - uses: ./.github/actions/provider-mirror
+
       - uses: ./.github/actions/graph
         with:
           output_format: svg
@@ -302,6 +306,8 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+
+      - uses: ./.github/actions/provider-mirror
 
       - name: Init
         run: terraform init -backend=false
@@ -321,6 +327,8 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+
+      - uses: ./.github/actions/provider-mirror
 
       - name: Init
         run: terraform init -backend=false
@@ -345,6 +353,8 @@ jobs:
       destroy: ${{ steps.plan.outputs.destroy }}
     steps:
       - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/provider-mirror
 
       - name: Plan
         id: plan
@@ -393,6 +403,8 @@ jobs:
           storage_account: ${{ secrets.TF_STATE_SA }}
           resource_group: ${{ secrets.TF_STATE_RG }}
           state_key: ${{ env.ENVIRONMENT }}.terraform.tfstate
+
+      - uses: ./.github/actions/provider-mirror
 
       - name: Apply
         uses: ./.github/actions/apply
@@ -463,6 +475,8 @@ jobs:
           storage_account: ${{ secrets.TF_STATE_SA }}
           resource_group: ${{ secrets.TF_STATE_RG }}
           state_key: ${{ env.ENVIRONMENT }}.terraform.tfstate
+
+      - uses: ./.github/actions/provider-mirror
 
       - name: Destroy
         uses: ./.github/actions/destroy

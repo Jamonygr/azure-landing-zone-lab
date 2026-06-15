@@ -1,0 +1,84 @@
+name: 'Terraform Provider Mirror'
+description: 'Prepare a local Terraform provider mirror for pinned Linux providers'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Restore provider mirror cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/terraform-provider-mirror
+        key: terraform-provider-mirror-linux-amd64-${{ hashFiles('.terraform.lock.hcl') }}
+
+    - name: Download pinned providers
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        mirror="$RUNNER_TEMP/terraform-provider-mirror"
+        mkdir -p \
+          "$mirror/registry.terraform.io/hashicorp/azurerm" \
+          "$mirror/registry.terraform.io/hashicorp/random" \
+          "$mirror/registry.terraform.io/hashicorp/time" \
+          "$mirror/registry.terraform.io/azure/azapi"
+
+        download_provider() {
+          local url="$1"
+          local dest="$2"
+
+          if [ -f "$dest" ]; then
+            echo "Using cached $(basename "$dest")"
+            return
+          fi
+
+          curl \
+            --fail \
+            --location \
+            --retry 5 \
+            --retry-all-errors \
+            --retry-delay 5 \
+            --connect-timeout 30 \
+            --max-time 300 \
+            --output "$dest" \
+            "$url"
+        }
+
+        download_provider \
+          "https://releases.hashicorp.com/terraform-provider-azurerm/4.57.0/terraform-provider-azurerm_4.57.0_linux_amd64.zip" \
+          "$mirror/registry.terraform.io/hashicorp/azurerm/terraform-provider-azurerm_4.57.0_linux_amd64.zip"
+
+        download_provider \
+          "https://releases.hashicorp.com/terraform-provider-random/3.6.3/terraform-provider-random_3.6.3_linux_amd64.zip" \
+          "$mirror/registry.terraform.io/hashicorp/random/terraform-provider-random_3.6.3_linux_amd64.zip"
+
+        download_provider \
+          "https://releases.hashicorp.com/terraform-provider-time/0.13.1/terraform-provider-time_0.13.1_linux_amd64.zip" \
+          "$mirror/registry.terraform.io/hashicorp/time/terraform-provider-time_0.13.1_linux_amd64.zip"
+
+        download_provider \
+          "https://github.com/Azure/terraform-provider-azapi/releases/download/v2.8.0/terraform-provider-azapi_2.8.0_linux_amd64.zip" \
+          "$mirror/registry.terraform.io/azure/azapi/terraform-provider-azapi_2.8.0_linux_amd64.zip"
+
+    - name: Configure Terraform provider mirror
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        config="$RUNNER_TEMP/terraform-provider-mirror.tfrc"
+        mirror="$RUNNER_TEMP/terraform-provider-mirror"
+
+        cat > "$config" <<EOF
+        provider_installation {
+          filesystem_mirror {
+            path    = "$mirror"
+            include = ["registry.terraform.io/hashicorp/*", "registry.terraform.io/azure/*"]
+          }
+
+          direct {
+            exclude = ["registry.terraform.io/hashicorp/*", "registry.terraform.io/azure/*"]
+          }
+        }
+        EOF
+
+        echo "TF_CLI_CONFIG_FILE=$config" >> "$GITHUB_ENV"
+        echo "Using Terraform provider mirror at $mirror"
