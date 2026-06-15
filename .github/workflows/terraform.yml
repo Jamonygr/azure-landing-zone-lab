@@ -65,6 +65,8 @@ permissions:
 env:
   TF_VERSION: '1.9.0'
   ENVIRONMENT: ${{ github.event.inputs.environment || 'lab' }}
+  TF_REGISTRY_CLIENT_TIMEOUT: '60'
+  TF_REGISTRY_DISCOVERY_RETRY: '5'
 
 jobs:
   # =========================================================================
