@@ -159,6 +159,12 @@ variable "lb_web_server_size" {
   default     = "Standard_B1ms"
 }
 
+variable "encryption_at_host_enabled" {
+  description = "Enable encryption at host for workload web server VMs"
+  type        = bool
+  default     = false
+}
+
 variable "admin_username" {
   description = "Admin username for VMs"
   type        = string

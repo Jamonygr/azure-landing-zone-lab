@@ -414,6 +414,12 @@ variable "enable_auto_shutdown" {
   default     = true
 }
 
+variable "enable_vm_encryption_at_host" {
+  description = "Enable encryption at host for Windows VMs. Requires the Microsoft.Compute/EncryptionAtHost subscription feature."
+  type        = bool
+  default     = false
+}
+
 # -----------------------------------------------------------------------------
 # AKS Configuration
 # -----------------------------------------------------------------------------

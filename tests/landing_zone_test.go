@@ -2,6 +2,9 @@ package test
 
 import (
 	"os"
+	"os/exec"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/gruntwork-io/terratest/modules/azure"
@@ -42,6 +45,25 @@ func (e testEnv) nsg(name string) string {
 	return "nsg-" + name + "-" + e.environment + "-" + e.locationShort
 }
 
+func azResourceCount(t *testing.T, resourceGroupName string, resourceType string) int {
+	t.Helper()
+
+	output, err := exec.Command(
+		"az",
+		"resource",
+		"list",
+		"--resource-group", resourceGroupName,
+		"--resource-type", resourceType,
+		"--query", "length(@)",
+		"-o", "tsv",
+	).CombinedOutput()
+	assert.NoError(t, err, "az resource list failed: %s", string(output))
+
+	count, parseErr := strconv.Atoi(strings.TrimSpace(string(output)))
+	assert.NoError(t, parseErr, "az resource list returned a non-numeric count: %s", string(output))
+	return count
+}
+
 // TestLandingZoneDeployment validates the deployed infrastructure
 func TestLandingZoneDeployment(t *testing.T) {
 	t.Parallel()
@@ -75,9 +97,10 @@ func TestLandingZoneDeployment(t *testing.T) {
 		hubRG := testNames.resourceGroup("hub")
 		hubVNet := testNames.vnet("hub")
 
-		// Check peering exists
-		peerings := azure.GetVirtualNetworkPeerings(t, hubVNet, hubRG, subscriptionID)
-		assert.NotEmpty(t, peerings, "Hub VNet should have peerings configured")
+		vnet, err := azure.GetVirtualNetworkE(hubVNet, hubRG, subscriptionID)
+		assert.NoError(t, err)
+		assert.NotNil(t, vnet.VirtualNetworkPropertiesFormat, "Hub VNet should include properties")
+		assert.NotEmpty(t, vnet.VirtualNetworkPropertiesFormat.VirtualNetworkPeerings, "Hub VNet should have peerings configured")
 	})
 }
 
@@ -95,8 +118,8 @@ func TestKeyVaultAccessible(t *testing.T) {
 
 	// Find Key Vault in resource group
 	t.Run("KeyVaultExists", func(t *testing.T) {
-		keyVaults := azure.ListKeyVaultsByResourceGroup(t, subscriptionID, resourceGroupName)
-		assert.NotEmpty(t, keyVaults, "Key Vault should exist in shared services")
+		keyVaultCount := azResourceCount(t, resourceGroupName, "Microsoft.KeyVault/vaults")
+		assert.Greater(t, keyVaultCount, 0, "Key Vault should exist in shared services")
 	})
 }
 
@@ -115,8 +138,8 @@ func TestNetworkSecurityGroups(t *testing.T) {
 		resourceGroupName := testNames.resourceGroup("management")
 		nsgName := testNames.nsg("jumpbox")
 
-		exists := azure.NetworkSecurityGroupExists(t, nsgName, resourceGroupName, subscriptionID)
-		assert.True(t, exists, "Management NSG should exist")
+		rules := azure.GetAllNSGRules(t, resourceGroupName, nsgName, subscriptionID)
+		assert.NotEmpty(t, rules.SummarizedRules, "Management NSG should exist and return default rules")
 	})
 }
 
@@ -133,7 +156,7 @@ func TestResourceTags(t *testing.T) {
 	resourceGroupName := testNames.resourceGroup("hub")
 
 	t.Run("ResourceGroupHasTags", func(t *testing.T) {
-		rg := azure.GetResourceGroup(t, resourceGroupName, subscriptionID)
+		rg := azure.GetAResourceGroup(t, resourceGroupName, subscriptionID)
 		assert.NotNil(t, rg.Tags, "Resource group should have tags")
 
 		// Check for required tags

@@ -88,16 +88,17 @@ module "dc_nsg" {
 module "dc01" {
   source = "../../../modules/compute/windows-vm"
 
-  name                 = "vmdc01"
-  resource_group_name  = var.resource_group_name
-  location             = var.location
-  subnet_id            = module.dc_subnet.id
-  size                 = var.vm_size
-  admin_username       = var.admin_username
-  admin_password       = var.admin_password
-  private_ip_address   = var.dc01_ip_address
-  enable_auto_shutdown = var.enable_auto_shutdown
-  tags                 = merge(var.tags, { Role = "DomainController" })
+  name                       = "vmdc01"
+  resource_group_name        = var.resource_group_name
+  location                   = var.location
+  subnet_id                  = module.dc_subnet.id
+  size                       = var.vm_size
+  admin_username             = var.admin_username
+  admin_password             = var.admin_password
+  private_ip_address         = var.dc01_ip_address
+  enable_auto_shutdown       = var.enable_auto_shutdown
+  encryption_at_host_enabled = var.encryption_at_host_enabled
+  tags                       = merge(var.tags, { Role = "DomainController" })
 
   data_disks = [
     {
@@ -125,16 +126,17 @@ module "dc02" {
   source = "../../../modules/compute/windows-vm"
   count  = var.deploy_secondary_dc ? 1 : 0
 
-  name                 = "vmdc02"
-  resource_group_name  = var.resource_group_name
-  location             = var.location
-  subnet_id            = module.dc_subnet.id
-  size                 = var.vm_size
-  admin_username       = var.admin_username
-  admin_password       = var.admin_password
-  private_ip_address   = var.dc02_ip_address
-  enable_auto_shutdown = var.enable_auto_shutdown
-  tags                 = merge(var.tags, { Role = "DomainController" })
+  name                       = "vmdc02"
+  resource_group_name        = var.resource_group_name
+  location                   = var.location
+  subnet_id                  = module.dc_subnet.id
+  size                       = var.vm_size
+  admin_username             = var.admin_username
+  admin_password             = var.admin_password
+  private_ip_address         = var.dc02_ip_address
+  enable_auto_shutdown       = var.enable_auto_shutdown
+  encryption_at_host_enabled = var.encryption_at_host_enabled
+  tags                       = merge(var.tags, { Role = "DomainController" })
 
   data_disks = [
     {

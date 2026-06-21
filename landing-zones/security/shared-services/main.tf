@@ -103,6 +103,7 @@ module "keyvault" {
   resource_group_name           = var.resource_group_name
   location                      = var.location
   tenant_id                     = var.tenant_id
+  create_secrets                = !var.deploy_private_endpoints
   public_network_access_enabled = local.shared_services_public_network_access_enabled
   network_acls                  = local.shared_service_network_acls
   tags                          = var.tags
@@ -120,11 +121,12 @@ module "storage" {
   source = "../../../modules/storage"
   count  = var.deploy_storage ? 1 : 0
 
-  name                     = var.storage_account_name
-  resource_group_name      = var.resource_group_name
-  location                 = var.location
-  account_replication_type = "LRS"
-  tags                     = var.tags
+  name                      = var.storage_account_name
+  resource_group_name       = var.resource_group_name
+  location                  = var.location
+  account_replication_type  = "LRS"
+  create_data_plane_objects = !var.deploy_private_endpoints
+  tags                      = var.tags
 
   containers = [
     { name = "scripts" },

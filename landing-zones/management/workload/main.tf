@@ -342,13 +342,14 @@ module "web_servers" {
   source = "../../../modules/compute/web-server"
   count  = var.deploy_load_balancer ? var.lb_web_server_count : 0
 
-  name                = "web${format("%02d", count.index + 1)}-${var.workload_short}"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  subnet_id           = module.web_subnet.id
-  vm_size             = var.lb_web_server_size
-  admin_username      = var.admin_username
-  admin_password      = var.admin_password
+  name                       = "web${format("%02d", count.index + 1)}-${var.workload_short}"
+  resource_group_name        = var.resource_group_name
+  location                   = var.location
+  subnet_id                  = module.web_subnet.id
+  vm_size                    = var.lb_web_server_size
+  admin_username             = var.admin_username
+  admin_password             = var.admin_password
+  encryption_at_host_enabled = var.encryption_at_host_enabled
 
   # Load Balancer association
   associate_with_lb  = true

@@ -7,6 +7,8 @@
 
 Use this checklist after a deploy to prove the lab works end to end and to see how each landing zone connects. Follow the steps in order; every step validates the **5-pillar Azure Landing Zone architecture** and confirms that hub, identity, governance, security, and management all function correctly.
 
+For the repeatable disposable validation path used before pushing changes, see [Live provisioning validation](live-provisioning-validation.md). That workflow provisions the safe extended profile, runs static checks and live smoke tests, destroys the resources, and verifies deletion.
+
 ## What you will learn
 
 - A recommended config that lights up the main scenarios without guessing feature flags.

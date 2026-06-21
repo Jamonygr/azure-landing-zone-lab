@@ -39,7 +39,7 @@ resource "azurerm_storage_account" "this" {
 
 # Blob Containers
 resource "azurerm_storage_container" "this" {
-  for_each              = { for c in var.containers : c.name => c }
+  for_each              = var.create_data_plane_objects ? { for c in var.containers : c.name => c } : {}
   name                  = each.value.name
   storage_account_name  = azurerm_storage_account.this.name
   container_access_type = each.value.container_access_type
@@ -47,7 +47,7 @@ resource "azurerm_storage_container" "this" {
 
 # File Shares
 resource "azurerm_storage_share" "this" {
-  for_each             = { for s in var.file_shares : s.name => s }
+  for_each             = var.create_data_plane_objects ? { for s in var.file_shares : s.name => s } : {}
   name                 = each.value.name
   storage_account_name = azurerm_storage_account.this.name
   quota                = each.value.quota

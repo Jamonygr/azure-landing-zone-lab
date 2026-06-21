@@ -7,6 +7,8 @@
 
 This document covers Terraform remote state storage and GitHub secrets configuration for the Azure Landing Zone lab pipeline.
 
+Local live validation intentionally runs with `terraform init -backend=false` and temporary tfvars so it does not touch the shared remote state. Use [Live provisioning validation](../testing/live-provisioning-validation.md) when you need to prove a disposable deployment before committing or pushing changes.
+
 ---
 
 ## Overview
@@ -448,6 +450,7 @@ gh secret set TF_STATE_SA --body "<CORRECT_NAME>"
 
 - [Pipeline Overview](pipeline.md) - Main pipeline documentation
 - [Pipeline Templates](pipeline-templates.md) - 2-level template architecture
+- [Live Provisioning Validation](../testing/live-provisioning-validation.md) - Disposable local apply, smoke test, and destroy workflow
 - [GitHub Actions - Encrypted Secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
 - [Terraform Backend - AzureRM](https://developer.hashicorp.com/terraform/language/settings/backends/azurerm)
 

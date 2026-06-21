@@ -174,6 +174,7 @@ This page summarizes the root input variables you set in `terraform.tfvars`. The
 | `vm_size` | `Standard_B2s` | Default VM size (DCs, jumpbox) |
 | `sql_vm_size` | `Standard_B2s` | SQL VM size |
 | `enable_auto_shutdown` | `true` | Auto-shutdown VMs at 7 PM |
+| `enable_vm_encryption_at_host` | `false` | Opt-in host encryption for VMs; requires the `Microsoft.Compute/EncryptionAtHost` subscription feature |
 | `aks_node_count` | `1` | AKS node count |
 | `aks_vm_size` | `Standard_B2s` | AKS node size |
 

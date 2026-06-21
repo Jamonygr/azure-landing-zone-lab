@@ -94,6 +94,12 @@ variable "enable_auto_shutdown" {
   default     = true
 }
 
+variable "encryption_at_host_enabled" {
+  description = "Enable encryption at host for domain controller VMs"
+  type        = bool
+  default     = false
+}
+
 variable "firewall_private_ip" {
   description = "Azure Firewall private IP for routing"
   type        = string

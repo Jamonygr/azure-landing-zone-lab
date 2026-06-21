@@ -90,7 +90,7 @@ variable "patch_assessment_mode" {
 variable "encryption_at_host_enabled" {
   description = "Enable encryption at host for the VM"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "data_disks" {

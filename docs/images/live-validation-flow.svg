@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-label="Live validation workflow">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f7fbff"/>
+      <stop offset="100%" stop-color="#eaf2fb"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#6ba6d8"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="520" fill="url(#bg)"/>
+  <text x="600" y="52" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700" text-anchor="middle" fill="#0b1f3a">Disposable Live Validation Flow</text>
+  <text x="600" y="82" font-family="Segoe UI, Arial, sans-serif" font-size="14" text-anchor="middle" fill="#526a86">Plan, provision, smoke test, destroy, and verify the Azure Landing Zone lab</text>
+
+  <g stroke="#6ba6d8" stroke-width="3" marker-end="url(#arrow)">
+    <line x1="210" y1="220" x2="300" y2="220"/>
+    <line x1="460" y1="220" x2="550" y2="220"/>
+    <line x1="710" y1="220" x2="800" y2="220"/>
+    <line x1="960" y1="220" x2="1050" y2="220"/>
+    <line x1="600" y1="320" x2="600" y2="395"/>
+  </g>
+
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <rect x="60" y="150" width="150" height="140" rx="8" fill="#ffffff" stroke="#7aa9d8" stroke-width="2"/>
+    <circle cx="135" cy="185" r="24" fill="#0078d4"/>
+    <text x="135" y="194" font-size="24" font-weight="700" text-anchor="middle" fill="#ffffff">1</text>
+    <text x="135" y="230" font-size="16" font-weight="700" text-anchor="middle" fill="#0b1f3a">Static Checks</text>
+    <text x="135" y="254" font-size="12" text-anchor="middle" fill="#526a86">fmt, init, validate</text>
+    <text x="135" y="272" font-size="12" text-anchor="middle" fill="#526a86">Go tests, scanners</text>
+
+    <rect x="300" y="150" width="160" height="140" rx="8" fill="#ffffff" stroke="#7aa9d8" stroke-width="2"/>
+    <rect x="358" y="166" width="44" height="44" rx="6" fill="#50e6ff" stroke="#0078d4"/>
+    <text x="380" y="194" font-size="22" font-weight="700" text-anchor="middle" fill="#0b1f3a">TF</text>
+    <text x="380" y="230" font-size="16" font-weight="700" text-anchor="middle" fill="#0b1f3a">Plan</text>
+    <text x="380" y="254" font-size="12" text-anchor="middle" fill="#526a86">temp tfvars</text>
+    <text x="380" y="272" font-size="12" text-anchor="middle" fill="#526a86">local state only</text>
+
+    <rect x="550" y="150" width="160" height="140" rx="8" fill="#ffffff" stroke="#7aa9d8" stroke-width="2"/>
+    <path d="M600 168 L642 192 L642 240 L600 264 L558 240 L558 192 Z" fill="#0078d4"/>
+    <text x="600" y="224" font-size="14" font-weight="700" text-anchor="middle" fill="#ffffff">Azure</text>
+    <text x="630" y="230" font-size="16" font-weight="700" text-anchor="middle" fill="#0b1f3a">Apply</text>
+    <text x="630" y="254" font-size="12" text-anchor="middle" fill="#526a86">cost-safe extended</text>
+    <text x="630" y="272" font-size="12" text-anchor="middle" fill="#526a86">West Europe</text>
+
+    <rect x="800" y="150" width="160" height="140" rx="8" fill="#ffffff" stroke="#7aa9d8" stroke-width="2"/>
+    <circle cx="880" cy="188" r="23" fill="#107c10"/>
+    <path d="M868 188 l8 8 l17 -20" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="880" y="230" font-size="16" font-weight="700" text-anchor="middle" fill="#0b1f3a">Smoke Tests</text>
+    <text x="880" y="254" font-size="12" text-anchor="middle" fill="#526a86">VNets, tags, PaaS</text>
+    <text x="880" y="272" font-size="12" text-anchor="middle" fill="#526a86">Terratest + HTTP</text>
+
+    <rect x="1050" y="150" width="110" height="140" rx="8" fill="#ffffff" stroke="#7aa9d8" stroke-width="2"/>
+    <path d="M1105 168 c22 0 40 18 40 40 c0 30 -40 58 -40 58 s-40 -28 -40 -58 c0 -22 18 -40 40 -40z" fill="#f7630c"/>
+    <text x="1105" y="214" font-size="20" font-weight="700" text-anchor="middle" fill="#ffffff">X</text>
+    <text x="1105" y="254" font-size="16" font-weight="700" text-anchor="middle" fill="#0b1f3a">Destroy</text>
+    <text x="1105" y="272" font-size="12" text-anchor="middle" fill="#526a86">verify gone</text>
+
+    <rect x="395" y="395" width="410" height="70" rx="8" fill="#0f4c81"/>
+    <text x="600" y="425" font-size="16" font-weight="700" text-anchor="middle" fill="#ffffff">Evidence-first policy</text>
+    <text x="600" y="449" font-size="12" text-anchor="middle" fill="#d7e2f0">Push to main only after checks pass and resource groups return false</text>
+  </g>
+</svg>

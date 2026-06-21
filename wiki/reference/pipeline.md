@@ -607,6 +607,7 @@ The Apply stage skips if no changes detected. This is expected behavior.
 ## Related Documentation
 
 - [Pipeline Templates Architecture](pipeline-templates.md) - 2-level template structure details
+- [Live Provisioning Validation](../testing/live-provisioning-validation.md) - Local disposable apply, smoke test, destroy, and push gate
 - [Variables Reference](variables.md) - Input variables
 - [Outputs Reference](outputs.md) - Deployment outputs
 - [Architecture Overview](../architecture/overview.md) - Infrastructure design

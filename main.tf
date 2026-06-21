@@ -192,15 +192,16 @@ module "identity" {
   hub_address_prefix     = var.hub_address_space[0]
   onprem_address_prefix  = var.onprem_address_space[0]
 
-  vm_size              = var.vm_size
-  admin_username       = var.admin_username
-  admin_password       = local.effective_admin_password
-  dc01_ip_address      = var.dc01_ip_address
-  dc02_ip_address      = var.dc02_ip_address
-  deploy_secondary_dc  = var.deploy_secondary_dc
-  enable_auto_shutdown = var.enable_auto_shutdown
-  firewall_private_ip  = var.deploy_firewall ? module.networking.firewall_private_ip : null
-  deploy_route_table   = var.deploy_firewall
+  vm_size                    = var.vm_size
+  admin_username             = var.admin_username
+  admin_password             = local.effective_admin_password
+  dc01_ip_address            = var.dc01_ip_address
+  dc02_ip_address            = var.dc02_ip_address
+  deploy_secondary_dc        = var.deploy_secondary_dc
+  enable_auto_shutdown       = var.enable_auto_shutdown
+  encryption_at_host_enabled = var.enable_vm_encryption_at_host
+  firewall_private_ip        = var.deploy_firewall ? module.networking.firewall_private_ip : null
+  deploy_route_table         = var.deploy_firewall
 }
 
 # =============================================================================
@@ -226,11 +227,12 @@ module "management" {
   firewall_private_ip        = var.deploy_firewall ? module.networking.firewall_private_ip : null
   deploy_route_table         = var.deploy_firewall
 
-  vm_size                  = var.vm_size
-  admin_username           = var.admin_username
-  admin_password           = local.effective_admin_password
-  enable_jumpbox_public_ip = var.enable_jumpbox_public_ip
-  enable_auto_shutdown     = var.enable_auto_shutdown
+  vm_size                    = var.vm_size
+  admin_username             = var.admin_username
+  admin_password             = local.effective_admin_password
+  enable_jumpbox_public_ip   = var.enable_jumpbox_public_ip
+  enable_auto_shutdown       = var.enable_auto_shutdown
+  encryption_at_host_enabled = var.enable_vm_encryption_at_host
 
   deploy_log_analytics = var.deploy_log_analytics
   log_retention_days   = var.log_retention_days
@@ -379,14 +381,15 @@ module "workload_prod" {
   log_analytics_workspace_id = var.deploy_log_analytics ? module.management.log_analytics_workspace_id : null
   enable_diagnostics         = var.deploy_log_analytics
 
-  deploy_load_balancer    = var.deploy_load_balancer
-  enable_lb_rdp_nat_rules = var.enable_lb_rdp_nat_rules
-  lb_type                 = var.lb_type
-  lb_private_ip           = var.lb_private_ip
-  lb_web_server_count     = var.lb_web_server_count
-  lb_web_server_size      = var.lb_web_server_size
-  admin_username          = var.admin_username
-  admin_password          = local.effective_admin_password
+  deploy_load_balancer       = var.deploy_load_balancer
+  enable_lb_rdp_nat_rules    = var.enable_lb_rdp_nat_rules
+  lb_type                    = var.lb_type
+  lb_private_ip              = var.lb_private_ip
+  lb_web_server_count        = var.lb_web_server_count
+  lb_web_server_size         = var.lb_web_server_size
+  encryption_at_host_enabled = var.enable_vm_encryption_at_host
+  admin_username             = var.admin_username
+  admin_password             = local.effective_admin_password
 
   deploy_functions      = var.deploy_functions
   deploy_static_web_app = var.deploy_static_web_app
@@ -422,8 +425,9 @@ module "workload_dev" {
   firewall_private_ip = var.deploy_firewall ? module.networking.firewall_private_ip : null
   deploy_route_table  = var.deploy_firewall
 
-  enable_diagnostics = var.deploy_log_analytics
-  cosmos_location    = var.cosmos_location != "" ? var.cosmos_location : null
+  enable_diagnostics         = var.deploy_log_analytics
+  encryption_at_host_enabled = var.enable_vm_encryption_at_host
+  cosmos_location            = var.cosmos_location != "" ? var.cosmos_location : null
 }
 
 moved {

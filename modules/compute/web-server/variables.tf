@@ -79,7 +79,7 @@ variable "os_disk_type" {
 variable "encryption_at_host_enabled" {
   description = "Enable encryption at host for the VM"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "lb_backend_pool_id" {

@@ -58,6 +58,7 @@ At the top of `terraform.tfvars` there is a **MASTER CONTROL PANEL** section tha
 - [CI/CD Pipeline](#-cicd-pipeline)
 - [Configuration Options](#-configuration-options)
 - [Testing the Environment](#-testing-the-environment)
+- [Live Provisioning Validation](#live-provisioning-validation)
 - [Security Features](#-security-features)
 - [Cost Estimation](#-cost-estimation)
 - [Troubleshooting](#-troubleshooting)
@@ -729,6 +730,20 @@ vm_size                      = "Standard_B2s"
 ---
 
 ## 🧪 Testing the Environment
+
+### Live Provisioning Validation
+
+<p align="center">
+  <img src="docs/images/live-validation-flow.svg" alt="Live validation flow from static checks through Azure apply, smoke tests, destroy, and push readiness" width="1000" />
+</p>
+
+For a disposable end-to-end validation in West Europe, use the live runner after signing in with Azure CLI:
+
+```powershell
+.\scripts\invoke-live-validation.ps1
+```
+
+The runner creates a temporary tfvars file and backend-free Terraform workdir outside the repo, provisions the safe extended profile, runs static checks, Terratest, Azure CLI smoke checks, destroys the deployment in a `finally` block, verifies the resource groups are gone, and removes local Terraform state/plan files. See the [live provisioning validation guide](wiki/testing/live-provisioning-validation.md) for the exact profile, expected resources, failure handling, and teardown checks.
 
 ### Access Points Summary
 

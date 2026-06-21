@@ -82,6 +82,12 @@ variable "shared_access_key_enabled" {
   default     = true
 }
 
+variable "create_data_plane_objects" {
+  description = "Create Terraform-managed containers and file shares. Disable when network rules block the runner from the storage data plane."
+  type        = bool
+  default     = true
+}
+
 variable "sas_expiration_period" {
   description = "Maximum SAS token lifetime in DD.HH:MM:SS format. Set null to omit a SAS policy."
   type        = string

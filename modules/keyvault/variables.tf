@@ -99,3 +99,9 @@ variable "secrets" {
   default   = {}
   sensitive = true
 }
+
+variable "create_secrets" {
+  description = "Create Terraform-managed secrets. Disable when network ACLs block the runner from the Key Vault data plane."
+  type        = bool
+  default     = true
+}

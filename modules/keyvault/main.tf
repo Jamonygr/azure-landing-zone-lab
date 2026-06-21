@@ -37,7 +37,7 @@ resource "azurerm_role_assignment" "keyvault_admin" {
 
 # Key Vault Secrets
 resource "azurerm_key_vault_secret" "this" {
-  for_each     = nonsensitive(var.secrets)
+  for_each     = var.create_secrets ? nonsensitive(var.secrets) : {}
   name         = each.key
   value        = each.value.value
   key_vault_id = azurerm_key_vault.this.id

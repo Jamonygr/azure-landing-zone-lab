@@ -100,6 +100,12 @@ variable "enable_auto_shutdown" {
   default     = true
 }
 
+variable "encryption_at_host_enabled" {
+  description = "Enable encryption at host for the jumpbox VM"
+  type        = bool
+  default     = false
+}
+
 variable "deploy_log_analytics" {
   description = "Deploy Log Analytics workspace"
   type        = bool

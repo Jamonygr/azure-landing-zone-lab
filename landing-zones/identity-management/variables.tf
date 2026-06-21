@@ -90,6 +90,12 @@ variable "enable_auto_shutdown" {
   type        = bool
 }
 
+variable "encryption_at_host_enabled" {
+  description = "Enable encryption at host for domain controller VMs"
+  type        = bool
+  default     = false
+}
+
 variable "firewall_private_ip" {
   description = "Hub firewall private IP (for route table)"
   type        = string

@@ -215,3 +215,21 @@ output "connection_info" {
     Credentials:   ${var.admin_username} / <password from tfvars>
   EOT
 }
+
+output "location_short" {
+  description = "Short location suffix used in resource names."
+  value       = local.location_short
+}
+
+output "resource_group_names" {
+  description = "Resource groups created by this landing zone deployment."
+  value = compact([
+    azurerm_resource_group.hub.name,
+    azurerm_resource_group.identity.name,
+    azurerm_resource_group.management.name,
+    azurerm_resource_group.shared.name,
+    var.deploy_workload_prod ? azurerm_resource_group.workload_prod[0].name : null,
+    var.deploy_workload_dev ? azurerm_resource_group.workload_dev[0].name : null,
+    var.deploy_onprem_simulation ? azurerm_resource_group.onprem[0].name : null
+  ])
+}

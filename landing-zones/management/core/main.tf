@@ -100,16 +100,17 @@ module "jumpbox_nsg" {
 module "jumpbox" {
   source = "../../../modules/compute/windows-vm"
 
-  name                 = "vmjumpbox01"
-  resource_group_name  = var.resource_group_name
-  location             = var.location
-  subnet_id            = module.jumpbox_subnet.id
-  size                 = var.vm_size
-  admin_username       = var.admin_username
-  admin_password       = var.admin_password
-  enable_public_ip     = var.enable_jumpbox_public_ip
-  enable_auto_shutdown = var.enable_auto_shutdown
-  tags                 = merge(var.tags, { Role = "JumpBox" })
+  name                       = "vmjumpbox01"
+  resource_group_name        = var.resource_group_name
+  location                   = var.location
+  subnet_id                  = module.jumpbox_subnet.id
+  size                       = var.vm_size
+  admin_username             = var.admin_username
+  admin_password             = var.admin_password
+  enable_public_ip           = var.enable_jumpbox_public_ip
+  enable_auto_shutdown       = var.enable_auto_shutdown
+  encryption_at_host_enabled = var.encryption_at_host_enabled
+  tags                       = merge(var.tags, { Role = "JumpBox" })
 }
 
 # Log Analytics Workspace

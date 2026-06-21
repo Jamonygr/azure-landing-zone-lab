@@ -111,6 +111,12 @@ variable "enable_auto_shutdown" {
   type        = bool
 }
 
+variable "encryption_at_host_enabled" {
+  description = "Enable encryption at host for management VMs"
+  type        = bool
+  default     = false
+}
+
 # -----------------------------------------------------------------------------
 # Log Analytics
 # -----------------------------------------------------------------------------

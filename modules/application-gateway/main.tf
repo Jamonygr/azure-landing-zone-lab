@@ -24,6 +24,31 @@ resource "azurerm_user_assigned_identity" "this" {
   tags = var.tags
 }
 
+# WAF policy for WAF_v2. Inline WAF configuration on Application Gateway is retired.
+resource "azurerm_web_application_firewall_policy" "this" {
+  count               = var.sku_tier == "WAF_v2" && var.waf_configuration != null ? 1 : 0
+  name                = "wafp-agw-${var.name_suffix}"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+
+  policy_settings {
+    enabled                     = var.waf_configuration.enabled
+    mode                        = var.waf_configuration.firewall_mode
+    request_body_check          = true
+    file_upload_limit_in_mb     = var.waf_configuration.file_upload_limit_mb
+    max_request_body_size_in_kb = var.waf_configuration.max_request_body_size_kb
+  }
+
+  managed_rules {
+    managed_rule_set {
+      type    = var.waf_configuration.rule_set_type
+      version = var.waf_configuration.rule_set_version
+    }
+  }
+
+  tags = var.tags
+}
+
 # Application Gateway
 resource "azurerm_application_gateway" "this" {
   name                = "agw-${var.name_suffix}"
@@ -31,6 +56,7 @@ resource "azurerm_application_gateway" "this" {
   location            = var.location
   zones               = var.zones
   enable_http2        = true
+  firewall_policy_id  = var.sku_tier == "WAF_v2" && var.waf_configuration != null ? azurerm_web_application_firewall_policy.this[0].id : null
 
   sku {
     name     = var.sku_name
@@ -181,19 +207,6 @@ resource "azurerm_application_gateway" "this" {
           body        = lookup(match.value, "body", null)
         }
       }
-    }
-  }
-
-  # WAF configuration (for WAF_v2 SKU)
-  dynamic "waf_configuration" {
-    for_each = var.sku_tier == "WAF_v2" && var.waf_configuration != null ? [var.waf_configuration] : []
-    content {
-      enabled                  = waf_configuration.value.enabled
-      firewall_mode            = waf_configuration.value.firewall_mode
-      rule_set_type            = waf_configuration.value.rule_set_type
-      rule_set_version         = waf_configuration.value.rule_set_version
-      file_upload_limit_mb     = lookup(waf_configuration.value, "file_upload_limit_mb", 100)
-      max_request_body_size_kb = lookup(waf_configuration.value, "max_request_body_size_kb", 128)
     }
   }
 

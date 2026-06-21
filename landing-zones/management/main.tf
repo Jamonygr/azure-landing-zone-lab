@@ -21,16 +21,17 @@ module "management" {
   onprem_address_prefix      = var.onprem_address_prefix
   allowed_jumpbox_source_ips = var.allowed_jumpbox_source_ips
 
-  vm_size                  = var.vm_size
-  admin_username           = var.admin_username
-  admin_password           = var.admin_password
-  enable_jumpbox_public_ip = var.enable_jumpbox_public_ip
-  enable_auto_shutdown     = var.enable_auto_shutdown
-  deploy_log_analytics     = var.deploy_log_analytics
-  log_retention_days       = var.log_retention_days
-  log_daily_quota_gb       = var.log_daily_quota_gb
-  firewall_private_ip      = var.firewall_private_ip
-  deploy_route_table       = var.deploy_route_table
+  vm_size                    = var.vm_size
+  admin_username             = var.admin_username
+  admin_password             = var.admin_password
+  enable_jumpbox_public_ip   = var.enable_jumpbox_public_ip
+  enable_auto_shutdown       = var.enable_auto_shutdown
+  encryption_at_host_enabled = var.encryption_at_host_enabled
+  deploy_log_analytics       = var.deploy_log_analytics
+  log_retention_days         = var.log_retention_days
+  log_daily_quota_gb         = var.log_daily_quota_gb
+  firewall_private_ip        = var.firewall_private_ip
+  deploy_route_table         = var.deploy_route_table
 
   # Disable module-level monitoring; handled below
   deploy_monitoring     = false
