@@ -34,8 +34,8 @@ The script creates a temporary tfvars file and backend-free Terraform workdir ou
 | Region | `West Europe` |
 | Environment | `livetest` |
 | State | Local backend with disposable state |
-| On | Hub, identity, management, shared, prod/dev workload VNets, firewall, App Gateway, public Load Balancer, Key Vault, Storage, SQL, private DNS, private endpoints, Log Analytics, Workbooks, Static Web App, Functions, Logic Apps, Event Grid, Service Bus, App Service, Cosmos DB, Azure Policy audit assignments |
-| Off | VPN, on-prem simulation, AKS, Container Apps placeholder, public jumpbox IP, public LB RDP NAT, VNet flow logs, Traffic Analytics, Connection Monitor, Backup, management groups, regulatory compliance, custom RBAC roles, cost budgets, scheduled start/stop |
+| On | Hub, identity, management, shared, prod/dev workload VNets, firewall, App Gateway, public Load Balancer, Key Vault, Storage, SQL, private DNS, private endpoints, Log Analytics, Workbooks, Static Web App, Functions, Container Apps, Logic Apps, Event Grid, Service Bus, App Service, Cosmos DB, Azure Policy audit assignments |
+| Off | VPN, on-prem simulation, AKS, public jumpbox IP, public LB RDP NAT, VNet flow logs, Traffic Analytics, Connection Monitor, Backup, management groups, regulatory compliance, custom RBAC roles, cost budgets, scheduled start/stop |
 | Secrets | Terraform-generated passwords stay in local state and are not printed |
 
 ## Validation matrix
@@ -61,7 +61,7 @@ Live checks after apply:
 | VNets | All six landing-zone VNets exist |
 | Peering | Hub VNet has spoke peerings |
 | Core platform | Firewall, App Gateway, Load Balancer, Key Vault, Storage, SQL, private endpoints, private DNS, and Log Analytics exist |
-| PaaS | Static Web App, Function App, Logic App, Event Grid, Service Bus, App Service, and Cosmos DB exist |
+| PaaS | Static Web App, Function App, Container App, Logic App, Event Grid, Service Bus, App Service, and Cosmos DB exist |
 | Workload | Load Balancer HTTP endpoint responds after bounded retry |
 | Terratest | Go integration tests pass with live Azure resource names |
 

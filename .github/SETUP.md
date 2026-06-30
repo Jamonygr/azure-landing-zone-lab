@@ -60,21 +60,12 @@ az ad app federated-credential create \
     \"audiences\": [\"api://AzureADTokenExchange\"]
   }"
 
-az ad app federated-credential create \
-  --id "$APP_ID" \
-  --parameters "{
-    \"name\": \"github-pr\",
-    \"issuer\": \"https://token.actions.githubusercontent.com\",
-    \"subject\": \"repo:${REPO}:pull_request\",
-    \"audiences\": [\"api://AzureADTokenExchange\"]
-  }"
-
 echo "AZURE_CLIENT_ID=$APP_ID"
 echo "AZURE_TENANT_ID=$TENANT_ID"
 echo "AZURE_SUBSCRIPTION_ID=$SUBSCRIPTION_ID"
 ```
 
-Grant the app registration the least-privilege roles your selected profile needs. A production-aligned profile usually needs resource deployment permissions plus role assignment and policy assignment permissions.
+The default workflow does not exchange Azure credentials on pull requests. Grant the app registration the least-privilege roles your selected profile needs for push and manual runs. A production-aligned profile usually needs resource deployment permissions plus role assignment and policy assignment permissions.
 
 ## 3. Add GitHub Secrets
 
@@ -97,9 +88,11 @@ Create these environments in **Settings -> Environments**:
 
 | Environment | Protection |
 |---|---|
+| `cheap-lab` | Optional reviewer |
 | `lab` | Optional reviewer |
 | `dev` | Optional reviewer |
 | `prod` | Required reviewer |
+| `cheap-lab-destroy` | Required reviewer |
 | `lab-destroy` | Required reviewer |
 | `dev-destroy` | Required reviewer |
 | `prod-destroy` | Required reviewer |

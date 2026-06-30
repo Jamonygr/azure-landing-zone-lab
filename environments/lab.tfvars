@@ -39,7 +39,7 @@ deploy_secondary_dc      = false # Second domain controller   ~$30
 
 # Compute & Containers
 deploy_aks            = false # Azure Kubernetes Service   ~$70+
-deploy_container_apps = false # Container Apps             ~$0-20
+deploy_container_apps = true  # Container Apps             ~$0-5
 deploy_functions      = false # Azure Functions            ~FREE
 
 # PaaS Services

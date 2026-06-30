@@ -52,6 +52,27 @@ module "data_subnet" {
   depends_on = [module.app_subnet] # Serialize subnet creation
 }
 
+# Container Apps Infrastructure Subnet
+module "container_apps_subnet" {
+  source = "../../../modules/networking/subnet"
+  count  = var.deploy_container_apps ? 1 : 0
+
+  name                 = "snet-aca-${var.workload_name}-${var.environment}-${var.location_short}"
+  resource_group_name  = var.resource_group_name
+  virtual_network_name = module.workload_vnet.name
+  address_prefixes     = [var.container_apps_subnet_prefix]
+
+  delegation = {
+    name = "delegation-container-apps"
+    service_delegation = {
+      name    = "Microsoft.App/environments"
+      actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
+    }
+  }
+
+  depends_on = [module.data_subnet] # Serialize subnet creation
+}
+
 # Web Tier NSG
 module "web_nsg" {
   source = "../../../modules/networking/nsg"
@@ -213,7 +234,10 @@ module "workload_route_table" {
   resource_group_name = var.resource_group_name
   location            = var.location
   # Exclude web subnet when public LB is deployed to avoid asymmetric routing
-  subnet_ids = var.deploy_load_balancer && var.lb_type == "public" ? [module.app_subnet.id, module.data_subnet.id] : [module.web_subnet.id, module.app_subnet.id, module.data_subnet.id]
+  subnet_ids = concat(
+    var.deploy_load_balancer && var.lb_type == "public" ? [module.app_subnet.id, module.data_subnet.id] : [module.web_subnet.id, module.app_subnet.id, module.data_subnet.id],
+    var.deploy_container_apps ? [module.container_apps_subnet[0].id] : []
+  )
   tags       = var.tags
   depends_on = [module.web_nsg, module.app_nsg, module.data_nsg] # Serialize subnet updates
 
@@ -468,6 +492,27 @@ module "app_service" {
   log_analytics_workspace_id = var.log_analytics_workspace_id
   enable_diagnostics         = var.enable_diagnostics
   tags                       = var.tags
+}
+
+# Container Apps (Consumption, scale-to-zero)
+module "container_apps" {
+  source = "../../../modules/container-apps"
+  count  = var.deploy_container_apps ? 1 : 0
+
+  name_suffix              = "${var.workload_name}-${var.environment}-${var.location_short}"
+  resource_group_name      = var.resource_group_name
+  location                 = var.location
+  infrastructure_subnet_id = module.container_apps_subnet[0].id
+
+  internal_load_balancer_enabled = false
+  log_analytics_workspace_id     = var.log_analytics_workspace_id
+
+  env_vars = {
+    LANDING_ZONE = var.workload_name
+    ENVIRONMENT  = var.environment
+  }
+
+  tags = var.tags
 }
 
 # =============================================================================

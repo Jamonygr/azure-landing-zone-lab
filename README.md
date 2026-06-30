@@ -25,6 +25,17 @@ Azure Landing Zone Lab is a Terraform-first sandbox for building and understandi
 | Certification prep | Build hands-on evidence for AZ-104, AZ-305, AZ-700, and AZ-400 study paths. |
 | Proof of concept work | Toggle features in `terraform.tfvars`, run a plan, and compare deployment profiles quickly. |
 
+## ✅ Quality Review Path
+
+If you are reviewing the lab for quality, start here:
+
+| Step | Command or file | What it proves |
+|------|-----------------|----------------|
+| Lowest-cost deployment | `environments/cheap-lab.tfvars` | Private-first landing zone fundamentals without Firewall, VPN, AKS, or web VM pool cost. |
+| Full lab exploration | `environments/lab.tfvars` | Hub-spoke, WAF, private endpoints, PaaS, governance, observability, and workload services. |
+| CI/CD readiness | `.github/workflows/terraform.yml` | Format, validate, security scans, policy checks, docs, plan/apply/destroy gates, and artifacts. |
+| End-to-end proof | `.\scripts\invoke-live-validation.ps1` | Disposable Azure apply, smoke tests, Terratest, destroy, and teardown verification. |
+
 ## 🏛️ Architecture Diagram
 
 <p align="center">
@@ -47,6 +58,7 @@ At the top of `terraform.tfvars` there is a **MASTER CONTROL PANEL** section tha
 ## 📋 Table of Contents
 
 - [Overview](#-overview)
+- [Quality Review Path](#-quality-review-path)
 - [Architecture Diagram](#-architecture-diagram)
 - [Quick Start](#-quick-start)
 - [Deployment Profiles](#-deployment-profiles)
@@ -94,10 +106,8 @@ All PaaS services are **optional** and controlled via deployment flags:
 | 📬 **Event Grid** | `deploy_event_grid` | Standard | **FREE** (100k ops) |
 | 🚌 **Service Bus** | `deploy_service_bus` | Basic | ~$0.05/month |
 | 🌍 **App Service** | `deploy_app_service` | F1 Free | **FREE** |
+| 📦 **Container Apps** | `deploy_container_apps` | Consumption | ~$0-5/month |
 | 🗃️ **Cosmos DB** | `deploy_cosmos_db` | Serverless | ~$0-5/month |
-
-> **Note**: `deploy_container_apps` exists as a placeholder flag but is not currently wired to a module.
-
 
 ### 🎯 Use Cases
 
@@ -113,15 +123,14 @@ All PaaS services are **optional** and controlled via deployment flags:
 
 ## ⚡ Deployment Profiles
 
-| Profile | Components | Deploy Time | Est. Monthly Cost |
-|---------|------------|-------------|------------------|
-| **Minimal** | Core VNets + Identity + Management (no Firewall) | ~8 min | ~$100-150 |
-| **Standard** | Minimal + Firewall + Load Balancer + IIS | ~15 min | ~$450-500 |
-| **Standard + PaaS** | Standard + All PaaS Services | ~25 min | ~$500-550 |
-| **Full Hybrid** | Standard + VPN + On-Prem Simulation | ~45 min | ~$650-700 |
-| **Enterprise** | Full Hybrid + AKS + App Gateway | ~55 min | ~$850-950 |
+| Profile | File | Best for | Default posture | Est. monthly cost |
+|---------|------|----------|-----------------|-------------------|
+| **cheap-lab** | `environments/cheap-lab.tfvars` | First review, demos, and cost-safe learning | Private-first, no Firewall/VPN/AppGW/AKS/web VM pool | Lowest |
+| **lab** | `environments/lab.tfvars` | Full platform exploration | Firewall, App Gateway, NAT, prod/dev spokes, private endpoints, PaaS, governance | Higher |
+| **dev** | `environments/dev.tfvars` | Development testing | Dev workload, AKS, no Firewall/VPN/on-prem simulation | Medium |
+| **prod** | `environments/prod.tfvars` | Production-pattern validation | Firewall, VPN, on-prem simulation, secondary DC, AKS | Highest |
 
-> **Current Default Config** (`terraform.tfvars`): Standard + PaaS + Network Add-ons + Dev VNet (VPN/AKS/Flow Logs/Backup off; ~$500-600/month)
+Start with `cheap-lab` unless you specifically need WAF, Azure Firewall, NAT Gateway, AKS, or the full PaaS bundle.
 
 ---
 
@@ -472,7 +481,7 @@ The configuration automatically excludes the web subnet from firewall routing wh
 | ├─ WebSubnet | 10.10.1.0/24 | **Load Balanced Web Tier** |
 | ├─ AppSubnet | 10.10.2.0/24 | App tier VMs |
 | ├─ DataSubnet | 10.10.3.0/24 | Database VMs |
-| ├─ ContainerAppsSubnet | 10.10.8.0/23 | Reserved for future Container Apps support |
+| ├─ ContainerAppsSubnet | 10.10.8.0/23 | Delegated subnet for Azure Container Apps |
 | └─ AKSSubnet | 10.10.16.0/20 | AKS node pool (4094 IPs) |
 | **Workload Dev** | 10.11.0.0/16 | Development apps |
 | ├─ WebSubnet | 10.11.1.0/24 | Dev web tier |
@@ -501,10 +510,10 @@ The configuration automatically excludes the web subnet from firewall routing wh
 git clone https://github.com/Jamonygr/azure-landing-zone-lab.git
 cd azure-landing-zone-lab
 
-# Copy example config
+# Copy example config for local-only values and secrets.
 cp terraform.tfvars.example terraform.tfvars
 
-# Edit configuration (set at minimum subscription_id and admin credentials)
+# Edit configuration if you want to override the selected profile.
 code terraform.tfvars
 ```
 
@@ -515,27 +524,35 @@ code terraform.tfvars
 az login
 az account set --subscription "<your-subscription-id>"
 
-# Initialize Terraform
-terraform init
+# Initialize Terraform with local state for a disposable lab.
+# Use the remote backend only after you configure the state storage in .github/SETUP.md.
+terraform init -backend=false
 
-# Plan deployment
-terraform plan -out=tfplan
+# Plan the lowest-cost profile first.
+terraform plan -var-file="environments/cheap-lab.tfvars" -out=tfplan
 
 # Apply
 terraform apply tfplan
 ```
 
-### Step 3: Verify Load Balancer
+### Step 3: Verify and Clean Up
 
 ```bash
-# Get the Load Balancer IP
-terraform output lb_frontend_ip
+# Inspect outputs from the deployed profile.
+terraform output
 
-# Test with curl (should alternate between web01-prd and web02-prd)
+# Clean up the cheap-lab deployment when done.
+terraform destroy -var-file="environments/cheap-lab.tfvars"
+```
+
+To test the public web tier instead, deploy the full lab profile and verify the Load Balancer endpoint:
+
+```bash
+terraform plan -var-file="environments/lab.tfvars" -out=tfplan
+terraform apply tfplan
 curl http://$(terraform output -raw lb_frontend_ip)
 
-# Clean up when done
-terraform destroy
+terraform destroy -var-file="environments/lab.tfvars"
 ```
 
 ---
@@ -566,8 +583,9 @@ Artifacts include the saved plan, terraform-docs output, dependency graph SVG, m
 ### Triggers
 
 - **Push to `main` (repo health paths)**: runs format/validate → security/linters → docs/graph/version → cost → plan. Apply/Destroy never auto-run.
-- **Pull Request to `main`**: same checks plus plan for review; no PR comment is posted.
-- **Manual dispatch**: pick `action` (`plan|apply|destroy`) and `environment` (`lab|dev|prod`), plus `destroy_confirm=DESTROY` for destroys. Apply/Destroy only run via `workflow_dispatch`.
+- **Pull Request to `main`**: runs static, security, lint, docs, graph, version, and cost checks without exchanging Azure credentials.
+- **Push to `main` or manual dispatch**: runs authenticated Terraform plan against the selected environment.
+- **Manual dispatch**: pick `action` (`plan|apply|destroy`) and `environment` (`cheap-lab|dev|lab|prod`), plus `destroy_confirm=DESTROY` for destroys. Apply/Destroy only run via `workflow_dispatch`.
 
 > Concurrency: one run per branch + environment (`terraform-${ref}-${environment}`); newer runs wait rather than cancel.
 
@@ -869,11 +887,10 @@ az network vpn-connection show \
 
 | Profile | Est. Monthly Cost | Key Cost Drivers |
 |---------|-------------------|------------------|
-| **Minimal** | ~$150-200 | VMs only, no firewall |
-| **Standard** | ~$450-550 | Firewall ($350), VMs (~$150), LB (~$25) |
-| **Standard + PaaS** | ~$500-600 | Standard + PaaS services (~$60) |
-| **Full Hybrid** | ~$650-750 | Standard + VPN Gateway (~$140) |
-| **Enterprise** | ~$900-1000 | Full + AKS (~$150) + App Gateway (~$36) |
+| **cheap-lab** | Lowest | Core landing-zone shape, no Firewall/VPN/AppGW/AKS/web VM pool |
+| **lab** | Higher | Firewall, WAF, NAT, web VMs, private endpoints, PaaS, governance |
+| **dev** | Medium | Dev workload and AKS without Firewall/VPN/on-prem simulation |
+| **prod** | Highest | Firewall, VPN, on-prem simulation, secondary DC, AKS |
 
 ### Detailed Cost Breakdown
 
@@ -903,10 +920,9 @@ az network vpn-connection show \
 | **Event Grid** | Standard | **FREE** (100k ops) |
 | **Service Bus** | Basic | ~$0.05 |
 | **App Service** | F1 Free | **FREE** |
+| **Container Apps** | Consumption | ~$0-5 |
 | **Cosmos DB** | Serverless | ~$0-5 |
-| **Total PaaS** | | **~$0-10/month** |
-
-> **Note**: `deploy_container_apps` exists as a placeholder flag but is not currently wired to a module.
+| **Total PaaS** | | **~$0-15/month** |
 
 ### 💡 Cost Optimization Tips
 
@@ -1094,7 +1110,7 @@ azure-landing-zone-lab/
 │   │   ├── core/              # Hub networking core components
 │   │   ├── connectivity/      # VNet peering, flow logs, NAT, ASGs
 │   │   ├── onprem-simulated/  # Simulated on-premises for hybrid testing
-│   │   └── secondary-region/  # Multi-region support (placeholder)
+│   │   └── secondary-region/  # Optional secondary-region networking
 │   │
 │   ├── identity-management/   # PILLAR 2: Identity Management
 │   │   ├── main.tf            # Domain Controllers, DNS
@@ -1220,7 +1236,7 @@ deploy_logic_apps     = false                  # Logic Apps (pay per run)
 deploy_event_grid     = false                  # Event Grid (FREE 100k)
 deploy_service_bus    = false                  # Service Bus (~$0.05/mo)
 deploy_app_service    = false                  # App Service (~$13/mo)
-deploy_container_apps = false                  # Container Apps (placeholder flag; not wired)
+deploy_container_apps = false                  # Container Apps (Consumption, scale-to-zero)
 deploy_cosmos_db      = false                  # Cosmos DB (serverless)
 
 # =============================================================================
@@ -1272,6 +1288,7 @@ deploy_backup                    = false       # Recovery Services Vault
 | `deploy_event_grid` | Event Grid | `false` | FREE |
 | `deploy_service_bus` | Service Bus (Basic) | `false` | ~$0.05/mo |
 | `deploy_app_service` | App Service (F1) | `false` | FREE |
+| `deploy_container_apps` | Container Apps sample workload | `false` | ~$0-5/mo |
 | `deploy_cosmos_db` | Cosmos DB (Serverless) | `false` | ~$0-5/mo |
 | **Network Add-ons** ||||
 | `deploy_nat_gateway` | NAT Gateway for fixed outbound IP | `false` | ~$4-5/mo |
@@ -1307,7 +1324,7 @@ deploy_backup                    = false       # Recovery Services Vault
 
 ```bash
 # Initialize
-terraform init
+terraform init -backend=false
 
 # Plan with specific var file
 terraform plan -var-file="environments/prod.tfvars" -out=tfplan
@@ -1320,6 +1337,7 @@ terraform output
 
 # Get specific output
 terraform output lb_frontend_ip
+terraform output -raw container_app_fqdn
 terraform output -raw keyvault_uri
 
 # Destroy everything

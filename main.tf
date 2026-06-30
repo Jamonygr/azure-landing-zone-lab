@@ -391,14 +391,16 @@ module "workload_prod" {
   admin_username             = var.admin_username
   admin_password             = local.effective_admin_password
 
-  deploy_functions      = var.deploy_functions
-  deploy_static_web_app = var.deploy_static_web_app
-  deploy_logic_apps     = var.deploy_logic_apps
-  deploy_event_grid     = var.deploy_event_grid
-  deploy_service_bus    = var.deploy_service_bus
-  deploy_app_service    = var.deploy_app_service
-  deploy_cosmos_db      = var.deploy_cosmos_db
-  cosmos_location       = var.cosmos_location != "" ? var.cosmos_location : null
+  deploy_functions             = var.deploy_functions
+  deploy_static_web_app        = var.deploy_static_web_app
+  deploy_logic_apps            = var.deploy_logic_apps
+  deploy_event_grid            = var.deploy_event_grid
+  deploy_service_bus           = var.deploy_service_bus
+  deploy_app_service           = var.deploy_app_service
+  deploy_container_apps        = var.deploy_container_apps
+  container_apps_subnet_prefix = var.workload_prod_container_apps_subnet_prefix
+  deploy_cosmos_db             = var.deploy_cosmos_db
+  cosmos_location              = var.cosmos_location != "" ? var.cosmos_location : null
 
   paas_alternative_location = var.paas_alternative_location
 }

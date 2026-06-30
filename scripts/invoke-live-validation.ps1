@@ -338,6 +338,8 @@ function Invoke-SmokeChecks {
     Assert-ResourceTypeCount -ResourceGroupName $prodRg -ResourceType "Microsoft.Compute/virtualMachines" -Minimum 2
     Assert-ResourceTypeCount -ResourceGroupName $prodRg -ResourceType "Microsoft.Web/staticSites"
     Assert-ResourceTypeCount -ResourceGroupName $prodRg -ResourceType "Microsoft.Web/sites" -Minimum 2
+    Assert-ResourceTypeCount -ResourceGroupName $prodRg -ResourceType "Microsoft.App/managedEnvironments"
+    Assert-ResourceTypeCount -ResourceGroupName $prodRg -ResourceType "Microsoft.App/containerApps"
     Assert-ResourceTypeCount -ResourceGroupName $prodRg -ResourceType "Microsoft.Logic/workflows"
     Assert-ResourceTypeCount -ResourceGroupName $prodRg -ResourceType "Microsoft.EventGrid/topics"
     Assert-ResourceTypeCount -ResourceGroupName $prodRg -ResourceType "Microsoft.ServiceBus/namespaces"
@@ -427,7 +429,7 @@ lb_web_server_count        = 2
 lb_web_server_size         = "Standard_B1ms"
 
 deploy_aks             = false
-deploy_container_apps  = false
+deploy_container_apps  = true
 deploy_functions       = true
 deploy_static_web_app  = true
 deploy_logic_apps      = true

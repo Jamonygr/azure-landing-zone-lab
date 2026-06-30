@@ -40,7 +40,7 @@ on:
         required: true
         default: 'lab'
         type: choice
-        options: [dev, lab, prod]
+        options: [cheap-lab, dev, lab, prod]
       action:
         description: 'Action'
         required: true
@@ -221,6 +221,7 @@ jobs:
     name: '4️⃣ Lint - Policy'
     runs-on: ubuntu-latest
     needs: plan
+    if: github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@v4
 
@@ -351,6 +352,7 @@ jobs:
     name: '7️⃣ Plan'
     runs-on: ubuntu-latest
     needs: [graph, module-versions]
+    if: github.event_name != 'pull_request'
     outputs:
       has_changes: ${{ steps.plan.outputs.has_changes }}
       add: ${{ steps.plan.outputs.add }}
