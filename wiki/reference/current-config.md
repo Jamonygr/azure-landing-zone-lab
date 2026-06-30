@@ -64,7 +64,7 @@ For the full list of feature flags, see the **MASTER CONTROL PANEL** section at 
 - Secondary Domain Controller
 - AKS
 - Azure Functions
-- Container Apps placeholder flag (no module is deployed today)
+- Container Apps is available as an optional Consumption workload
 - Recovery Services Vault (backup)
 - VNet Flow Logs and Traffic Analytics
 

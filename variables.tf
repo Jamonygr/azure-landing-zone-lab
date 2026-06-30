@@ -533,9 +533,14 @@ variable "deploy_app_service" {
 }
 
 variable "deploy_container_apps" {
-  description = "Deploy Azure Container Apps (Consumption ~$5/month)"
+  description = "Deploy Azure Container Apps managed environment and sample app (Consumption ~$0-5/month)"
   type        = bool
   default     = false
+
+  validation {
+    condition     = !var.deploy_container_apps || var.deploy_workload_prod
+    error_message = "deploy_container_apps requires deploy_workload_prod = true because the Container Apps environment is deployed in the production workload VNet."
+  }
 }
 
 # -----------------------------------------------------------------------------
@@ -591,7 +596,7 @@ variable "appgw_waf_mode" {
 # -----------------------------------------------------------------------------
 
 variable "workload_prod_container_apps_subnet_prefix" {
-  description = "Workload Prod Container Apps subnet prefix"
+  description = "Workload Prod delegated Container Apps infrastructure subnet prefix"
   type        = string
   default     = "10.10.8.0/23"
 }

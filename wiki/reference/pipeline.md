@@ -129,21 +129,12 @@ az ad app federated-credential create \
     \"audiences\": [\"api://AzureADTokenExchange\"]
   }"
 
-az ad app federated-credential create \
-  --id "$APP_ID" \
-  --parameters "{
-    \"name\": \"github-pr\",
-    \"issuer\": \"https://token.actions.githubusercontent.com\",
-    \"subject\": \"repo:${REPO}:pull_request\",
-    \"audiences\": [\"api://AzureADTokenExchange\"]
-  }"
-
 echo "AZURE_CLIENT_ID=$APP_ID"
 echo "AZURE_TENANT_ID=$TENANT_ID"
 echo "AZURE_SUBSCRIPTION_ID=$SUBSCRIPTION_ID"
 ```
 
-Grant the OIDC principal the Azure RBAC permissions required by the selected profile. Policy and role assignment features require elevated permissions such as User Access Administrator and Resource Policy Contributor, or an equivalent custom role model.
+The default workflow does not exchange Azure credentials on pull requests. Grant the OIDC principal the Azure RBAC permissions required by the selected profile for push and manual runs. Policy and role assignment features require elevated permissions such as User Access Administrator and Resource Policy Contributor, or an equivalent custom role model.
 
 ### Step 4: Configure GitHub Secrets
 
@@ -255,7 +246,8 @@ format → validate → [tfsec, checkov, secret-scan, tflint, actionlint, terraf
 | Event | What Happens |
 |-------|--------------|
 | **Push to `main`** | Runs format/validate → security/linters/docs → graph/version → cost → plan (no auto-apply) |
-| **Pull Request to `main`** | Same checks + plan for review; no PR comment is posted |
+| **Pull Request to `main`** | Static, security, lint, docs, graph, version, and cost checks without Azure credential exchange |
+| **Push to `main` / manual dispatch** | Authenticated Terraform plan for the selected environment |
 
 **Path Filters**: Pipeline runs when these paths change:
 - `**.tf` - Terraform configuration files
@@ -273,8 +265,8 @@ Start from **GitHub → Actions → Terraform Pipeline → Run workflow** and se
 
 | Input | Options | Description |
 |-------|---------|-------------|
-| **Action** | `plan`, `apply`, `destroy` | Plan always runs; Apply runs only when `action=apply`; Destroy runs only when `action=destroy`. |
-| **Environment** | `lab`, `dev`, `prod` | Selects the tfvars/state key (default lab) |
+| **Action** | `plan`, `apply`, `destroy` | Plan runs for non-PR events; Apply runs only when `action=apply`; Destroy runs only when `action=destroy`. |
+| **Environment** | `cheap-lab`, `dev`, `lab`, `prod` | Selects the tfvars/state key (default lab) |
 | **Destroy confirm** | Type `DESTROY` | Required safety confirmation for destroy |
 
 Apply is further gated on `has_changes=true` from the Plan job.
@@ -468,6 +460,7 @@ The pipeline uses environment-specific variable files:
 
 | Environment | File | State Key |
 |-------------|------|-----------|
+| Cheap lab | `environments/cheap-lab.tfvars` | `cheap-lab.terraform.tfstate` |
 | Lab | `environments/lab.tfvars` | `lab.terraform.tfstate` |
 | Dev | `environments/dev.tfvars` | `dev.terraform.tfstate` |
 | Prod | `environments/prod.tfvars` | `prod.terraform.tfstate` |

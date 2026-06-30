@@ -66,7 +66,7 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 - `variables.tf`, `locals.tf`, `terraform.tfvars` - input surface and default shaping. The MASTER CONTROL PANEL at the top of `terraform.tfvars` drives deploy/enable switches.
 - `landing-zones/` - per-zone compositions (hub, identity, management, shared, workload, on-prem).
 - `modules/` - reusable building blocks (networking, compute, security, monitoring, PaaS).
-- `environments/` - per-environment `*.tfvars` (lab/dev/prod) used by the pipeline to isolate state.
+- `environments/` - per-environment `*.tfvars` (cheap-lab/dev/lab/prod) used by the pipeline to isolate state.
 - `.github/workflows/terraform.yml` - orchestrator workflow (16 visible jobs).
 - `.github/actions/` - composite actions for plan/apply/destroy plus cost, graph, docs, policy, secrets, inventory, changelog, metrics, terratest.
 - `wiki/` - documentation hub (this guide, reference pages, testing, hardening, etc.).
@@ -81,15 +81,15 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 ### Providers and backend
 - Providers: AzureRM ~> 4.x and AzAPI ~> 2.x (AzAPI needed for modern features like VNet Flow Logs).
 - Backend: azurerm with container `tfstate`; key is `<environment>.terraform.tfstate`; set via pipeline/backend config.
-- State isolation: each environment (lab/dev/prod) maps to its own key; locks are blob leases.
+- State isolation: each environment (cheap-lab/dev/lab/prod) maps to its own key; locks are blob leases.
 
 ### Feature flags and profiles
 - MASTER CONTROL PANEL in `terraform.tfvars` groups all `deploy_*` / `enable_*` flags.
 - Common switches: `deploy_firewall`, `deploy_vpn_gateway`, `deploy_application_gateway`, `deploy_workload_prod`, `deploy_workload_dev`, `deploy_private_endpoints`, `deploy_nat_gateway`, `deploy_aks`, PaaS flags, observability flags.
-- Profiles (see README tables): Minimal, Standard, Standard+PaaS, Full Hybrid, Enterprise.
+- Profiles (see README tables): cheap-lab, lab, dev, and prod.
 
 ### Environment profiles
-- `environments/lab.tfvars`, `dev.tfvars`, and `prod.tfvars` override the same variables with different sizes, regions, and feature flags.
+- `environments/cheap-lab.tfvars`, `lab.tfvars`, `dev.tfvars`, and `prod.tfvars` override the same variables with different sizes, regions, and feature flags.
 - The pipeline chooses the profile and state key based on the environment input.
 - Locals normalize names and tags so each environment stays consistent.
 
@@ -196,7 +196,7 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 ### Triggers
 - Push to `main` with repo health path filters: runs all checks through plan; apply is never automatic.
 - Pull request to `main`: same checks plus plan; no PR comment is posted by default.
-- Manual (`workflow_dispatch`): choose `action` (`plan|apply|destroy`), `environment` (`lab|dev|prod`), and `destroy_confirm` for destroys. Apply runs only if plan reported `has_changes=true`.
+- Manual (`workflow_dispatch`): choose `action` (`plan|apply|destroy`), `environment` (`cheap-lab|dev|lab|prod`), and `destroy_confirm` for destroys. Apply runs only if plan reported `has_changes=true`.
 
 ### Safety rails built in
 - Detailed exit codes prevent no-op plans from running apply.
@@ -256,7 +256,8 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 
 ### Testing
 - Use `wiki/testing/lab-testing-guide.md` for post-deploy validation (web LB, RDP paths, VPN, logs).
-- Terratest composite action is available but not wired into the main workflow; can be added as a job if desired.
+- Use `scripts/invoke-live-validation.ps1` when you need disposable apply, smoke-test, Terratest, and destroy evidence.
+- The Terratest composite action is available for a future dedicated CI job; the live validation runner already invokes the Go tests after apply.
 
 ---
 

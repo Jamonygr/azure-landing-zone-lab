@@ -222,6 +222,23 @@ variable "deploy_app_service" {
   default     = false
 }
 
+variable "deploy_container_apps" {
+  description = "Deploy Azure Container Apps sample workload"
+  type        = bool
+  default     = false
+}
+
+variable "container_apps_subnet_prefix" {
+  description = "Container Apps infrastructure subnet CIDR"
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = !var.deploy_container_apps || length(var.container_apps_subnet_prefix) > 0
+    error_message = "container_apps_subnet_prefix must be set when deploy_container_apps = true."
+  }
+}
+
 # =============================================================================
 # PAAS SERVICES - TIER 3 (DATA)
 # =============================================================================

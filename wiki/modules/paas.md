@@ -11,7 +11,7 @@ These modules provision popular Azure platform services used by the workload lan
 
 | Tier | Services | Est. Monthly Cost |
 |------|----------|-------------------|
-| **Tier 1 – Compute** | AKS, Functions, Static Web App, App Service, Logic Apps, Container Apps placeholder | Free - $30 |
+| **Tier 1 – Compute** | AKS, Functions, Static Web App, App Service, Logic Apps, Container Apps | Free - $35 |
 | **Tier 2 – Integration** | Event Grid, Service Bus, Event Hubs, API Management | Free - $5 |
 | **Tier 3 – Data** | Cosmos DB, Storage, SQL | $0 - $15 |
 
@@ -100,17 +100,20 @@ Creates a logic app workflow in consumption mode.
 **Outputs:** `logic_app_id`  
 **Cost:** ~$0 (pay per execution)
 
-### Container Apps (placeholder flag)
+### Container Apps (`modules/container-apps/`)
 
-`deploy_container_apps` is reserved for future Container Apps support. The current repo has no implementation behind that flag, so enabling it does not create Azure Container Apps resources today.
+Creates a Container Apps managed environment in a delegated workload subnet and deploys a small hello-world app on the Consumption profile.
 
 | Input | Description | Default |
 |-------|-------------|---------|
-| `deploy_container_apps` | Reserved feature flag | `false` |
-| `workload_prod_container_apps_subnet_prefix` | Reserved subnet prefix for future Container Apps support | `10.10.8.0/23` |
+| `deploy_container_apps` | Enable Container Apps in the workload landing zone | `false` |
+| `workload_prod_container_apps_subnet_prefix` | Delegated infrastructure subnet prefix | `10.10.8.0/23` |
+| `container_image` | Sample container image | `mcr.microsoft.com/azuredocs/containerapps-helloworld:latest` |
+| `min_replicas` | Minimum replicas | `0` |
+| `max_replicas` | Maximum replicas | `1` |
 
-**Outputs:** none today
-**Cost:** none until a module is added
+**Outputs:** `container_app_name`, `container_app_fqdn`
+**Cost:** ~$0-5/month for light lab use
 
 ## Tier 2 – Integration
 
@@ -201,6 +204,7 @@ deploy_logic_apps     = true
 deploy_event_grid     = true
 deploy_service_bus    = true
 deploy_app_service    = true
+deploy_container_apps = true
 deploy_cosmos_db      = true
 deploy_aks            = true
 ```

@@ -194,7 +194,7 @@ on:
       - 'docs/**'
   workflow_dispatch:
     inputs:
-      environment: [dev, lab, prod]
+      environment: [cheap-lab, dev, lab, prod]
       action: [plan, apply, destroy]
       destroy_confirm: string
 
@@ -215,7 +215,7 @@ jobs:
   graph:            # 5️⃣ Analysis - Graph
   module-versions:  # 5️⃣ Analysis - Versions
   cost-estimate:    # 6️⃣ Analysis - Cost (Infracost)
-  plan:             # 7️⃣ Plan (composite)
+  plan:             # 7️⃣ Plan (composite; skipped on pull_request)
   apply:            # 8️⃣ Apply (composite)
   destroy:          # 9️⃣ Destroy (composite)
   metrics:          # 🔟 Metrics
