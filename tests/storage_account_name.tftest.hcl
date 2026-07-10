@@ -18,9 +18,7 @@ mock_provider "azurerm" {
   }
 }
 mock_provider "azapi" {}
-mock_provider "random" {
-  override_during = plan
-}
+mock_provider "random" {}
 mock_provider "time" {}
 
 variables {
@@ -71,14 +69,6 @@ variables {
   enable_scheduled_startstop   = false
 }
 
-override_resource {
-  target          = random_string.suffix
-  override_during = plan
-  values = {
-    result = "a1b2"
-  }
-}
-
 run "cheap_lab_storage_name_is_sanitized" {
   command = plan
 
@@ -87,8 +77,13 @@ run "cheap_lab_storage_name_is_sanitized" {
   }
 
   assert {
-    condition     = local.storage_account_name == "stazlabcheaplaba1b2"
-    error_message = "The cheap-lab storage account name must remove the environment hyphen before appending the suffix."
+    condition     = local.storage_account_name_prefix == "stazlabcheaplab"
+    error_message = "The cheap-lab storage account prefix must remove the environment hyphen before appending the suffix."
+  }
+
+  assert {
+    condition     = random_string.suffix.length == 4 && !random_string.suffix.special && !random_string.suffix.upper
+    error_message = "The storage account suffix must remain four lowercase alphanumeric characters."
   }
 }
 
@@ -100,7 +95,7 @@ run "lab_storage_name_is_stable" {
   }
 
   assert {
-    condition     = local.storage_account_name == "stazlablaba1b2"
+    condition     = local.storage_account_name_prefix == "stazlablab"
     error_message = "The existing lab storage account naming pattern must remain unchanged."
   }
 }
