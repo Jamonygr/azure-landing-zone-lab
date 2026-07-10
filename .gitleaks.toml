@@ -52,6 +52,7 @@ regexes = [
     '''<.*>''',  # Placeholder values
     '''xxxxxxxx''',  # Masked values
     '''00000000-0000-0000-0000-000000000000''',  # Placeholder GUID
+    '''11111111-1111-1111-1111-111111111111''',  # Mock Terraform subscription ID
 ]
 
 # Specific commits to ignore
