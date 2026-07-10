@@ -513,7 +513,9 @@ cd azure-landing-zone-lab
 # Copy example config for local-only values and secrets.
 cp terraform.tfvars.example terraform.tfvars
 
-# Edit configuration if you want to override the selected profile.
+# Replace the zero-GUID subscription_id placeholder with the real subscription
+# ID selected below. Terraform rejects the placeholder before any deployment.
+# Edit other local-only values or profile overrides as needed.
 code terraform.tfvars
 ```
 
@@ -524,9 +526,20 @@ code terraform.tfvars
 az login
 az account set --subscription "<your-subscription-id>"
 
-# Initialize Terraform with local state for a disposable lab.
-# Use the remote backend only after you configure the state storage in .github/SETUP.md.
+# Backend-disabled initialization is for static validation only.
 terraform init -backend=false
+terraform validate
+
+# Configure the Azure Storage backend before any plan or apply.
+# Create it first by following .github/SETUP.md, then set its real names here.
+export TF_STATE_RG="rg-terraform-state"
+export TF_STATE_SA="<your-state-storage-account>"
+terraform init -reconfigure \
+  -backend-config="resource_group_name=$TF_STATE_RG" \
+  -backend-config="storage_account_name=$TF_STATE_SA" \
+  -backend-config="container_name=tfstate" \
+  -backend-config="key=cheap-lab.terraform.tfstate" \
+  -backend-config="use_azuread_auth=true"
 
 # Plan the lowest-cost profile first.
 terraform plan -var-file="environments/cheap-lab.tfvars" -out=tfplan
@@ -538,8 +551,10 @@ terraform apply tfplan
 ### Step 3: Verify and Clean Up
 
 ```bash
-# Inspect outputs from the deployed profile.
-terraform output
+# Inspect outputs that the cheap-lab profile actually deploys.
+terraform output resource_group_names
+terraform output -raw keyvault_uri
+terraform output -raw storage_account_name
 
 # Clean up the cheap-lab deployment when done.
 terraform destroy -var-file="environments/cheap-lab.tfvars"
@@ -548,9 +563,18 @@ terraform destroy -var-file="environments/cheap-lab.tfvars"
 To test the public web tier instead, deploy the full lab profile and verify the Load Balancer endpoint:
 
 ```bash
+# Select the lab state before planning the lab profile.
+terraform init -reconfigure \
+  -backend-config="resource_group_name=$TF_STATE_RG" \
+  -backend-config="storage_account_name=$TF_STATE_SA" \
+  -backend-config="container_name=tfstate" \
+  -backend-config="key=lab.terraform.tfstate" \
+  -backend-config="use_azuread_auth=true"
+
 terraform plan -var-file="environments/lab.tfvars" -out=tfplan
 terraform apply tfplan
 curl http://$(terraform output -raw lb_frontend_ip)
+curl https://$(terraform output -raw container_app_fqdn)
 
 terraform destroy -var-file="environments/lab.tfvars"
 ```
@@ -578,13 +602,13 @@ The GitHub Actions workflow (`.github/workflows/terraform.yml`) now has **16 vis
 - **9️⃣ Destroy** (manual `action=destroy` + `DESTROY` confirm)
 - **🔟 Metrics** (after successful Apply)
 
-Artifacts include the saved plan, terraform-docs output, dependency graph SVG, module/provider versions, cost report, changelog, resource inventory, and metrics JSON.
+Depending on the trigger, artifacts include the saved plan, terraform-docs output, dependency graph SVG, module/provider versions, cost report, changelog, resource inventory, and metrics JSON. Pull requests do not produce plan, policy, apply, destroy, inventory, changelog, or metrics artifacts.
 
 ### Triggers
 
 - **Push to `main` (repo health paths)**: runs format/validate → security/linters → docs/graph/version → cost → plan. Apply/Destroy never auto-run.
-- **Pull Request to `main`**: runs static, security, lint, docs, graph, version, and cost checks without exchanging Azure credentials.
-- **Push to `main` or manual dispatch**: runs authenticated Terraform plan against the selected environment.
+- **Pull Request to `main`**: runs static validation, security, lint, docs, graph, version, and cost analysis without exchanging Azure credentials; plan and policy jobs are skipped.
+- **Push to `main` or manual dispatch from `main`**: runs an authenticated Terraform plan against the selected environment.
 - **Manual dispatch**: pick `action` (`plan|apply|destroy`) and `environment` (`cheap-lab|dev|lab|prod`), plus `destroy_confirm=DESTROY` for destroys. Apply/Destroy only run via `workflow_dispatch`.
 
 > Concurrency: one run per branch + environment (`terraform-${ref}-${environment}`); newer runs wait rather than cancel.
@@ -596,6 +620,7 @@ Terraform state is stored in Azure Blob Storage for team collaboration and state
 ```
 Azure Storage Account
 └── Container: tfstate
+    ├── cheap-lab.terraform.tfstate
     ├── lab.terraform.tfstate
     ├── dev.terraform.tfstate
     └── prod.terraform.tfstate
@@ -614,18 +639,16 @@ Azure Storage Account
 
 The pipeline uses GitHub Actions OIDC federation. Do not store a long-lived Azure client secret JSON in repository secrets.
 
+The OIDC app registration needs nine federated credentials: one for the `main` branch, four for the apply environments (`cheap-lab`, `lab`, `dev`, `prod`), and four for the corresponding `-destroy` environments. Follow [`.github/SETUP.md`](.github/SETUP.md) to create the exact subjects and GitHub environments.
+
 ### Quick Commands
 
 ```bash
-# Create an app registration and add a federated credential for this repo.
-# Then grant least-privilege Azure roles required by your selected profile.
-az ad app create --display-name "terraform-alz-pipeline"
-
 # Deploy infrastructure (manual apply)
-gh workflow run "Terraform Pipeline" -f action=apply -f environment=lab
+gh workflow run "Terraform Pipeline" --ref main -f action=apply -f environment=lab
 
 # Destroy infrastructure (requires confirmation)
-gh workflow run "Terraform Pipeline" \
+gh workflow run "Terraform Pipeline" --ref main \
   -f action=destroy \
   -f environment=lab \
   -f destroy_confirm=DESTROY
@@ -646,7 +669,7 @@ gh run watch
 # =============================================================================
 # CORE SETTINGS
 # =============================================================================
-subscription_id = "00000000-0000-0000-0000-000000000000"  # REQUIRED
+subscription_id = "00000000-0000-0000-0000-000000000000"  # REQUIRED: replace before local use
 project         = "azlab"
 environment     = "lab"
 location        = "westus2"  # Example: current lab profile region
@@ -1323,11 +1346,20 @@ deploy_backup                    = false       # Recovery Services Vault
 ## 🚀 Quick Command Reference
 
 ```bash
-# Initialize
+# Validate without accessing remote state
 terraform init -backend=false
+terraform validate
 
-# Plan with specific var file
-terraform plan -var-file="environments/prod.tfvars" -out=tfplan
+# Before a real plan/apply, initialize the Azure backend for the selected profile
+terraform init -reconfigure \
+  -backend-config="resource_group_name=<state-resource-group>" \
+  -backend-config="storage_account_name=<state-storage-account>" \
+  -backend-config="container_name=tfstate" \
+  -backend-config="key=lab.terraform.tfstate" \
+  -backend-config="use_azuread_auth=true"
+
+# Plan the matching profile
+terraform plan -var-file="environments/lab.tfvars" -out=tfplan
 
 # Apply
 terraform apply tfplan
@@ -1335,13 +1367,13 @@ terraform apply tfplan
 # Get outputs
 terraform output
 
-# Get specific output
+# Get outputs enabled by the lab profile
 terraform output lb_frontend_ip
 terraform output -raw container_app_fqdn
 terraform output -raw keyvault_uri
 
-# Destroy everything
-terraform destroy -auto-approve
+# Destroy the matching profile
+terraform destroy -var-file="environments/lab.tfvars"
 
 # Destroy specific resource
 terraform destroy -target=module.workload_prod

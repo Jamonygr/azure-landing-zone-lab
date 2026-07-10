@@ -7,7 +7,7 @@
 
 This document covers Terraform remote state storage and GitHub secrets configuration for the Azure Landing Zone lab pipeline.
 
-Local live validation intentionally runs with `terraform init -backend=false` and temporary tfvars so it does not touch the shared remote state. Use [Live provisioning validation](../testing/live-provisioning-validation.md) when you need to prove a disposable deployment before committing or pushing changes.
+Use `terraform init -backend=false` only for static validation. Normal plans and applies use the Azure backend described below. The dedicated [live provisioning validation](../testing/live-provisioning-validation.md) runner instead stages a temporary copy without `backend.tf` and owns its disposable local state through teardown.
 
 ---
 
@@ -26,6 +26,7 @@ The pipeline requires two main components for secure operation:
 │  │  │  Storage Account: stterraformstateXXXX              │    │   │
 │  │  │                                                      │    │   │
 │  │  │  Container: tfstate                                  │    │   │
+│  │  │  ├── cheap-lab.terraform.tfstate                    │    │   │
 │  │  │  ├── lab.terraform.tfstate                          │    │   │
 │  │  │  ├── dev.terraform.tfstate                          │    │   │
 │  │  │  └── prod.terraform.tfstate                         │    │   │
@@ -94,7 +95,8 @@ az storage account create `
 # Create container for state files
 az storage container create `
   --name tfstate `
-  --account-name $STORAGE_ACCOUNT
+  --account-name $STORAGE_ACCOUNT `
+  --auth-mode login
 
 # Output storage account name (save this!)
 Write-Host "Storage Account: $STORAGE_ACCOUNT"
@@ -121,7 +123,8 @@ az storage account create \
 
 az storage container create \
   --name tfstate \
-  --account-name $STORAGE_ACCOUNT
+  --account-name $STORAGE_ACCOUNT \
+  --auth-mode login
 
 echo "Storage Account: $STORAGE_ACCOUNT"
 ```
@@ -132,15 +135,11 @@ The backend is configured in [backend.tf](../../backend.tf):
 
 ```hcl
 terraform {
-  backend "azurerm" {
-    container_name = "tfstate"
-    # Dynamic values set via -backend-config in pipeline:
-    # resource_group_name  = "rg-terraform-state"
-    # storage_account_name = "stterraformstateXXXX"
-    # key                  = "lab.terraform.tfstate"
-  }
+  backend "azurerm" {}
 }
 ```
+
+The pipeline and local deployment commands provide the resource group, storage account, container, state key, and Azure AD authentication settings through `-backend-config`.
 
 ### Pipeline Backend Initialization
 
@@ -151,7 +150,8 @@ terraform init \
   -backend-config="resource_group_name=$TF_STATE_RG" \
   -backend-config="storage_account_name=$TF_STATE_SA" \
   -backend-config="container_name=tfstate" \
-  -backend-config="key=<environment>.terraform.tfstate"
+  -backend-config="key=<environment>.terraform.tfstate" \
+  -backend-config="use_azuread_auth=true"
 ```
 
 ### Environment Isolation
@@ -160,6 +160,7 @@ Each environment has its own state file:
 
 | Environment | State Key | Purpose |
 |-------------|-----------|---------|
+| Cheap lab | `cheap-lab.terraform.tfstate` | Lowest-cost learning and review |
 | Lab | `lab.terraform.tfstate` | Learning and experimentation |
 | Dev | `dev.terraform.tfstate` | Development testing |
 | Prod | `prod.terraform.tfstate` | Production workloads |
@@ -190,20 +191,22 @@ terraform force-unlock -force <LOCK_ID>
 
 ### Local Development
 
-For local development without the pipeline:
+Backend-disabled initialization is only for static validation. Before a real plan or apply, initialize the Azure backend with the state key matching the selected profile:
 
 ```bash
-# Initialize with Azure backend
-terraform init \
-  -backend-config="resource_group_name=rg-terraform-state" \
-  -backend-config="storage_account_name=stterraformstateXXXX" \
-  -backend-config="key=lab.terraform.tfstate"
+# Static validation only
+terraform init -backend=false
+terraform validate
 
-# Or reconfigure an existing workspace
+# Real plan/apply path
 terraform init -reconfigure \
   -backend-config="resource_group_name=rg-terraform-state" \
   -backend-config="storage_account_name=stterraformstateXXXX" \
-  -backend-config="key=lab.terraform.tfstate"
+  -backend-config="container_name=tfstate" \
+  -backend-config="key=lab.terraform.tfstate" \
+  -backend-config="use_azuread_auth=true"
+
+terraform plan -var-file="environments/lab.tfvars" -out=tfplan
 ```
 
 ---
@@ -215,7 +218,7 @@ terraform init -reconfigure \
 The pipeline needs a non-interactive Azure identity. GitHub OIDC provides that identity without storing a long-lived client secret in GitHub.
 
 - **Short-lived credentials** - Tokens are minted per workflow run.
-- **Scoped trust** - Federated credentials can target a repo, branch, tag, or pull request event.
+- **Scoped trust** - Federated credentials target the `main` branch or one named GitHub environment.
 - **Auditable** - Azure activity is attributed to the app registration/service principal.
 - **No secret rotation burden** - There is no Azure client secret to rotate.
 
@@ -242,15 +245,30 @@ az ad app federated-credential create \
     \"audiences\": [\"api://AzureADTokenExchange\"]
   }"
 
-az ad app federated-credential create \
-  --id "$APP_ID" \
-  --parameters "{
-    \"name\": \"github-pr\",
-    \"issuer\": \"https://token.actions.githubusercontent.com\",
-    \"subject\": \"repo:${REPO}:pull_request\",
-    \"audiences\": [\"api://AzureADTokenExchange\"]
-  }"
+ENVIRONMENTS=(
+  cheap-lab
+  lab
+  dev
+  prod
+  cheap-lab-destroy
+  lab-destroy
+  dev-destroy
+  prod-destroy
+)
+
+for ENVIRONMENT in "${ENVIRONMENTS[@]}"; do
+  az ad app federated-credential create \
+    --id "$APP_ID" \
+    --parameters "{
+      \"name\": \"github-${ENVIRONMENT}\",
+      \"issuer\": \"https://token.actions.githubusercontent.com\",
+      \"subject\": \"repo:${REPO}:environment:${ENVIRONMENT}\",
+      \"audiences\": [\"api://AzureADTokenExchange\"]
+    }"
+done
 ```
+
+The `github-main` credential covers authenticated jobs without a GitHub environment. The loop creates the eight additional credentials required by the four apply environments and four `-destroy` environments. Pull requests never exchange Azure credentials, and every authenticated workflow job is restricted to `main`.
 
 ### Required Azure Roles
 

@@ -195,13 +195,14 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 
 ### Triggers
 - Push to `main` with repo health path filters: runs all checks through plan; apply is never automatic.
-- Pull request to `main`: same checks plus plan; no PR comment is posted by default.
+- Pull request to `main`: runs static validation, security, lint, docs, graph, version, and cost analysis without Azure authentication; plan and policy are skipped.
 - Manual (`workflow_dispatch`): choose `action` (`plan|apply|destroy`), `environment` (`cheap-lab|dev|lab|prod`), and `destroy_confirm` for destroys. Apply runs only if plan reported `has_changes=true`.
 
 ### Safety rails built in
 - Detailed exit codes prevent no-op plans from running apply.
 - Destroy requires a confirmation string.
 - State backups run before apply and destroy.
+- Authenticated jobs are restricted to `main`; pull requests never exchange Azure credentials.
 - Soft-fail tools such as TFLint and Infracost provide feedback without blocking learning workflows; tfsec, Checkov, secrets, policy, docs, and actionlint stay blocking.
 
 ### Composite actions (selected)
@@ -220,10 +221,11 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 ## Part 5 - Operating the lab
 
 ### Day 0: first deployment
-1. `terraform init` (local backend by default) or `terraform init -backend-config ...` to match remote.
-2. `terraform plan -out=tfplan` using the desired `*.tfvars`.
-3. `terraform apply tfplan` when ready.
-4. Use `terraform output` to gather IPs/FQDNs for testing; run the lab testing guide.
+1. Copy `terraform.tfvars.example`, replace the zero-GUID `subscription_id` with the real subscription ID, and select the matching Azure CLI subscription.
+2. Use `terraform init -backend=false` only for `terraform validate`.
+3. Initialize the Azure Storage backend with the state key matching the chosen `environments/*.tfvars` profile; see the [pipeline reference](reference/pipeline.md#local-validation-and-deployment).
+4. Run `terraform plan -out=tfplan` with the desired profile, then `terraform apply tfplan` when ready.
+5. Use profile-enabled outputs for testing; for example, `keyvault_uri` and `storage_account_name` in `cheap-lab`, or `lb_frontend_ip` and `container_app_fqdn` in `lab`.
 
 ### Day 1: steady operations
 - Rotate admin passwords in `terraform.tfvars` and in Azure when needed.
@@ -236,9 +238,9 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 - Use the graph and inventory artifacts to document changes.
 
 ### Pipeline workflow
-1. Push/PR runs checks and produces plan artifacts, docs, graph, cost estimate, and summaries.
-2. Manual Apply if `has_changes=true` and you are ready to deploy.
-3. Manual Destroy with confirmation when you want to tear down an environment.
+1. Pull requests run Azure-free static/security/docs/analysis checks and do not create a plan artifact.
+2. Pushes and manual dispatches from `main` run the authenticated plan and policy checks.
+3. Manual Apply runs if `has_changes=true`; manual Destroy requires confirmation.
 
 ### Cost controls
 - Disable `deploy_firewall` and `deploy_vpn_gateway` to cut most hourly cost.
@@ -267,7 +269,7 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 - Root module (`main.tf`): orchestrates all module calls. Think of it as the chapter index; each landing zone is a section, and each module is a paragraph inside that section.
 - `variables.tf`: the contract. Every tunable knob is declared here with types, descriptions, and defaults where sensible.
 - `locals.tf`: the opinionated translator. It shapes names, tags, CIDRs, SKU choices, and feature flags into module-friendly structures. Many downstream decisions (like whether to attach diagnostics or private endpoints) flow from locals maps and booleans.
-- `terraform.tfvars` + `environments/*.tfvars`: the stories you want to tell. Lab/dev/prod swap in different regions, SKUs, and feature toggles without touching code.
+- `terraform.tfvars` + `environments/*.tfvars`: the stories you want to tell. Cheap-lab/lab/dev/prod swap in different regions, SKUs, and feature toggles without touching code.
 - `outputs.tf`: the back-of-book index. It surfaces the important connection points and IDs after a run.
 
 ### Conditional assembly
@@ -335,7 +337,7 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 
 ### Customizing the workflow
 - Add Terratest: Wire `.github/actions/terratest` after plan (or after apply for live tests) with its own job needs.
-- PR comments: Add a step to post plan summaries back to PRs if desired (currently not posted).
+- PR feedback: The default workflow reports Azure-free checks through job status and step summaries; add separate static-analysis comments only if desired.
 - Tighten policy: Set `soft_fail: false` on policy-check or security jobs to enforce gates.
 - Auto-apply: Not enabled by design; you could add an approval job to gate apply instead of manual dispatch.
 - Cache optimization: Terraform cache is intentionally not persisted to avoid stale providers; add caching if you want faster init at the cost of complexity.
@@ -383,7 +385,7 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 - How do I enforce tag compliance? Add OPA policies in `policies/` and switch `soft_fail` to false in the policy-check job.
 - Can I run apply automatically on merge? The current design requires manual dispatch. You can add an environment protection rule or manual approval job if you want controlled auto-apply.
 - What about state encryption and backups? Azure Storage encrypts at rest; the pipeline creates on-demand backups via `state-backup` before apply/destroy. Enable blob versioning in the storage account for longer retention if desired.
-- Is there drift detection? Plans on push/PR surface drift; you can add a scheduled workflow (cron) to run plan nightly for drift checks.
+- Is there drift detection? Authenticated plans on pushes to `main` and manual dispatch surface drift; you can add a scheduled workflow (cron) to run plan nightly.
 - Why do some resources take a long time? VPN Gateway and AKS are slow; keep them off for fast iterations.
 
 ---

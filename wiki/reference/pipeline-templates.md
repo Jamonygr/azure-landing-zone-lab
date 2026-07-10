@@ -209,7 +209,7 @@ jobs:
   security-checkov: # 3️⃣ Security - Checkov
   secret-scan:      # 3️⃣ Security - Secrets (Gitleaks)
   tflint:           # 4️⃣ Lint - TFLint
-  policy-check:     # 4️⃣ Lint - Policy (Conftest)
+  policy-check:     # 4️⃣ Lint - Policy (Conftest; skipped on pull_request)
   terraform-docs:   # 4️⃣ Lint - Docs (terraform-docs)
   actionlint:       # 4️⃣ Lint - Actions
   graph:            # 5️⃣ Analysis - Graph

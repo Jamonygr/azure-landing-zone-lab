@@ -99,8 +99,11 @@ The workload landing zone is where you try application scenarios. It is managed 
 | Web | HTTP/HTTPS from Internet, RDP from hub | Through firewall (if LB internal) |
 | App | Port 8080 from web subnet, RDP from hub | Through firewall |
 | Data | Port 1433 from app subnet, RDP from hub | Through firewall |
+| Container Apps | HTTPS through managed ingress | Through the subnet UDR when Firewall is enabled |
 
 **Note:** When the load balancer is public, the web subnet does **not** get a firewall UDR so return traffic uses the same public IP (avoiding asymmetric routing).
+
+Container Apps explicitly uses the `Consumption` workload profile and a deterministic managed infrastructure resource group named `rg-aca-infra-${var.name_suffix}`. With both Firewall and Container Apps enabled, a subnet-scoped HTTPS application rule permits `mcr.microsoft.com`, `*.data.mcr.microsoft.com`, `packages.aks.azure.com`, and `acs-mirror.azureedge.net`; the managed environment is created only after its route-table association is ready.
 
 ## AKS and diagnostics
 

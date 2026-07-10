@@ -169,64 +169,81 @@ module "firewall_rules_paas" {
       name     = "allow-paas-services"
       priority = 100
       action   = "Allow"
-      rules = [
-        {
-          name              = "allow-azure-functions"
-          source_addresses  = ["10.0.0.0/8"]
-          destination_fqdns = ["*.azurewebsites.net", "*.scm.azurewebsites.net"]
-          protocols = [
-            { type = "Https", port = 443 }
-          ]
-        },
-        {
-          name              = "allow-static-web-apps"
-          source_addresses  = ["10.0.0.0/8"]
-          destination_fqdns = ["*.azurestaticapps.net", "*.swa.microsoft.com"]
-          protocols = [
-            { type = "Https", port = 443 }
-          ]
-        },
-        {
-          name              = "allow-logic-apps"
-          source_addresses  = ["10.0.0.0/8"]
-          destination_fqdns = ["*.logic.azure.com", "*.azure-api.net"]
-          protocols = [
-            { type = "Https", port = 443 }
-          ]
-        },
-        {
-          name              = "allow-event-grid"
-          source_addresses  = ["10.0.0.0/8"]
-          destination_fqdns = ["*.eventgrid.azure.net"]
-          protocols = [
-            { type = "Https", port = 443 }
-          ]
-        },
-        {
-          name              = "allow-service-bus"
-          source_addresses  = ["10.0.0.0/8"]
-          destination_fqdns = ["*.servicebus.windows.net"]
-          protocols = [
-            { type = "Https", port = 443 }
-          ]
-        },
-        {
-          name              = "allow-cosmos-db"
-          source_addresses  = ["10.0.0.0/8"]
-          destination_fqdns = ["*.documents.azure.com", "*.cosmos.azure.com"]
-          protocols = [
-            { type = "Https", port = 443 }
-          ]
-        },
-        {
-          name              = "allow-app-insights"
-          source_addresses  = ["10.0.0.0/8"]
-          destination_fqdns = ["*.applicationinsights.azure.com", "*.in.applicationinsights.azure.com", "*.live.applicationinsights.azure.com"]
-          protocols = [
-            { type = "Https", port = 443 }
-          ]
-        }
-      ]
+      rules = concat(
+        [
+          {
+            name              = "allow-azure-functions"
+            source_addresses  = ["10.0.0.0/8"]
+            destination_fqdns = ["*.azurewebsites.net", "*.scm.azurewebsites.net"]
+            protocols = [
+              { type = "Https", port = 443 }
+            ]
+          },
+          {
+            name              = "allow-static-web-apps"
+            source_addresses  = ["10.0.0.0/8"]
+            destination_fqdns = ["*.azurestaticapps.net", "*.swa.microsoft.com"]
+            protocols = [
+              { type = "Https", port = 443 }
+            ]
+          },
+          {
+            name              = "allow-logic-apps"
+            source_addresses  = ["10.0.0.0/8"]
+            destination_fqdns = ["*.logic.azure.com", "*.azure-api.net"]
+            protocols = [
+              { type = "Https", port = 443 }
+            ]
+          },
+          {
+            name              = "allow-event-grid"
+            source_addresses  = ["10.0.0.0/8"]
+            destination_fqdns = ["*.eventgrid.azure.net"]
+            protocols = [
+              { type = "Https", port = 443 }
+            ]
+          },
+          {
+            name              = "allow-service-bus"
+            source_addresses  = ["10.0.0.0/8"]
+            destination_fqdns = ["*.servicebus.windows.net"]
+            protocols = [
+              { type = "Https", port = 443 }
+            ]
+          },
+          {
+            name              = "allow-cosmos-db"
+            source_addresses  = ["10.0.0.0/8"]
+            destination_fqdns = ["*.documents.azure.com", "*.cosmos.azure.com"]
+            protocols = [
+              { type = "Https", port = 443 }
+            ]
+          },
+          {
+            name              = "allow-app-insights"
+            source_addresses  = ["10.0.0.0/8"]
+            destination_fqdns = ["*.applicationinsights.azure.com", "*.in.applicationinsights.azure.com", "*.live.applicationinsights.azure.com"]
+            protocols = [
+              { type = "Https", port = 443 }
+            ]
+          }
+        ],
+        var.deploy_container_apps ? [
+          {
+            name             = "allow-container-apps"
+            source_addresses = [var.container_apps_subnet_prefix]
+            destination_fqdns = [
+              "mcr.microsoft.com",
+              "*.data.mcr.microsoft.com",
+              "packages.aks.azure.com",
+              "acs-mirror.azureedge.net"
+            ]
+            protocols = [
+              { type = "Https", port = 443 }
+            ]
+          }
+        ] : []
+      )
     }
   ]
 

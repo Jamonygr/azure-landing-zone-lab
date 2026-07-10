@@ -120,9 +120,9 @@ Note: This project uses both AzureRM (~> 4.0) and AzAPI (~> 2.0) providers. AzAP
 ## Quick path
 
 1. Copy `terraform.tfvars.example` to `terraform.tfvars`.
-2. Set your subscription ID, admin credentials, and any feature flags.
-3. Run `terraform init`, then `terraform apply`.
-4. Use the outputs file to connect to VMs, firewall, and VPN endpoints.
+2. Replace the zero-GUID `subscription_id` with the real target subscription ID; set required credentials and feature flags.
+3. Use `terraform init -backend=false` only for validation, then initialize the Azure Storage backend with the state key matching your profile before plan/apply. See [CI/CD pipeline reference](reference/pipeline.md#local-validation-and-deployment).
+4. Plan and apply an `environments/*.tfvars` profile, then use only the outputs enabled by that profile.
 
 ## Helpful Microsoft resources
 

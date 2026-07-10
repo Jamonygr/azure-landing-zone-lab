@@ -152,13 +152,15 @@ module "networking" {
   hub_mgmt_subnet_prefix  = var.hub_mgmt_subnet_prefix
   hub_appgw_subnet_prefix = var.hub_appgw_subnet_prefix
 
-  deploy_firewall         = var.deploy_firewall
-  firewall_sku_tier       = var.firewall_sku_tier
-  deploy_vpn_gateway      = var.deploy_vpn_gateway
-  vpn_gateway_sku         = var.vpn_gateway_sku
-  enable_bgp              = var.enable_bgp
-  hub_bgp_asn             = var.hub_bgp_asn
-  vpn_client_address_pool = var.vpn_client_address_pool
+  deploy_firewall              = var.deploy_firewall
+  firewall_sku_tier            = var.firewall_sku_tier
+  deploy_container_apps        = var.deploy_container_apps
+  container_apps_subnet_prefix = var.workload_prod_container_apps_subnet_prefix
+  deploy_vpn_gateway           = var.deploy_vpn_gateway
+  vpn_gateway_sku              = var.vpn_gateway_sku
+  enable_bgp                   = var.enable_bgp
+  hub_bgp_asn                  = var.hub_bgp_asn
+  vpn_client_address_pool      = var.vpn_client_address_pool
 
   identity_address_space   = var.identity_address_space
   management_address_space = var.management_address_space
@@ -336,7 +338,7 @@ module "security" {
   admin_password       = local.effective_admin_password
   sql_admin_login      = var.sql_admin_login
   sql_admin_password   = local.effective_sql_admin_password
-  storage_account_name = "st${var.project}${local.environment}${random_string.suffix.result}"
+  storage_account_name = local.storage_account_name
   random_suffix        = random_string.suffix.result
 
   hub_vnet_id           = module.networking.vnet_id
@@ -403,6 +405,8 @@ module "workload_prod" {
   cosmos_location              = var.cosmos_location != "" ? var.cosmos_location : null
 
   paas_alternative_location = var.paas_alternative_location
+
+  depends_on = [module.networking]
 }
 
 module "workload_dev" {
@@ -430,6 +434,8 @@ module "workload_dev" {
   enable_diagnostics         = var.deploy_log_analytics
   encryption_at_host_enabled = var.enable_vm_encryption_at_host
   cosmos_location            = var.cosmos_location != "" ? var.cosmos_location : null
+
+  depends_on = [module.networking]
 }
 
 moved {

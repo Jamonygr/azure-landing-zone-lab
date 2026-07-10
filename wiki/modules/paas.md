@@ -102,7 +102,7 @@ Creates a logic app workflow in consumption mode.
 
 ### Container Apps (`modules/container-apps/`)
 
-Creates a Container Apps managed environment in a delegated workload subnet and deploys a small hello-world app on the Consumption profile.
+Creates a Container Apps managed environment in a delegated workload subnet and deploys a small hello-world app. The environment declares the `Consumption` workload profile, the app is pinned to that profile, and Azure-managed infrastructure is placed in `rg-aca-infra-${var.name_suffix}` for deterministic lifecycle behavior.
 
 | Input | Description | Default |
 |-------|-------------|---------|
@@ -114,6 +114,8 @@ Creates a Container Apps managed environment in a delegated workload subnet and 
 
 **Outputs:** `container_app_name`, `container_app_fqdn`
 **Cost:** ~$0-5/month for light lab use
+
+When Azure Firewall and Container Apps are both enabled, the Container Apps subnet receives the default route and a subnet-scoped HTTPS application rule for `mcr.microsoft.com`, `*.data.mcr.microsoft.com`, `packages.aks.azure.com`, and `acs-mirror.azureedge.net`. Workload creation waits for networking rules, and the managed environment waits for route-table association, so its required image and platform endpoints are reachable through the UDR path.
 
 ## Tier 2 – Integration
 

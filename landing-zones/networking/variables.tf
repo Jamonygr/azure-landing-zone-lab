@@ -71,6 +71,16 @@ variable "firewall_sku_tier" {
   type        = string
 }
 
+variable "deploy_container_apps" {
+  description = "Add Azure Firewall egress rules required by Container Apps"
+  type        = bool
+}
+
+variable "container_apps_subnet_prefix" {
+  description = "Container Apps infrastructure subnet prefix used to scope firewall egress rules"
+  type        = string
+}
+
 variable "deploy_vpn_gateway" {
   description = "Deploy VPN gateway"
   type        = bool

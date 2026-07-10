@@ -513,6 +513,8 @@ module "container_apps" {
   }
 
   tags = var.tags
+
+  depends_on = [module.workload_route_table]
 }
 
 # =============================================================================

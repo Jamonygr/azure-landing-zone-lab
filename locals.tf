@@ -25,6 +25,11 @@ locals {
   normalized_location = lower(replace(var.location, " ", ""))
   location_short      = lookup(local.location_short_map, local.normalized_location, substr(local.normalized_location, 0, 4))
 
+  # Storage account names allow only lowercase letters and numbers and have a
+  # maximum length of 24 characters, including the four-character suffix.
+  storage_account_name_prefix = substr(replace(lower("st${var.project}${local.environment}"), "/[^0-9a-z]/", ""), 0, 20)
+  storage_account_name        = "${local.storage_account_name_prefix}${random_string.suffix.result}"
+
   # Common tags applied to all resources
   common_tags = {
     Environment = var.environment

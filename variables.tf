@@ -10,6 +10,11 @@ variable "subscription_id" {
   description = "Azure Subscription ID"
   type        = string
   default     = null
+
+  validation {
+    condition     = var.subscription_id == null ? true : trimspace(var.subscription_id) != "00000000-0000-0000-0000-000000000000"
+    error_message = "subscription_id must be a real Azure subscription ID; the all-zero GUID is only a placeholder."
+  }
 }
 
 variable "project" {

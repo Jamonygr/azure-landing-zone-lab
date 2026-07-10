@@ -13,15 +13,15 @@ The pipeline is defined in [`.github/workflows/terraform.yml`](../../.github/wor
 
 - **1️⃣ Format Check** → **2️⃣ Validate**
 - **3️⃣ Security - tfsec**, **3️⃣ Security - Checkov**, **3️⃣ Security - Secrets** (Gitleaks)
-- **4️⃣ Lint - TFLint**, **4️⃣ Lint - Policy** (Conftest), **4️⃣ Lint - Docs** (terraform-docs), **4️⃣ Lint - Actions** (actionlint)
+- **4️⃣ Lint - TFLint**, **4️⃣ Lint - Policy** (Conftest; skipped on PRs), **4️⃣ Lint - Docs** (terraform-docs), **4️⃣ Lint - Actions** (actionlint)
 - **5️⃣ Analysis - Graph**, **5️⃣ Analysis - Versions**
 - **6️⃣ Analysis - Cost** (Infracost, soft-fail)
-- **7️⃣ Plan** (change detection + plan artifact)
+- **7️⃣ Plan** (change detection + plan artifact; skipped on PRs)
 - **8️⃣ Apply** (manual `action=apply`; includes state backup, resource inventory, changelog)
 - **9️⃣ Destroy** (manual `action=destroy` + `DESTROY` confirm)
 - **🔟 Metrics** (after successful Apply)
 
-Artifacts: plan file + summary, terraform-docs output, dependency graph, provider/module versions, cost report, changelog, resource inventory, and metrics JSON.
+Depending on the trigger, artifacts include the plan file + summary, terraform-docs output, dependency graph, provider/module versions, cost report, changelog, resource inventory, and metrics JSON. Pull requests do not produce plan or downstream deployment artifacts.
 
 ### Architecture: 2-Level Template Structure
 
@@ -129,12 +129,34 @@ az ad app federated-credential create \
     \"audiences\": [\"api://AzureADTokenExchange\"]
   }"
 
+ENVIRONMENTS=(
+  cheap-lab
+  lab
+  dev
+  prod
+  cheap-lab-destroy
+  lab-destroy
+  dev-destroy
+  prod-destroy
+)
+
+for ENVIRONMENT in "${ENVIRONMENTS[@]}"; do
+  az ad app federated-credential create \
+    --id "$APP_ID" \
+    --parameters "{
+      \"name\": \"github-${ENVIRONMENT}\",
+      \"issuer\": \"https://token.actions.githubusercontent.com\",
+      \"subject\": \"repo:${REPO}:environment:${ENVIRONMENT}\",
+      \"audiences\": [\"api://AzureADTokenExchange\"]
+    }"
+done
+
 echo "AZURE_CLIENT_ID=$APP_ID"
 echo "AZURE_TENANT_ID=$TENANT_ID"
 echo "AZURE_SUBSCRIPTION_ID=$SUBSCRIPTION_ID"
 ```
 
-The default workflow does not exchange Azure credentials on pull requests. Grant the OIDC principal the Azure RBAC permissions required by the selected profile for push and manual runs. Policy and role assignment features require elevated permissions such as User Access Administrator and Resource Policy Contributor, or an equivalent custom role model.
+The `github-main` credential authorizes authenticated jobs without a GitHub environment. Apply and destroy jobs declare environments, which changes the OIDC subject, so the loop creates eight additional credentials for the four apply and four destroy environments. The default workflow does not exchange Azure credentials on pull requests, and every authenticated job is restricted to `main`. Grant the OIDC principal the Azure RBAC permissions required by the selected profile. Policy and role assignment features require elevated permissions such as User Access Administrator and Resource Policy Contributor, or an equivalent custom role model.
 
 ### Step 4: Configure GitHub Secrets
 
@@ -152,14 +174,18 @@ gh secret set TF_STATE_RG --body "rg-terraform-state"
 gh secret set TF_STATE_SA --body "<STORAGE_ACCOUNT_NAME>"
 ```
 
-### Step 5: Verify Setup
+### Step 5: Create GitHub Environments
+
+Create the apply environments `cheap-lab`, `lab`, `dev`, and `prod`, plus the destroy environments `cheap-lab-destroy`, `lab-destroy`, `dev-destroy`, and `prod-destroy` under **Settings → Environments**. Use required reviewers for production and all destroy environments as appropriate for the repository.
+
+### Step 6: Verify Setup
 
 ```bash
 # List configured secrets
 gh secret list
 
 # Test the pipeline with a plan
-gh workflow run "Terraform Pipeline" -f action=plan -f environment=lab
+gh workflow run "Terraform Pipeline" --ref main -f action=plan -f environment=lab
 gh run watch
 ```
 
@@ -171,15 +197,17 @@ After completing setup, you will have:
 Azure Subscription
 ├── App registration / service principal: terraform-alz-pipeline
 │   ├── Federated credential: repo main branch
-│   ├── Federated credential: pull requests
+│   ├── Four federated credentials: apply environments
+│   ├── Four federated credentials: destroy environments
 │   └── Least-privilege Azure RBAC for selected profile
 │
 └── Resource Group: rg-terraform-state
     └── Storage Account: stterraformstateXXXX
         └── Container: tfstate
+            ├── cheap-lab.terraform.tfstate
             ├── lab.terraform.tfstate
             ├── dev.terraform.tfstate
-            └── prod.terraform.tfstate (when used)
+            └── prod.terraform.tfstate
 
 GitHub Repository
 └── Secrets
@@ -234,6 +262,7 @@ format → validate → [tfsec, checkov, secret-scan, tflint, actionlint, terraf
 
 - Graph and module-versions wait for security scanning, secrets, TFLint, and actionlint.
 - Policy-check runs after Plan because it evaluates the saved `tfplan` artifact.
+- Pull requests stop after static/security/docs/analysis work; Plan and Policy-check are skipped.
 - Cost estimation soft-fails but still blocks apply until it finishes.
 - Apply runs only on `workflow_dispatch` with `action=apply` and `has_changes=true` from Plan.
 - Destroy runs only on `workflow_dispatch` with `action=destroy` and confirmation text.
@@ -246,8 +275,8 @@ format → validate → [tfsec, checkov, secret-scan, tflint, actionlint, terraf
 | Event | What Happens |
 |-------|--------------|
 | **Push to `main`** | Runs format/validate → security/linters/docs → graph/version → cost → plan (no auto-apply) |
-| **Pull Request to `main`** | Static, security, lint, docs, graph, version, and cost checks without Azure credential exchange |
-| **Push to `main` / manual dispatch** | Authenticated Terraform plan for the selected environment |
+| **Pull Request to `main`** | Static validation, security, lint, docs, graph, version, and cost analysis without Azure credential exchange; plan and policy are skipped |
+| **Push to `main` / manual dispatch from `main`** | Authenticated Terraform plan for the selected environment |
 
 **Path Filters**: Pipeline runs when these paths change:
 - `**.tf` - Terraform configuration files
@@ -306,7 +335,9 @@ Do not store a client secret or JSON credential object. The workflow uses the Gi
 │                                                                 │
 │  Federated credentials:                                         │
 │  ├── repo main branch                                           │
-│  └── pull_request events                                        │
+│  ├── apply environments: cheap-lab, lab, dev, prod              │
+│  └── destroy: cheap-lab-destroy, lab-destroy, dev-destroy,      │
+│      prod-destroy                                                │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -368,9 +399,10 @@ The pipeline uses Azure Storage for remote Terraform state, enabling:
 │                    (stterraformstateXXXX)                          │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Container: tfstate                                                 │
-│  ├── lab.terraform.tfstate      ← Lab environment state            │
-│  ├── dev.terraform.tfstate      ← Dev environment state            │
-│  └── prod.terraform.tfstate     ← Prod environment state           │
+│  ├── cheap-lab.terraform.tfstate ← Cheap-lab environment state     │
+│  ├── lab.terraform.tfstate       ← Lab environment state           │
+│  ├── dev.terraform.tfstate       ← Dev environment state           │
+│  └── prod.terraform.tfstate      ← Prod environment state          │
 │                                                                     │
 │  Each state file contains:                                          │
 │  • Resource IDs and attributes                                      │
@@ -386,15 +418,11 @@ The backend is configured in [`backend.tf`](../../backend.tf):
 
 ```hcl
 terraform {
-  backend "azurerm" {
-    container_name = "tfstate"
-    # These are set via -backend-config in the pipeline:
-    # resource_group_name  = "rg-terraform-state"
-    # storage_account_name = "stterraformstateXXXX"
-    # key                  = "lab.terraform.tfstate"
-  }
+  backend "azurerm" {}
 }
 ```
+
+The pipeline and local deployment commands provide the resource group, storage account, container, state key, and Azure AD authentication settings through `-backend-config`.
 
 ### Pipeline Backend Initialization
 
@@ -405,7 +433,8 @@ terraform init \
   -backend-config="resource_group_name=$TF_STATE_RG" \
   -backend-config="storage_account_name=$TF_STATE_SA" \
   -backend-config="container_name=tfstate" \
-  -backend-config="key=<environment>.terraform.tfstate"
+  -backend-config="key=<environment>.terraform.tfstate" \
+  -backend-config="use_azuread_auth=true"
 ```
 
 This allows the same code to deploy to different environments with isolated state files.
@@ -438,20 +467,24 @@ If a lock gets stuck (e.g., pipeline cancellation), force unlock:
 terraform force-unlock -force <LOCK_ID>
 ```
 
-### Local Backend (Development)
+### Local Validation and Deployment
 
-For local development without the pipeline:
+Backend-disabled initialization is only for static validation. A real plan or apply must use an isolated Azure state key:
 
 ```bash
-# Initialize with local backend (no Azure storage)
-terraform init
+# Validate without reading or writing remote state
+terraform init -backend=false
+terraform validate
 
-# Or reconfigure to use Azure storage
-terraform init \
+# Reconfigure before planning or applying the selected profile
+terraform init -reconfigure \
   -backend-config="resource_group_name=rg-terraform-state" \
   -backend-config="storage_account_name=stterraformstateXXXX" \
+  -backend-config="container_name=tfstate" \
   -backend-config="key=lab.terraform.tfstate" \
-  -reconfigure
+  -backend-config="use_azuread_auth=true"
+
+terraform plan -var-file="environments/lab.tfvars" -out=tfplan
 ```
 
 ## Environment Files
@@ -479,23 +512,13 @@ Only one pipeline per branch/environment runs at a time. New runs wait for compl
 
 ### Plan Artifacts
 
-The plan file is saved as a GitHub artifact for 5 days:
+On push and manual runs, the plan file is saved as a GitHub artifact for 5 days:
 - **Name**: `tfplan-<environment>-<commit-sha>`
 - **Contents**: `tfplan`, `plan_output.txt`
 
-### PR Comments
+### Pull Request Feedback
 
-On pull requests, the pipeline automatically comments with the plan summary:
-
-```markdown
-## 📋 Terraform Plan - lab
-
-| Action | Count |
-|--------|-------|
-| ➕ Add | 42 |
-| 🔄 Change | 3 |
-| ➖ Destroy | 0 |
-```
+Pull requests receive static, security, documentation, and analysis results through job status and step summaries. They do not authenticate to Azure, run Terraform plan or policy evaluation, upload a plan artifact, or post a plan comment.
 
 ### Step Summaries
 
@@ -511,7 +534,7 @@ Each stage writes to the GitHub Step Summary for easy visibility:
 Runs [tfsec](https://github.com/aquasecurity/tfsec) for Terraform security analysis:
 - Checks for misconfigurations
 - Uploads SARIF to GitHub Security tab
-- Soft-fail (doesn't block deployment)
+- Blocking scan; findings fail the job
 
 ### Checkov
 
@@ -519,7 +542,7 @@ Runs [Checkov](https://www.checkov.io/) for policy-as-code:
 - 750+ built-in policies
 - CIS, SOC2, HIPAA benchmarks
 - Uploads SARIF to GitHub Security tab
-- Soft-fail (doesn't block deployment)
+- Blocking scan; findings fail the job
 
 ### TFLint
 
@@ -534,7 +557,7 @@ Runs [TFLint](https://github.com/terraform-linters/tflint) with Azure ruleset:
 
 ```bash
 # Via GitHub CLI
-gh workflow run "Terraform Pipeline" -f action=apply -f environment=lab
+gh workflow run "Terraform Pipeline" --ref main -f action=apply -f environment=lab
 
 # Watch the run
 gh run watch
@@ -543,13 +566,13 @@ gh run watch
 ### Plan Only (No Changes)
 
 ```bash
-gh workflow run "Terraform Pipeline" -f action=plan -f environment=lab
+gh workflow run "Terraform Pipeline" --ref main -f action=plan -f environment=lab
 ```
 
 ### Destroy Environment
 
 ```bash
-gh workflow run "Terraform Pipeline" \
+gh workflow run "Terraform Pipeline" --ref main \
   -f action=destroy \
   -f environment=lab \
   -f destroy_confirm=DESTROY
