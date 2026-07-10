@@ -113,8 +113,8 @@ jobs:
           terraform validate
           echo "## ✅ Validation Passed" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Profile Unit Tests
-        run: terraform test -filter=tests/storage_account_name.tftest.hcl -no-color
+      - name: Terraform Unit Tests
+        run: terraform test -no-color
 
   # =========================================================================
   # STAGE 3: SECURITY - TFSEC

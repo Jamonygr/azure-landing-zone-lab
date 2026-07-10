@@ -153,5 +153,5 @@ resource "azurerm_cost_anomaly_alert" "this" {
   subscription_id = local.subscription_id != null ? "/subscriptions/${local.subscription_id}" : null
   email_subject   = "Azure Cost Anomaly Detected"
   email_addresses = var.anomaly_alert_email_receivers
-  message         = "An unusual spending pattern has been detected in your Azure subscription. Please review your recent resource usage."
+  message         = "Azure detected unusual subscription spending. Review recent resource usage."
 }
