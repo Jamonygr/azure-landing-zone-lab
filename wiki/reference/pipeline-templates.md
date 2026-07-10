@@ -194,7 +194,7 @@ on:
       - 'docs/**'
   workflow_dispatch:
     inputs:
-      environment: [dev, lab, prod]
+      environment: [cheap-lab, dev, lab, prod]
       action: [plan, apply, destroy]
       destroy_confirm: string
 
@@ -209,13 +209,13 @@ jobs:
   security-checkov: # 3️⃣ Security - Checkov
   secret-scan:      # 3️⃣ Security - Secrets (Gitleaks)
   tflint:           # 4️⃣ Lint - TFLint
-  policy-check:     # 4️⃣ Lint - Policy (Conftest)
+  policy-check:     # 4️⃣ Lint - Policy (Conftest; skipped on pull_request)
   terraform-docs:   # 4️⃣ Lint - Docs (terraform-docs)
   actionlint:       # 4️⃣ Lint - Actions
   graph:            # 5️⃣ Analysis - Graph
   module-versions:  # 5️⃣ Analysis - Versions
   cost-estimate:    # 6️⃣ Analysis - Cost (Infracost)
-  plan:             # 7️⃣ Plan (composite)
+  plan:             # 7️⃣ Plan (composite; skipped on pull_request)
   apply:            # 8️⃣ Apply (composite)
   destroy:          # 9️⃣ Destroy (composite)
   metrics:          # 🔟 Metrics

@@ -13,9 +13,11 @@
 crash.log
 crash.*.log
 
-# Exclude all .tfvars files, which are likely to contain sensitive data
+# Exclude local .tfvars files, which are likely to contain sensitive data.
+# Curated environment profiles are intentionally tracked as safe examples.
 *.tfvars
 *.tfvars.json
+!environments/*.tfvars
 
 # Ignore override files
 override.tf

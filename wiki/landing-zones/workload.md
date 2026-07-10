@@ -19,7 +19,7 @@ The workload landing zone is where you try application scenarios. It is managed 
 |-----------|---------|---------|
 | Workload VNet | Prod: `10.10.0.0/16`, Dev: `10.11.0.0/16` | Application network |
 | Web/App/Data Subnets | Created | Three-tier architecture |
-| Container Apps Subnet | `10.10.8.0/23` | Reserved prefix for future Container Apps support |
+| Container Apps Subnet | `10.10.8.0/23` | Delegated infrastructure subnet for Container Apps |
 | AKS Subnet | `10.10.16.0/20` | Kubernetes nodes |
 | NSGs | Per subnet | Traffic filtering |
 | Route Tables | Optional | Firewall steering |
@@ -35,7 +35,7 @@ The workload landing zone is where you try application scenarios. It is managed 
 | Web Subnet | `10.10.1.0/24` | Web tier VMs |
 | App Subnet | `10.10.2.0/24` | Application tier |
 | Data Subnet | `10.10.3.0/24` | Database tier |
-| Container Apps | `10.10.8.0/23` | Reserved prefix; no Container Apps module is deployed today |
+| Container Apps | `10.10.8.0/23` | Delegated subnet for the managed environment |
 | AKS Nodes | `10.10.16.0/20` | Kubernetes nodes |
 
 ## Inputs to know about
@@ -77,8 +77,8 @@ The workload landing zone is where you try application scenarios. It is managed 
 | `deploy_event_grid` | Event Grid | `true` | Free (100k) |
 | `deploy_service_bus` | Service Bus | `true` | Basic |
 | `deploy_app_service` | App Service | `true` | F1 (Free) |
+| `deploy_container_apps` | Container Apps | `false` | Consumption |
 | `deploy_cosmos_db` | Cosmos DB | `true` | Serverless |
-| `deploy_container_apps` | Reserved Container Apps placeholder | `false` | Not deployed |
 
 ## Outputs you will use
 
@@ -90,6 +90,7 @@ The workload landing zone is where you try application scenarios. It is managed 
 | `lb_web_server_ips` | Web server IPs | `deploy_load_balancer` |
 | `aks_cluster_name` | AKS cluster name | `deploy_aks` |
 | `aks_cluster_fqdn` | AKS API FQDN | `deploy_aks` |
+| `container_app_fqdn` | Container App ingress FQDN | `deploy_container_apps` |
 
 ## How routing and security are set up
 
@@ -98,8 +99,11 @@ The workload landing zone is where you try application scenarios. It is managed 
 | Web | HTTP/HTTPS from Internet, RDP from hub | Through firewall (if LB internal) |
 | App | Port 8080 from web subnet, RDP from hub | Through firewall |
 | Data | Port 1433 from app subnet, RDP from hub | Through firewall |
+| Container Apps | HTTPS through managed ingress | Through the subnet UDR when Firewall is enabled |
 
 **Note:** When the load balancer is public, the web subnet does **not** get a firewall UDR so return traffic uses the same public IP (avoiding asymmetric routing).
+
+Container Apps explicitly uses the `Consumption` workload profile and a deterministic managed infrastructure resource group named `rg-aca-infra-${var.name_suffix}`. With both Firewall and Container Apps enabled, a subnet-scoped HTTPS application rule permits `mcr.microsoft.com`, `*.data.mcr.microsoft.com`, `packages.aks.azure.com`, and `acs-mirror.azureedge.net`; the managed environment is created only after its route-table association is ready.
 
 ## AKS and diagnostics
 
@@ -119,9 +123,8 @@ Toggle the individual flags to see how different Azure services are provisioned.
 | Event Grid | Free (100k) | First 100k events free |
 | Service Bus | ~$0.05/month | Basic tier |
 | App Service | Free (F1) | 60 min CPU/day |
+| Container Apps | ~$0-5/month | Consumption, scale-to-zero sample app |
 | Cosmos DB | ~$0-5/month | Serverless, pay per RU |
-
-`deploy_container_apps` is a placeholder flag only. It is tracked for future work, but the current workload module does not deploy Azure Container Apps.
 
 ## When to deploy multiple copies
 

@@ -132,6 +132,11 @@ output "lb_web_server_ips" {
   value       = var.deploy_workload_prod && var.deploy_load_balancer ? module.workload_prod[0].web_server_ips : []
 }
 
+output "container_app_fqdn" {
+  description = "Container App ingress FQDN"
+  value       = var.deploy_workload_prod && var.deploy_container_apps ? module.workload_prod[0].container_app_fqdn : null
+}
+
 # -----------------------------------------------------------------------------
 # On-Premises Simulation
 # -----------------------------------------------------------------------------

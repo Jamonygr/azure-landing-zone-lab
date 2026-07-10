@@ -154,6 +154,22 @@ output "app_service_name" {
   value       = var.deploy_app_service ? module.app_service[0].web_app_name : null
 }
 
+# Container Apps
+output "container_app_environment_name" {
+  description = "Container Apps managed environment name"
+  value       = var.deploy_container_apps ? module.container_apps[0].environment_name : null
+}
+
+output "container_app_name" {
+  description = "Container App name"
+  value       = var.deploy_container_apps ? module.container_apps[0].container_app_name : null
+}
+
+output "container_app_fqdn" {
+  description = "Container App ingress FQDN"
+  value       = var.deploy_container_apps ? module.container_apps[0].container_app_fqdn : null
+}
+
 # Cosmos DB
 output "cosmos_db_endpoint" {
   description = "Cosmos DB account endpoint"

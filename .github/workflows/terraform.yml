@@ -40,7 +40,7 @@ on:
         required: true
         default: 'lab'
         type: choice
-        options: [dev, lab, prod]
+        options: [cheap-lab, dev, lab, prod]
       action:
         description: 'Action'
         required: true
@@ -112,6 +112,9 @@ jobs:
           terraform init -backend=false
           terraform validate
           echo "## ✅ Validation Passed" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Profile Unit Tests
+        run: terraform test -filter=tests/storage_account_name.tftest.hcl -no-color
 
   # =========================================================================
   # STAGE 3: SECURITY - TFSEC
@@ -221,6 +224,7 @@ jobs:
     name: '4️⃣ Lint - Policy'
     runs-on: ubuntu-latest
     needs: plan
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
 
@@ -351,6 +355,7 @@ jobs:
     name: '7️⃣ Plan'
     runs-on: ubuntu-latest
     needs: [graph, module-versions]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     outputs:
       has_changes: ${{ steps.plan.outputs.has_changes }}
       add: ${{ steps.plan.outputs.add }}
@@ -387,7 +392,8 @@ jobs:
       needs.plan.result == 'success' &&
       needs.plan.outputs.has_changes == 'true' &&
       needs['policy-check'].result == 'success' &&
-      github.event_name == 'workflow_dispatch' && 
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
       github.event.inputs.action == 'apply'
     environment: ${{ github.event.inputs.environment }}
     outputs:
@@ -465,6 +471,7 @@ jobs:
     needs: plan
     if: |
       github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
       github.event.inputs.action == 'destroy' &&
       github.event.inputs.destroy_confirm == 'DESTROY'
     environment: ${{ github.event.inputs.environment }}-destroy

@@ -60,21 +60,34 @@ az ad app federated-credential create \
     \"audiences\": [\"api://AzureADTokenExchange\"]
   }"
 
-az ad app federated-credential create \
-  --id "$APP_ID" \
-  --parameters "{
-    \"name\": \"github-pr\",
-    \"issuer\": \"https://token.actions.githubusercontent.com\",
-    \"subject\": \"repo:${REPO}:pull_request\",
-    \"audiences\": [\"api://AzureADTokenExchange\"]
-  }"
+ENVIRONMENTS=(
+  cheap-lab
+  lab
+  dev
+  prod
+  cheap-lab-destroy
+  lab-destroy
+  dev-destroy
+  prod-destroy
+)
+
+for ENVIRONMENT in "${ENVIRONMENTS[@]}"; do
+  az ad app federated-credential create \
+    --id "$APP_ID" \
+    --parameters "{
+      \"name\": \"github-${ENVIRONMENT}\",
+      \"issuer\": \"https://token.actions.githubusercontent.com\",
+      \"subject\": \"repo:${REPO}:environment:${ENVIRONMENT}\",
+      \"audiences\": [\"api://AzureADTokenExchange\"]
+    }"
+done
 
 echo "AZURE_CLIENT_ID=$APP_ID"
 echo "AZURE_TENANT_ID=$TENANT_ID"
 echo "AZURE_SUBSCRIPTION_ID=$SUBSCRIPTION_ID"
 ```
 
-Grant the app registration the least-privilege roles your selected profile needs. A production-aligned profile usually needs resource deployment permissions plus role assignment and policy assignment permissions.
+The `github-main` credential authorizes authenticated jobs that do not declare a GitHub environment. GitHub changes the OIDC subject for jobs that declare an environment, so the loop creates the eight additional credentials required by the four apply and four destroy environments. The default workflow does not exchange Azure credentials on pull requests, and all authenticated jobs are restricted to `main`. Grant the app registration the least-privilege roles your selected profile needs for push and manual runs. A production-aligned profile usually needs resource deployment permissions plus role assignment and policy assignment permissions.
 
 ## 3. Add GitHub Secrets
 
@@ -97,9 +110,11 @@ Create these environments in **Settings -> Environments**:
 
 | Environment | Protection |
 |---|---|
+| `cheap-lab` | Optional reviewer |
 | `lab` | Optional reviewer |
 | `dev` | Optional reviewer |
 | `prod` | Required reviewer |
+| `cheap-lab-destroy` | Required reviewer |
 | `lab-destroy` | Required reviewer |
 | `dev-destroy` | Required reviewer |
 | `prod-destroy` | Required reviewer |
@@ -107,16 +122,16 @@ Create these environments in **Settings -> Environments**:
 ## 5. Test the Pipeline
 
 ```bash
-gh workflow run "Terraform Pipeline" -f action=plan -f environment=lab
+gh workflow run "Terraform Pipeline" --ref main -f action=plan -f environment=lab
 gh run watch
 ```
 
 Apply and destroy are manual only:
 
 ```bash
-gh workflow run "Terraform Pipeline" -f action=apply -f environment=lab
+gh workflow run "Terraform Pipeline" --ref main -f action=apply -f environment=lab
 
-gh workflow run "Terraform Pipeline" \
+gh workflow run "Terraform Pipeline" --ref main \
   -f action=destroy \
   -f environment=lab \
   -f destroy_confirm=DESTROY
@@ -126,7 +141,7 @@ gh workflow run "Terraform Pipeline" \
 
 | Symptom | Check |
 |---|---|
-| Azure login fails | Federated credential subject matches the repo and branch or PR event |
+| Azure login fails | Federated credential subject matches the repo and the `main` branch or selected job environment |
 | Backend init fails | `TF_STATE_RG`, `TF_STATE_SA`, and `tfstate` container exist |
 | Role or policy assignment fails | The OIDC principal has the required Azure RBAC permissions |
 | Plan cannot read state | The OIDC principal has Storage Blob Data Contributor on the state storage account |
