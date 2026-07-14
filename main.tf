@@ -4,7 +4,7 @@
 # =============================================================================
 
 terraform {
-  required_version = ">= 1.9.0"
+  required_version = ">= 1.9.0, < 2.0.0"
 
   required_providers {
     azurerm = {
@@ -18,6 +18,10 @@ terraform {
     random = {
       source  = "hashicorp/random"
       version = "~> 3.6.0"
+    }
+    time = {
+      source  = "hashicorp/time"
+      version = "~> 0.13.0"
     }
   }
 
@@ -168,11 +172,8 @@ module "networking" {
   workload_address_space   = var.workload_prod_address_space
 
   deploy_application_gateway = var.deploy_application_gateway
-  appgw_waf_mode             = var.appgw_waf_mode
-
-  lb_backend_ips  = []
-  dc01_ip_address = var.dc01_ip_address
-  dc02_ip_address = var.dc02_ip_address
+  dc01_ip_address            = var.dc01_ip_address
+  dc02_ip_address            = var.dc02_ip_address
 }
 
 # =============================================================================
@@ -371,10 +372,8 @@ module "workload_prod" {
   app_subnet_prefix      = var.workload_prod_app_subnet_prefix
   data_subnet_prefix     = var.workload_prod_data_subnet_prefix
   dns_servers            = module.identity.dns_servers
-  hub_address_prefix     = var.hub_address_space[0]
-
-  firewall_private_ip = var.deploy_firewall ? module.networking.firewall_private_ip : null
-  deploy_route_table  = var.deploy_firewall
+  firewall_private_ip    = var.deploy_firewall ? module.networking.firewall_private_ip : null
+  deploy_route_table     = var.deploy_firewall
 
   deploy_aks                 = var.deploy_aks
   aks_subnet_prefix          = var.aks_subnet_prefix
@@ -426,10 +425,8 @@ module "workload_dev" {
   app_subnet_prefix      = var.workload_dev_app_subnet_prefix
   data_subnet_prefix     = var.workload_dev_data_subnet_prefix
   dns_servers            = module.identity.dns_servers
-  hub_address_prefix     = var.hub_address_space[0]
-
-  firewall_private_ip = var.deploy_firewall ? module.networking.firewall_private_ip : null
-  deploy_route_table  = var.deploy_firewall
+  firewall_private_ip    = var.deploy_firewall ? module.networking.firewall_private_ip : null
+  deploy_route_table     = var.deploy_firewall
 
   enable_diagnostics         = var.deploy_log_analytics
   encryption_at_host_enabled = var.enable_vm_encryption_at_host
@@ -562,9 +559,7 @@ module "networking_connectivity" {
   deploy_application_security_groups = var.deploy_application_security_groups
 
   deploy_application_gateway = var.deploy_application_gateway
-  application_gateway_name   = var.deploy_application_gateway ? module.application_gateway[0].application_gateway_name : null
   application_gateway_id     = var.deploy_application_gateway ? module.application_gateway[0].application_gateway_id : null
-  appgw_backend_ips          = []
   enable_appgw_diagnostics   = false
 }
 
@@ -589,7 +584,6 @@ module "onprem" {
   vpn_gateway_sku       = var.vpn_gateway_sku
   enable_bgp            = var.enable_bgp
   onprem_bgp_asn        = var.onprem_bgp_asn
-  hub_vpn_gateway_id    = var.deploy_vpn_gateway ? module.networking.vpn_gateway_id : null
   deploy_vpn_connection = var.deploy_vpn_gateway
   vpn_shared_key        = local.effective_vpn_shared_key
 
@@ -688,12 +682,12 @@ module "governance" {
   cost_alert_emails                   = var.cost_alert_emails
   cost_management_resource_group_name = azurerm_resource_group.management.name
 
-  deploy_regulatory_compliance = var.deploy_regulatory_compliance
-  enable_hipaa_compliance      = var.enable_hipaa_compliance
-  enable_pci_dss_compliance    = var.enable_pci_dss_compliance
-  compliance_enforcement_mode  = var.compliance_enforcement_mode
-  log_analytics_workspace_id   = var.deploy_log_analytics ? module.management.log_analytics_workspace_id : null
-  compliance_scope             = var.deploy_workload_prod ? azurerm_resource_group.workload_prod[0].id : azurerm_resource_group.shared.id
+  deploy_regulatory_compliance    = var.deploy_regulatory_compliance
+  enable_hipaa_compliance         = var.enable_hipaa_compliance
+  enable_pci_dss_compliance       = var.enable_pci_dss_compliance
+  compliance_enforcement_mode     = var.compliance_enforcement_mode
+  compliance_scope                = var.deploy_workload_prod ? azurerm_resource_group.workload_prod[0].id : azurerm_resource_group.shared.id
+  remediation_role_definition_ids = var.compliance_remediation_role_definition_ids
 
   deploy_rbac_custom_roles     = var.deploy_rbac_custom_roles
   network_operator_principals  = []

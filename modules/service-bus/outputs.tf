@@ -17,24 +17,6 @@ output "namespace_endpoint" {
   value       = azurerm_servicebus_namespace.this.endpoint
 }
 
-output "default_primary_connection_string" {
-  description = "Primary connection string for the namespace"
-  value       = azurerm_servicebus_namespace.this.default_primary_connection_string
-  sensitive   = true
-}
-
-output "default_secondary_connection_string" {
-  description = "Secondary connection string for the namespace"
-  value       = azurerm_servicebus_namespace.this.default_secondary_connection_string
-  sensitive   = true
-}
-
-output "default_primary_key" {
-  description = "Primary shared access key"
-  value       = azurerm_servicebus_namespace.this.default_primary_key
-  sensitive   = true
-}
-
 output "identity_principal_id" {
   description = "Principal ID of the managed identity"
   value       = azurerm_servicebus_namespace.this.identity[0].principal_id

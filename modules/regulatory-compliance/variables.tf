@@ -45,18 +45,12 @@ variable "hipaa_enforcement_mode" {
   }
 }
 
-variable "hipaa_allowed_locations" {
-  description = "Allowed locations for HIPAA compliance"
-  type        = list(string)
-  default     = ["eastus", "eastus2", "westus2", "centralus"]
-}
-
 # -----------------------------------------------------------------------------
-# PCI-DSS Configuration  
+# PCI-DSS Configuration
 # -----------------------------------------------------------------------------
 
 variable "enable_pci_dss" {
-  description = "Enable PCI-DSS 4.0 policy initiative"
+  description = "Enable PCI DSS 4.0.1 policy initiative"
   type        = bool
   default     = false
 }
@@ -78,20 +72,21 @@ variable "pci_dss_enforcement_mode" {
   }
 }
 
-variable "pci_dss_allowed_locations" {
-  description = "Allowed locations for PCI-DSS compliance"
-  type        = list(string)
-  default     = ["eastus", "eastus2", "westus2", "centralus"]
-}
-
 # -----------------------------------------------------------------------------
 # Common Configuration
 # -----------------------------------------------------------------------------
 
-variable "log_analytics_workspace_id" {
-  description = "Log Analytics Workspace ID for compliance logging (required for some policies)"
-  type        = string
-  default     = null
+variable "remediation_role_definition_ids" {
+  description = "Full Azure role definition resource IDs assigned to compliance policy identities for remediation; empty keeps the initiatives audit-only"
+  type        = set(string)
+  default     = []
+
+  validation {
+    condition = alltrue([
+      for id in var.remediation_role_definition_ids : can(regex("^/subscriptions/[0-9a-fA-F-]+/providers/Microsoft.Authorization/roleDefinitions/[0-9a-fA-F-]+$", id)) || can(regex("^/providers/Microsoft.Authorization/roleDefinitions/[0-9a-fA-F-]+$", id))
+    ])
+    error_message = "remediation_role_definition_ids must contain full Azure role definition resource IDs."
+  }
 }
 
 variable "exemptions" {

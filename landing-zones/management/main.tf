@@ -143,7 +143,6 @@ module "workbooks" {
   source = "../../modules/monitoring/workbooks"
   count  = var.deploy_workbooks && var.deploy_log_analytics ? 1 : 0
 
-  environment         = var.environment
   location            = var.location
   resource_group_name = var.resource_group_name
   tags                = var.tags
@@ -262,6 +261,8 @@ module "automation" {
   resource_group_names = var.resource_group_names_for_automation
 
   timezone              = var.startstop_timezone
+  start_time            = var.startstop_start_time
+  stop_time             = var.startstop_stop_time
   enable_start_schedule = true
   enable_stop_schedule  = true
 

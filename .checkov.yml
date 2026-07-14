@@ -1,6 +1,8 @@
 # Checkov remains a blocking CI gate. These skips are intentional lab exceptions:
 # the repo prioritizes low-cost, toggleable Azure learning environments over
 # production-only CMK, private-only, premium HA, and certificate requirements.
+# Rationale, compensating controls, owner, and review date are maintained in
+# SECURITY_EXCEPTIONS.md. Skips must not be added without updating that register.
 framework:
   - terraform
 

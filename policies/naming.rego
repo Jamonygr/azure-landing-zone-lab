@@ -3,7 +3,7 @@
 package terraform.naming
 
 # Check naming convention for resource groups
-warn[msg] {
+warn contains msg if {
     resource := input.resource_changes[_]
     resource.type == "azurerm_resource_group"
     resource.change.actions[_] == "create"
@@ -13,7 +13,7 @@ warn[msg] {
 }
 
 # Check naming convention for VNets
-warn[msg] {
+warn contains msg if {
     resource := input.resource_changes[_]
     resource.type == "azurerm_virtual_network"
     resource.change.actions[_] == "create"
@@ -23,7 +23,7 @@ warn[msg] {
 }
 
 # Check naming convention for subnets
-warn[msg] {
+warn contains msg if {
     resource := input.resource_changes[_]
     resource.type == "azurerm_subnet"
     resource.change.actions[_] == "create"
@@ -36,7 +36,7 @@ warn[msg] {
 }
 
 # Check naming convention for Key Vaults
-warn[msg] {
+warn contains msg if {
     resource := input.resource_changes[_]
     resource.type == "azurerm_key_vault"
     resource.change.actions[_] == "create"

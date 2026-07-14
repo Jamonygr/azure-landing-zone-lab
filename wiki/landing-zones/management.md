@@ -4,13 +4,12 @@
   <img src="../images/landing-zones-management.svg" alt="Management landing zone (Pillar 5: Management) banner" width="1000" />
 </p>
 
-
 The management landing zone gives administrators a safe entry point and a place to collect logs. It represents **Pillar 5** of the 5-pillar Azure Landing Zone architecture and hosts the jumpbox VM, Log Analytics workspace, backup, automation, and monitoring that many other services rely on.
 
 ## What you will learn
 
-- What the management zone deploys and how it connects to the rest of the platform.  
-- How to control public access, shutdown schedules, and logging costs.  
+- What the management zone deploys and how it connects to the rest of the platform.
+- How to control public access, shutdown schedules, and logging costs.
 - What outputs other zones expect from management.
 
 ## What it deploys
@@ -60,14 +59,15 @@ The management landing zone gives administrators a safe entry point and a place 
 
 ## How it behaves
 
-- NSG rules allow RDP only from the VPN client pool and hub address space by default; you can extend the allowlist.  
-- Auto-shutdown is enabled by default to keep lab costs low.  
+- NSG rules allow RDP only from the VPN client pool and hub address space by default; you can extend the allowlist.
+- Auto-shutdown is enabled by default to keep lab costs low.
 - Diagnostic settings for other resources point to this workspace.
 - Scheduled start/stop uses Azure Automation runbooks with Logic Apps for triggering.
 
 ## Workload management
 
 The management zone also supports workload-level management through:
+
 - **workload/** submodule for workload-specific monitoring
 - Connection monitors between spokes and hub
 - Azure Workbooks for network and security visualization

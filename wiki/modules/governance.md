@@ -4,7 +4,6 @@
   <img src="../images/modules-governance.svg" alt="Governance Modules banner" width="1000" />
 </p>
 
-
 The governance modules provide reusable building blocks for policy, compliance, cost control, and access management. They are consumed by the Governance pillar (`landing-zones/governance/`) to implement enterprise controls.
 
 ## Module inventory
@@ -52,7 +51,7 @@ module "management_groups" {
   root_management_group_id   = "contoso-root"
   create_platform_mg         = true
   create_landing_zones_mg    = true
-  
+
   subscription_ids_landing_zones_corp = [var.subscription_id]
 }
 ```

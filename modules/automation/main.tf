@@ -3,12 +3,19 @@
 # Scheduled Start/Stop for VMs
 # =============================================================================
 
-# Calculate a future start time for schedules (tomorrow at 8AM or 7PM)
+# Use a stable anchor so normal plans do not move the schedules every day.
+resource "time_static" "schedule_anchor" {
+  triggers = {
+    start_time = var.start_time
+    stop_time  = var.stop_time
+    timezone   = var.timezone
+  }
+}
+
 locals {
-  # Get tomorrow's date at the specified time
-  base_date           = formatdate("YYYY-MM-DD", timeadd(timestamp(), "24h"))
-  start_schedule_time = "${local.base_date}T08:00:00Z"
-  stop_schedule_time  = "${local.base_date}T19:00:00Z"
+  base_date           = formatdate("YYYY-MM-DD", timeadd(time_static.schedule_anchor.rfc3339, "24h"))
+  start_schedule_time = "${local.base_date}T${var.start_time}:00Z"
+  stop_schedule_time  = "${local.base_date}T${var.stop_time}:00Z"
 }
 
 # Automation Account
@@ -71,14 +78,14 @@ resource "azurerm_automation_runbook" "start_vms" {
 
     foreach ($rgName in $ResourceGroupNames) {
         Write-Output "Processing resource group: $rgName"
-        
+
         $vms = Get-AzVM -ResourceGroupName $rgName -ErrorAction SilentlyContinue
-        
+
         foreach ($vm in $vms) {
-            $status = (Get-AzVM -ResourceGroupName $rgName -Name $vm.Name -Status).Statuses | 
-                      Where-Object { $_.Code -like "PowerState/*" } | 
+            $status = (Get-AzVM -ResourceGroupName $rgName -Name $vm.Name -Status).Statuses |
+                      Where-Object { $_.Code -like "PowerState/*" } |
                       Select-Object -ExpandProperty Code
-            
+
             if ($status -eq "PowerState/deallocated" -or $status -eq "PowerState/stopped") {
                 Write-Output "Starting VM: $($vm.Name)"
                 Start-AzVM -ResourceGroupName $rgName -Name $vm.Name -NoWait
@@ -118,7 +125,7 @@ resource "azurerm_automation_runbook" "stop_vms" {
     param(
         [Parameter(Mandatory=$false)]
         [string[]]$ResourceGroupNames = @(${join(", ", formatlist("\"%s\"", var.resource_group_names))}),
-        
+
         [Parameter(Mandatory=$false)]
         [string[]]$ExcludeVMs = @(${join(", ", formatlist("\"%s\"", var.exclude_vms_from_stop))})
     )
@@ -134,19 +141,19 @@ resource "azurerm_automation_runbook" "stop_vms" {
 
     foreach ($rgName in $ResourceGroupNames) {
         Write-Output "Processing resource group: $rgName"
-        
+
         $vms = Get-AzVM -ResourceGroupName $rgName -ErrorAction SilentlyContinue
-        
+
         foreach ($vm in $vms) {
             if ($ExcludeVMs -contains $vm.Name) {
                 Write-Output "Skipping excluded VM: $($vm.Name)"
                 continue
             }
-            
-            $status = (Get-AzVM -ResourceGroupName $rgName -Name $vm.Name -Status).Statuses | 
-                      Where-Object { $_.Code -like "PowerState/*" } | 
+
+            $status = (Get-AzVM -ResourceGroupName $rgName -Name $vm.Name -Status).Statuses |
+                      Where-Object { $_.Code -like "PowerState/*" } |
                       Select-Object -ExpandProperty Code
-            
+
             if ($status -eq "PowerState/running") {
                 Write-Output "Stopping VM: $($vm.Name)"
                 Stop-AzVM -ResourceGroupName $rgName -Name $vm.Name -Force -NoWait
@@ -177,11 +184,7 @@ resource "azurerm_automation_schedule" "start_schedule" {
   start_time              = local.start_schedule_time
   week_days               = var.start_days
 
-  description = "Start VMs every weekday morning at 08:00"
-
-  lifecycle {
-    ignore_changes = [start_time]
-  }
+  description = "Start VMs on configured weekdays at ${var.start_time} ${var.timezone}"
 }
 
 # Evening Stop Schedule (7 PM weekdays)
@@ -196,11 +199,7 @@ resource "azurerm_automation_schedule" "stop_schedule" {
   start_time              = local.stop_schedule_time
   week_days               = var.stop_days
 
-  description = "Stop VMs every weekday evening at 19:00"
-
-  lifecycle {
-    ignore_changes = [start_time]
-  }
+  description = "Stop VMs on configured weekdays at ${var.stop_time} ${var.timezone}"
 }
 
 # =============================================================================

@@ -54,11 +54,9 @@ module "cost_management" {
   scope               = "/subscriptions/${var.subscription_id}"
   resource_group_name = var.cost_management_resource_group_name
   environment         = var.environment
-  location            = var.location
-
-  enable_budget = true
-  budget_amount = var.cost_budget_amount
-  budget_name   = "monthly-budget"
+  enable_budget       = true
+  budget_amount       = var.cost_budget_amount
+  budget_name         = "monthly-budget"
 
   enable_action_group = length(var.cost_alert_emails) > 0
   action_group_email_receivers = [for i, email in var.cost_alert_emails : {
@@ -85,7 +83,7 @@ module "regulatory_compliance" {
   enable_pci_dss           = var.enable_pci_dss_compliance
   pci_dss_enforcement_mode = var.compliance_enforcement_mode
 
-  log_analytics_workspace_id = var.log_analytics_workspace_id
+  remediation_role_definition_ids = var.remediation_role_definition_ids
 }
 
 module "rbac" {
@@ -229,7 +227,6 @@ module "workbooks" {
   source = "../../modules/monitoring/workbooks"
   count  = var.deploy_monitoring && var.deploy_workbooks ? 1 : 0
 
-  environment                = var.environment
   location                   = var.location
   resource_group_name        = var.monitoring_resource_group_name
   log_analytics_workspace_id = length(module.log_analytics) > 0 ? module.log_analytics[0].id : var.external_log_analytics_workspace_id

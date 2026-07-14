@@ -3,7 +3,7 @@ mock_provider "azurerm" {
     defaults = {
       client_id       = "22222222-2222-2222-2222-222222222222"
       object_id       = "33333333-3333-3333-3333-333333333333"
-      subscription_id = "11111111-1111-1111-1111-111111111111"
+      subscription_id = "11111111-1111-4111-8111-111111111111"
       tenant_id       = "44444444-4444-4444-4444-444444444444"
     }
   }
@@ -11,8 +11,8 @@ mock_provider "azurerm" {
   mock_data "azurerm_subscription" {
     defaults = {
       display_name    = "Mock Subscription"
-      id              = "/subscriptions/11111111-1111-1111-1111-111111111111"
-      subscription_id = "11111111-1111-1111-1111-111111111111"
+      id              = "/subscriptions/11111111-1111-4111-8111-111111111111"
+      subscription_id = "11111111-1111-4111-8111-111111111111"
       tenant_id       = "44444444-4444-4444-4444-444444444444"
     }
   }
@@ -22,7 +22,7 @@ mock_provider "random" {}
 mock_provider "time" {}
 
 variables {
-  subscription_id = "11111111-1111-1111-1111-111111111111"
+  subscription_id = "11111111-1111-4111-8111-111111111111"
   project         = "azlab"
 
   allowed_jumpbox_source_ips = []
@@ -98,4 +98,42 @@ run "lab_storage_name_is_stable" {
     condition     = local.storage_account_name_prefix == "stazlablab"
     error_message = "The existing lab storage account naming pattern must remain unchanged."
   }
+
+  assert {
+    condition     = !contains(keys(local.common_tags), "Repository")
+    error_message = "The Repository tag must be omitted when repository_url is null."
+  }
+}
+
+run "private_endpoints_require_private_dns" {
+  command = plan
+
+  variables {
+    environment              = "lab"
+    deploy_private_endpoints = true
+    deploy_private_dns_zones = false
+  }
+
+  expect_failures = [var.deploy_private_endpoints]
+}
+
+run "environment_profile_is_validated" {
+  command = plan
+
+  variables {
+    environment = "production"
+  }
+
+  expect_failures = [var.environment]
+}
+
+run "waf_mode_is_validated" {
+  command = plan
+
+  variables {
+    environment    = "lab"
+    appgw_waf_mode = "Monitor"
+  }
+
+  expect_failures = [var.appgw_waf_mode]
 }

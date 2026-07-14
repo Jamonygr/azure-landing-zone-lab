@@ -40,7 +40,7 @@ runs:
 
     - name: Setup Infracost
       if: steps.gate.outputs.enabled == 'true'
-      uses: infracost/actions/setup@v3
+      uses: infracost/actions/setup@e9d6e6cd65e168e76b0de50ff9957d2fe8bb1832 # v3
       with:
         api-key: ${{ inputs.api_key }}
 
@@ -55,10 +55,10 @@ runs:
           --terraform-var-file=${{ inputs.var_file }} \
           --format json \
           --out-file /tmp/infracost.json
-        
+
         MONTHLY=$(jq -r '.totalMonthlyCost' /tmp/infracost.json)
         echo "monthly_cost=$MONTHLY" >> $GITHUB_OUTPUT
-        
+
         echo "## 💰 Cost Estimation" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         infracost breakdown \
@@ -77,7 +77,7 @@ runs:
 
     - name: Post to PR
       if: github.event_name == 'pull_request' && steps.gate.outputs.enabled == 'true'
-      uses: infracost/actions/comment@v1
+      uses: infracost/actions/comment@e6a81841e9660a313ac6553cbd0a3705084d6426 # v1
       with:
         path: /tmp/infracost.json
         behavior: update

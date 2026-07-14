@@ -8,7 +8,7 @@
 #   └── Organization (Root)
 #       ├── Platform
 #       │   ├── Identity
-#       │   ├── Management  
+#       │   ├── Management
 #       │   └── Connectivity
 #       ├── Landing Zones
 #       │   ├── Corp

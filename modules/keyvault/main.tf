@@ -30,9 +30,15 @@ resource "azurerm_key_vault" "this" {
 
 # RBAC Role Assignment for current user/service principal
 resource "azurerm_role_assignment" "keyvault_admin" {
+  count                = var.create_secrets && length(var.secrets) > 0 ? 1 : 0
   scope                = azurerm_key_vault.this.id
   role_definition_name = "Key Vault Secrets Officer"
   principal_id         = data.azurerm_client_config.current.object_id
+}
+
+moved {
+  from = azurerm_role_assignment.keyvault_admin
+  to   = azurerm_role_assignment.keyvault_admin[0]
 }
 
 # Key Vault Secrets

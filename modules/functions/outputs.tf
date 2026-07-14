@@ -41,15 +41,3 @@ output "application_insights_id" {
   description = "ID of Application Insights"
   value       = var.enable_app_insights ? azurerm_application_insights.function[0].id : null
 }
-
-output "application_insights_instrumentation_key" {
-  description = "Instrumentation key for Application Insights"
-  value       = var.enable_app_insights ? azurerm_application_insights.function[0].instrumentation_key : null
-  sensitive   = true
-}
-
-output "application_insights_connection_string" {
-  description = "Connection string for Application Insights"
-  value       = var.enable_app_insights ? azurerm_application_insights.function[0].connection_string : null
-  sensitive   = true
-}

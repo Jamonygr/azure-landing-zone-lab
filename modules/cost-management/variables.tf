@@ -12,12 +12,6 @@ variable "environment" {
   type        = string
 }
 
-variable "location" {
-  description = "Azure region (used only for action group location)"
-  type        = string
-  default     = "global"
-}
-
 variable "resource_group_name" {
   description = "Resource group name for the action group (required for subscription-level scope)"
   type        = string

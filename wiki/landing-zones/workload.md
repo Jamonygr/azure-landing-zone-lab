@@ -4,13 +4,12 @@
   <img src="../images/landing-zones-workload.svg" alt="Workload landing zone banner" width="1000" />
 </p>
 
-
 The workload landing zone is where you try application scenarios. It is managed through the **Management pillar (Pillar 5)** and can be deployed as many times as you like (prod, dev, or both) using the same module. It includes subnets for web, app, and data tiers, plus optional AKS and PaaS services.
 
 ## What you will learn
 
-- What the workload zone deploys by default and how to size it for a lab.  
-- How load balancing, routing, and NSGs are configured for a simple three-tier app.  
+- What the workload zone deploys by default and how to size it for a lab.
+- How load balancing, routing, and NSGs are configured for a simple three-tier app.
 - How to toggle AKS and popular Azure PaaS services on and off.
 
 ## What it deploys
@@ -107,7 +106,7 @@ Container Apps explicitly uses the `Consumption` workload profile and a determin
 
 ## AKS and diagnostics
 
-- The AKS cluster is small and lab-friendly, using the provided subnet.  
+- The AKS cluster is small and lab-friendly, using the provided subnet.
 - Control-plane logs flow to the management workspace when diagnostics are enabled.
 - Workload identity and OIDC are enabled by default.
 
@@ -128,7 +127,7 @@ Toggle the individual flags to see how different Azure services are provisioned.
 
 ## When to deploy multiple copies
 
-- Use both `workload_prod` and `workload_dev` to test peering and firewall rules between environments.  
+- Use both `workload_prod` and `workload_dev` to test peering and firewall rules between environments.
 - Keep one off when you only need a single application stack to reduce spend.
 
 ## Cost and lab tips

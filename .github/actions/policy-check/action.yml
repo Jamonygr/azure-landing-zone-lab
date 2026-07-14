@@ -26,9 +26,13 @@ runs:
     - name: Setup Conftest
       shell: bash
       run: |
-        wget -q https://github.com/open-policy-agent/conftest/releases/download/v0.46.0/conftest_0.46.0_Linux_x86_64.tar.gz
-        tar xzf conftest_0.46.0_Linux_x86_64.tar.gz
-        sudo mv conftest /usr/local/bin/
+        set -euo pipefail
+        archive=conftest_0.68.2_Linux_x86_64.tar.gz
+        curl --fail --location --retry 5 --output "$RUNNER_TEMP/$archive" \
+          "https://github.com/open-policy-agent/conftest/releases/download/v0.68.2/$archive"
+        echo "e8144c6d6d2ae0260b869caa60c7c262a1f95ac63ec1e5d2fb19be452d606347  $RUNNER_TEMP/$archive" | sha256sum --check
+        tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" conftest
+        echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
 
     - name: Generate Terraform Plan JSON
       shell: bash
@@ -47,13 +51,13 @@ runs:
       working-directory: ${{ inputs.working_directory }}
       run: |
         echo "## 📋 Policy Check Results" >> $GITHUB_STEP_SUMMARY
-        
+
         if [ -d "${{ inputs.policy_dir }}" ]; then
           set +e
-          RESULT=$(conftest test tfplan.json --policy ${{ inputs.policy_dir }} --output table 2>&1)
+          RESULT=$(conftest test tfplan.json --policy ${{ inputs.policy_dir }} --all-namespaces --output table 2>&1)
           EXITCODE=$?
           set -e
-          
+
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "$RESULT" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
@@ -63,7 +67,7 @@ runs:
           # value and break the GitHub Actions output file format.
           VIOLATIONS=$(printf '%s' "$RESULT" | grep -c "FAIL" || true)
           printf 'violations=%s\n' "$VIOLATIONS" >> "$GITHUB_OUTPUT"
-          
+
           if [ $EXITCODE -ne 0 ] && [ "${{ inputs.soft_fail }}" != "true" ]; then
             exit 1
           fi

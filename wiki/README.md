@@ -4,7 +4,6 @@
   <img src="images/readme.svg" alt="Azure Landing Zone Lab documentation banner" width="1000" />
 </p>
 
-
 Azure Landing Zone Lab is a hands-on, Terraform-first walkthrough of the Cloud Adoption Framework hub-and-spoke design. It follows a 5-pillar architecture (Networking, Identity, Governance, Security, Management) that maps directly to CAF best practices. This documentation is written for people who want to see the moving parts of an Azure landing zone without needing to be Terraform experts. It is lab-scoped by design.
 
 ## What this lab is (and is not)
@@ -110,8 +109,8 @@ The fastest way to change the footprint is the MASTER CONTROL PANEL at the top o
 
 ## Before you start
 
-- Azure subscription with Owner or Contributor rights (Owner recommended for policy and RBAC assignments).
-- Terraform 1.9 or later.
+- Azure subscription and least-privilege rights for the features you enable.
+- Terraform 1.15.8.
 - Azure CLI signed in (`az login`).
 - Rough budget awareness: Azure Firewall and VPN Gateway accrue notable hourly cost. Toggle `deploy_firewall` or `deploy_vpn_gateway` to control spend.
 
@@ -120,7 +119,7 @@ Note: This project uses both AzureRM (~> 4.0) and AzAPI (~> 2.0) providers. AzAP
 ## Quick path
 
 1. Copy `terraform.tfvars.example` to `terraform.tfvars`.
-2. Replace the zero-GUID `subscription_id` with the real target subscription ID; set required credentials and feature flags.
+2. Confirm the target subscription, select non-secret feature flags, and provide optional secrets through ephemeral `TF_VAR_*` environment variables.
 3. Use `terraform init -backend=false` only for validation, then initialize the Azure Storage backend with the state key matching your profile before plan/apply. See [CI/CD pipeline reference](reference/pipeline.md#local-validation-and-deployment).
 4. Plan and apply an `environments/*.tfvars` profile, then use only the outputs enabled by that profile.
 

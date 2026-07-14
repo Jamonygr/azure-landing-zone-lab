@@ -25,7 +25,9 @@ runs:
     - name: Setup terraform-docs
       shell: bash
       run: |
-        curl -sSLo terraform-docs.tar.gz https://github.com/terraform-docs/terraform-docs/releases/download/v0.17.0/terraform-docs-v0.17.0-linux-amd64.tar.gz
+        set -euo pipefail
+        curl --fail --location --retry 5 --output terraform-docs.tar.gz https://github.com/terraform-docs/terraform-docs/releases/download/v0.24.0/terraform-docs-v0.24.0-linux-amd64.tar.gz
+        echo "9005daf969de0b50134493a2c00078b49f5f5b39d021cda7c89bf4d4f3d776d3  terraform-docs.tar.gz" | sha256sum --check
         tar -xzf terraform-docs.tar.gz
         chmod +x terraform-docs
         sudo mv terraform-docs /usr/local/bin/
@@ -34,30 +36,5 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working_directory }}
       run: |
-        echo "## 📚 Terraform Documentation" >> $GITHUB_STEP_SUMMARY
-        
-        # Generate root module docs
-        terraform-docs markdown table . > ${{ inputs.output_file }} 2>/dev/null || true
-        
-        # Generate docs for each module
-        if [ "${{ inputs.recursive }}" == "true" ]; then
-          for dir in modules/*/; do
-            if [ -d "$dir" ]; then
-              MODULE_NAME=$(basename "$dir")
-              terraform-docs markdown table "$dir" > "${dir}README.md" 2>/dev/null || true
-              echo "- Generated docs for module: $MODULE_NAME" >> $GITHUB_STEP_SUMMARY
-            fi
-          done
-        fi
-        
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "✅ Documentation generated successfully" >> $GITHUB_STEP_SUMMARY
-
-    - name: Upload Docs Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: terraform-docs
-        path: |
-          ${{ inputs.working_directory }}/${{ inputs.output_file }}
-          ${{ inputs.working_directory }}/modules/**/README.md
-        retention-days: 30
+        pwsh -NoProfile -File scripts/generate-terraform-docs.ps1 -Check
+        echo "## Terraform documentation is current" >> "$GITHUB_STEP_SUMMARY"

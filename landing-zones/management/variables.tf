@@ -394,11 +394,21 @@ variable "startstop_timezone" {
 variable "startstop_start_time" {
   description = "Start time (HH:MM)"
   type        = string
+
+  validation {
+    condition     = can(regex("^(?:[01][0-9]|2[0-3]):[0-5][0-9]$", var.startstop_start_time))
+    error_message = "startstop_start_time must use 24-hour HH:MM format."
+  }
 }
 
 variable "startstop_stop_time" {
   description = "Stop time (HH:MM)"
   type        = string
+
+  validation {
+    condition     = can(regex("^(?:[01][0-9]|2[0-3]):[0-5][0-9]$", var.startstop_stop_time))
+    error_message = "startstop_stop_time must use 24-hour HH:MM format."
+  }
 }
 
 variable "resource_group_names_for_automation" {

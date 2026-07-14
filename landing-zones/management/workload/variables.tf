@@ -64,12 +64,6 @@ variable "dns_servers" {
   default     = []
 }
 
-variable "hub_address_prefix" {
-  description = "Hub VNet address prefix"
-  type        = string
-  default     = "10.0.0.0/16"
-}
-
 variable "firewall_private_ip" {
   description = "Azure Firewall private IP"
   type        = string

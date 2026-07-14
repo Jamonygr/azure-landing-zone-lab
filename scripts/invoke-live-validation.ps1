@@ -459,7 +459,6 @@ deploy_backup                    = false
 enable_auto_shutdown = true
 enable_vm_encryption_at_host = false
 vm_size              = "Standard_B2s"
-sql_vm_size          = "Standard_B2s"
 "@
 
 Set-Content -LiteralPath $TfVarsPath -Value $tfvars -Encoding UTF8

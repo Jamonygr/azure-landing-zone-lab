@@ -1,0 +1,18 @@
+{
+  "resource_changes": [
+    {
+      "address": "azurerm_resource_group.example",
+      "type": "azurerm_resource_group",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "name": "rg-policy-test",
+          "location": "westeurope",
+          "tags": {
+            "Environment": "test"
+          }
+        }
+      }
+    }
+  ]
+}

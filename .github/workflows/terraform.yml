@@ -1,10 +1,4 @@
-# =============================================================================
-# TERRAFORM PIPELINE - Azure Landing Zone (Extended)
-# =============================================================================
-# Full-featured pipeline with security, cost estimation, testing, and more
-# =============================================================================
-
-name: 'Terraform Pipeline'
+name: Terraform Pipeline
 
 on:
   push:
@@ -12,12 +6,14 @@ on:
     paths:
       - '**.tf'
       - '**.tfvars'
+      - '**.tftest.hcl'
       - '.github/**'
       - 'modules/**'
       - 'landing-zones/**'
       - 'environments/**'
       - 'policies/**'
-      - 'README.md'
+      - 'scripts/**'
+      - '*.md'
       - 'wiki/**'
       - 'docs/**'
   pull_request:
@@ -25,30 +21,32 @@ on:
     paths:
       - '**.tf'
       - '**.tfvars'
+      - '**.tftest.hcl'
       - '.github/**'
       - 'modules/**'
       - 'landing-zones/**'
       - 'environments/**'
       - 'policies/**'
-      - 'README.md'
+      - 'scripts/**'
+      - '*.md'
       - 'wiki/**'
       - 'docs/**'
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment'
+        description: Environment
         required: true
-        default: 'lab'
+        default: lab
         type: choice
-        options: [cheap-lab, dev, lab, prod]
+        options: [cheap-lab, lab, dev, prod]
       action:
-        description: 'Action'
+        description: Action
         required: true
-        default: 'plan'
+        default: plan
         type: choice
         options: [plan, apply, destroy]
       destroy_confirm:
-        description: 'Type DESTROY to confirm'
+        description: Type "DESTROY <environment>" to confirm a destroy
         required: false
         type: string
 
@@ -57,110 +55,101 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
-  pull-requests: write
-  security-events: write
-  id-token: write
+  contents: read
 
 env:
-  TF_VERSION: '1.9.0'
+  TF_VERSION: 1.15.8
+  TFLINT_VERSION: v0.63.1
+  TRIVY_VERSION: v0.72.0
   ENVIRONMENT: ${{ github.event.inputs.environment || 'lab' }}
-  TF_REGISTRY_CLIENT_TIMEOUT: '60'
-  TF_REGISTRY_DISCOVERY_RETRY: '5'
+  TF_IN_AUTOMATION: true
+  TF_INPUT: false
+  TF_REGISTRY_CLIENT_TIMEOUT: 60
+  TF_REGISTRY_DISCOVERY_RETRY: 5
 
 jobs:
-  # =========================================================================
-  # STAGE 1: FORMAT CHECK
-  # =========================================================================
   format:
-    name: '1️⃣ Format Check'
+    name: Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+      - run: terraform fmt -check -recursive -diff
 
-      - name: Format Check
-        run: |
-          if ! terraform fmt -check -recursive -diff; then
-            echo "## ❌ Format Check Failed" >> "$GITHUB_STEP_SUMMARY"
-            echo "Run \`terraform fmt -recursive\` locally to fix." >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
-          echo "## ✅ Format Check Passed" >> "$GITHUB_STEP_SUMMARY"
-
-  # =========================================================================
-  # STAGE 2: VALIDATE
-  # =========================================================================
   validate:
-    name: '2️⃣ Validate'
+    name: Validate
     runs-on: ubuntu-latest
-    needs: format
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
-
       - uses: ./.github/actions/provider-mirror
+      - run: terraform init -backend=false -lockfile=readonly
+      - run: terraform validate -no-color
 
-      - name: Validate
-        run: |
-          terraform init -backend=false
-          terraform validate
-          echo "## ✅ Validation Passed" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Terraform Unit Tests
-        run: terraform test -no-color
-
-  # =========================================================================
-  # STAGE 3: SECURITY - TFSEC
-  # =========================================================================
-  security-tfsec:
-    name: '3️⃣ Security - tfsec'
+  terraform-test:
+    name: Terraform Tests
     runs-on: ubuntu-latest
     needs: validate
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: aquasecurity/tfsec-action@v1.0.3
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
-          soft_fail: false
+          terraform_version: ${{ env.TF_VERSION }}
+      - uses: ./.github/actions/provider-mirror
+      - run: terraform init -backend=false -lockfile=readonly
+      - run: terraform test -no-color
+
+  tflint:
+    name: TFLint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: terraform-linters/setup-tflint@90f302c255ef959cbfb4bd10581afecdb7ece3e6 # v4
+        with:
+          tflint_version: ${{ env.TFLINT_VERSION }}
+      - run: tflint --init
+      - run: tflint --recursive
+
+  trivy:
+    name: Trivy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Scan Terraform
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: ${{ env.TRIVY_VERSION }}
+          scan-type: config
+          scan-ref: .
           format: sarif
-          additional_args: --out tfsec-results.sarif
-
-      - name: Upload tfsec SARIF
-        if: always()
-        shell: bash
-        run: |
-          if [ -f tfsec-results.sarif ]; then
-            echo "tfsec SARIF exists; uploading."
-          else
-            echo "tfsec SARIF not found; skipping upload."
-          fi
-
-      - uses: github/codeql-action/upload-sarif@v4
-        if: always() && hashFiles('tfsec-results.sarif') != ''
+          output: trivy-results.sarif
+          severity: MEDIUM,HIGH,CRITICAL
+          exit-code: '1'
+          trivyignores: .trivyignore.yaml
+      - name: Upload Trivy SARIF
+        if: always() && hashFiles('trivy-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         with:
-          sarif_file: tfsec-results.sarif
+          sarif_file: trivy-results.sarif
         continue-on-error: true
 
-      - run: echo "## 🔒 tfsec scan completed" >> "$GITHUB_STEP_SUMMARY"
-
-  # =========================================================================
-  # STAGE 3: SECURITY - CHECKOV
-  # =========================================================================
-  security-checkov:
-    name: '3️⃣ Security - Checkov'
+  checkov:
+    name: Checkov
     runs-on: ubuntu-latest
-    needs: validate
+    permissions:
+      contents: read
+      security-events: write
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: bridgecrewio/checkov-action@v12
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Scan Terraform
+        uses: bridgecrewio/checkov-action@99bb2caf247dfd9f03cf984373bc6043d4e32ebf # v12.1347.0
         with:
           directory: .
           framework: terraform
@@ -168,205 +157,128 @@ jobs:
           soft_fail: false
           output_format: cli,sarif
           output_file_path: console,checkov-results.sarif
-
-      - uses: github/codeql-action/upload-sarif@v4
-        if: always()
+      - name: Upload Checkov SARIF
+        if: always() && hashFiles('checkov-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         with:
           sarif_file: checkov-results.sarif
         continue-on-error: true
 
-      - run: echo "## 🛡️ Checkov scan completed" >> "$GITHUB_STEP_SUMMARY"
-
-  # =========================================================================
-  # STAGE 3: SECRET SCANNING (NEW)
-  # =========================================================================
-  secret-scan:
-    name: '3️⃣ Security - Secrets'
+  gitleaks:
+    name: Gitleaks
     runs-on: ubuntu-latest
-    needs: validate
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          fetch-depth: ${{ github.event_name == 'workflow_dispatch' && 1 || 0 }}
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
-      - uses: ./.github/actions/secret-scan
-
-  # =========================================================================
-  # STAGE 4: TFLINT
-  # =========================================================================
-  tflint:
-    name: '4️⃣ Lint - TFLint'
-    runs-on: ubuntu-latest
-    needs: validate
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: terraform-linters/setup-tflint@v4
-
-      - name: Run TFLint
-        run: |
-          cat > .tflint.hcl << 'EOF'
-          plugin "azurerm" {
-            enabled = true
-            version = "0.27.0"
-            source  = "github.com/terraform-linters/tflint-ruleset-azurerm"
-          }
-          EOF
-          tflint --init
-          echo "## 📏 TFLint Results" >> "$GITHUB_STEP_SUMMARY"
-          tflint --recursive || true
-        continue-on-error: true
-
-  # =========================================================================
-  # STAGE 4: POLICY CHECK (NEW)
-  # =========================================================================
   policy-check:
-    name: '4️⃣ Lint - Policy'
+    name: Policy Checks
     runs-on: ubuntu-latest
-    needs: plan
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Install Conftest
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive=conftest_0.68.2_Linux_x86_64.tar.gz
+          curl --fail --location --retry 5 --output "$RUNNER_TEMP/$archive" \
+            "https://github.com/open-policy-agent/conftest/releases/download/v0.68.2/$archive"
+          echo "e8144c6d6d2ae0260b869caa60c7c262a1f95ac63ec1e5d2fb19be452d606347  $RUNNER_TEMP/$archive" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" conftest
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - run: conftest test tests/policy/secure-plan.json --policy policies --all-namespaces
+      - name: Verify insecure fixture is denied
+        shell: bash
+        run: |
+          if conftest test tests/policy/insecure-plan.json --policy policies --all-namespaces; then
+            echo "The intentionally insecure plan was not denied." >&2
+            exit 1
+          fi
 
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - uses: ./.github/actions/provider-mirror
-
-      - name: Init Providers
-        run: terraform init -backend=false
-
-      - name: Download Plan
-        uses: actions/download-artifact@v4
-        with:
-          name: tfplan-${{ env.ENVIRONMENT }}-${{ github.sha }}
-          path: .
-
-      - uses: ./.github/actions/policy-check
-        with:
-          policy_dir: policies
-          soft_fail: 'false'
-
-  # =========================================================================
-  # STAGE 4: TERRAFORM DOCS (NEW)
-  # =========================================================================
-  terraform-docs:
-    name: '4️⃣ Lint - Docs'
+  docs:
+    name: Docs
     runs-on: ubuntu-latest
-    needs: validate
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Install terraform-docs
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive=terraform-docs-v0.24.0-linux-amd64.tar.gz
+          curl --fail --location --retry 5 --output "$RUNNER_TEMP/$archive" \
+            "https://github.com/terraform-docs/terraform-docs/releases/download/v0.24.0/$archive"
+          echo "9005daf969de0b50134493a2c00078b49f5f5b39d021cda7c89bf4d4f3d776d3  $RUNNER_TEMP/$archive" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" terraform-docs
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - shell: pwsh
+        run: ./scripts/generate-terraform-docs.ps1 -Check
+      - name: Check Markdown links
+        shell: pwsh
+        run: ./scripts/test-markdown-links.ps1
 
-      - uses: ./.github/actions/terraform-docs
-        with:
-          recursive: 'true'
-
-  # =========================================================================
-  # STAGE 4: ACTIONLINT
-  # =========================================================================
   actionlint:
-    name: '4️⃣ Lint - Actions'
+    name: Actionlint
     runs-on: ubuntu-latest
-    needs: validate
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version: '1.23.x'
           cache: false
+      - run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+      - run: actionlint
 
-      - name: Run actionlint
-        run: |
-          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
-          actionlint
-
-  # =========================================================================
-  # STAGE 5: GRAPH VISUALIZATION (NEW)
-  # =========================================================================
-  graph:
-    name: '5️⃣ Analysis - Graph'
+  go-test:
+    name: Go Tests
     runs-on: ubuntu-latest
-    needs: [security-tfsec, security-checkov, secret-scan, tflint, actionlint]
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          go-version-file: tests/go.mod
+          cache-dependency-path: tests/go.sum
+      - run: go test -v -timeout 10m ./...
+        working-directory: tests
 
-      - uses: ./.github/actions/provider-mirror
-
-      - uses: ./.github/actions/graph
-        with:
-          output_format: svg
-
-  # =========================================================================
-  # STAGE 5: MODULE VERSION CHECK (NEW)
-  # =========================================================================
-  module-versions:
-    name: '5️⃣ Analysis - Versions'
-    runs-on: ubuntu-latest
-    needs: [security-tfsec, security-checkov, secret-scan, tflint, actionlint]
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - uses: ./.github/actions/provider-mirror
-
-      - name: Init
-        run: terraform init -backend=false
-
-      - uses: ./.github/actions/module-version
-
-  # =========================================================================
-  # STAGE 6: COST ESTIMATION (NEW)
-  # =========================================================================
   cost-estimate:
-    name: '6️⃣ Analysis - Cost'
+    name: Cost Estimate
     runs-on: ubuntu-latest
-    needs: [graph, module-versions]
+    if: github.event_name != 'push'
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
-
       - uses: ./.github/actions/provider-mirror
-
-      - name: Init
-        run: terraform init -backend=false
-
+      - run: terraform init -backend=false -lockfile=readonly
       - uses: ./.github/actions/cost-estimate
         with:
           api_key: ${{ secrets.INFRACOST_API_KEY }}
           var_file: environments/${{ env.ENVIRONMENT }}.tfvars
         continue-on-error: true
 
-  # =========================================================================
-  # STAGE 7: PLAN
-  # =========================================================================
   plan:
-    name: '7️⃣ Plan'
+    name: Plan
     runs-on: ubuntu-latest
-    needs: [graph, module-versions]
+    needs: [format, validate, terraform-test, tflint, trivy, checkov, gitleaks, policy-check, docs, actionlint, go-test]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    environment: ${{ github.event.inputs.environment || 'lab' }}
+    permissions:
+      contents: read
+      id-token: write
     outputs:
       has_changes: ${{ steps.plan.outputs.has_changes }}
-      add: ${{ steps.plan.outputs.add }}
-      change: ${{ steps.plan.outputs.change }}
-      destroy: ${{ steps.plan.outputs.destroy }}
     steps:
-      - uses: actions/checkout@v4
-
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/provider-mirror
-
-      - name: Plan
+      - name: Create saved plan
         id: plan
         uses: ./.github/actions/plan
         with:
@@ -380,32 +292,43 @@ jobs:
           var_file: environments/${{ env.ENVIRONMENT }}.tfvars
           environment: ${{ env.ENVIRONMENT }}
 
-  # =========================================================================
-  # STAGE 8: APPLY
-  # =========================================================================
-  apply:
-    name: '8️⃣ Apply'
+  plan-policy-check:
+    name: Plan Policy Checks
     runs-on: ubuntu-latest
-    needs: [plan, cost-estimate, policy-check]
+    needs: plan
+    if: needs.plan.result == 'success'
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - uses: ./.github/actions/provider-mirror
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: tfplan-${{ env.ENVIRONMENT }}-${{ github.sha }}
+          path: .
+      - uses: ./.github/actions/policy-check
+        with:
+          policy_dir: policies
+          soft_fail: 'false'
+
+  apply:
+    name: Apply
+    runs-on: ubuntu-latest
+    needs: [plan, plan-policy-check]
     if: |
-      always() &&
       needs.plan.result == 'success' &&
-      needs.plan.outputs.has_changes == 'true' &&
-      needs['policy-check'].result == 'success' &&
+      needs.plan-policy-check.result == 'success' &&
       github.event_name == 'workflow_dispatch' &&
       github.ref == 'refs/heads/main' &&
       github.event.inputs.action == 'apply'
     environment: ${{ github.event.inputs.environment }}
-    outputs:
-      start_time: ${{ steps.timer.outputs.start }}
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Start Timer
-        id: timer
-        run: echo "start=$(date +%s)" >> "$GITHUB_OUTPUT"
-
-      - name: State Backup
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Back up state
         uses: ./.github/actions/state-backup
         with:
           azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -414,11 +337,8 @@ jobs:
           storage_account: ${{ secrets.TF_STATE_SA }}
           resource_group: ${{ secrets.TF_STATE_RG }}
           state_key: ${{ env.ENVIRONMENT }}.terraform.tfstate
-
       - uses: ./.github/actions/provider-mirror
-
-      - name: Apply
-        uses: ./.github/actions/apply
+      - uses: ./.github/actions/apply
         with:
           terraform_version: ${{ env.TF_VERSION }}
           azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -430,55 +350,22 @@ jobs:
           environment: ${{ env.ENVIRONMENT }}
           plan_artifact: tfplan-${{ env.ENVIRONMENT }}-${{ github.sha }}
 
-      - name: Resource Inventory
-        uses: ./.github/actions/resource-inventory
-        with:
-          environment: ${{ env.ENVIRONMENT }}
-          format: json
-
-      - name: Change Log
-        uses: ./.github/actions/changelog
-        with:
-          environment: ${{ env.ENVIRONMENT }}
-
-  # =========================================================================
-  # STAGE 10: METRICS
-  # =========================================================================
-  metrics:
-    name: '🔟 Metrics'
-    runs-on: ubuntu-latest
-    needs: [apply, plan]
-    if: always() && needs.apply.result == 'success'
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: ./.github/actions/metrics
-        with:
-          environment: ${{ env.ENVIRONMENT }}
-          action: ${{ github.event.inputs.action || 'plan' }}
-          start_time: ${{ needs.apply.outputs.start_time || github.run_id }}
-          status: ${{ needs.apply.result }}
-          add_count: ${{ needs.plan.outputs.add || '0' }}
-          change_count: ${{ needs.plan.outputs.change || '0' }}
-          destroy_count: ${{ needs.plan.outputs.destroy || '0' }}
-
-  # =========================================================================
-  # STAGE 9: DESTROY (with Approval Gate)
-  # =========================================================================
   destroy:
-    name: '9️⃣ Destroy'
+    name: Destroy
     runs-on: ubuntu-latest
     needs: plan
     if: |
       github.event_name == 'workflow_dispatch' &&
       github.ref == 'refs/heads/main' &&
       github.event.inputs.action == 'destroy' &&
-      github.event.inputs.destroy_confirm == 'DESTROY'
+      github.event.inputs.destroy_confirm == format('DESTROY {0}', github.event.inputs.environment)
     environment: ${{ github.event.inputs.environment }}-destroy
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
-
-      - name: State Backup Before Destroy
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Back up state
         uses: ./.github/actions/state-backup
         with:
           azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -487,11 +374,8 @@ jobs:
           storage_account: ${{ secrets.TF_STATE_SA }}
           resource_group: ${{ secrets.TF_STATE_RG }}
           state_key: ${{ env.ENVIRONMENT }}.terraform.tfstate
-
       - uses: ./.github/actions/provider-mirror
-
-      - name: Destroy
-        uses: ./.github/actions/destroy
+      - uses: ./.github/actions/destroy
         with:
           terraform_version: ${{ env.TF_VERSION }}
           azure_client_id: ${{ secrets.AZURE_CLIENT_ID }}

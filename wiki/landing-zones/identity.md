@@ -4,7 +4,6 @@
   <img src="../images/landing-zones-identity.svg" alt="Identity landing zone (Pillar 2: Identity Management) banner" width="1000" />
 </p>
 
-
 The identity landing zone provides DNS and Active Directory for the entire lab and represents Pillar 2 of the 5-pillar Azure Landing Zone architecture. Other zones point to these domain controllers for name resolution so services can find each other by name instead of IP.
 
 This pillar complements Microsoft Entra. Entra handles Azure access and RBAC, while these AD DS VMs provide a traditional Windows domain for workloads that expect it.

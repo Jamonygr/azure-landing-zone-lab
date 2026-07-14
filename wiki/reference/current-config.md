@@ -4,7 +4,6 @@
   <img src="../images/reference-current-config.svg" alt="Current lab configuration (lab profile) banner" width="1000" />
 </p>
 
-
 This page summarizes the active `terraform.tfvars` profile in the repo so you know what will deploy and how to reach it. The lab is based on the **5-pillar Azure Landing Zone architecture**.
 
 For the full list of feature flags, see the **MASTER CONTROL PANEL** section at the top of `terraform.tfvars`.
@@ -22,16 +21,19 @@ For the full list of feature flags, see the **MASTER CONTROL PANEL** section at 
 ## What's on
 
 ### Pillar 1: Networking
+
 - Region: **westus2**
 - Hub/spoke topology with **Azure Firewall (Standard)**
 - **Application Gateway v2** with WAF (Detection mode)
 - **NAT Gateway** for fixed outbound IP
 
 ### Pillar 2: Identity Management
+
 - Primary Domain Controller (**DC01**) deployed
 - Secondary DC disabled (cost saving for lab)
 
 ### Pillar 3: Governance
+
 - **Management Groups** with Organization hierarchy
 - **Azure Policy** with allowed locations, required tags, security policies
 - **Cost Management** budget ($500/mo) with alerts
@@ -39,6 +41,7 @@ For the full list of feature flags, see the **MASTER CONTROL PANEL** section at 
 - Regulatory compliance policies enabled in **audit** mode
 
 ### Pillar 4: Security (Shared Services)
+
 - **Key Vault** with private endpoint
 - **Storage Account** with private endpoint
 - **Azure SQL Database** with private endpoint
@@ -46,6 +49,7 @@ For the full list of feature flags, see the **MASTER CONTROL PANEL** section at 
 - **Application Security Groups** for micro-segmentation
 
 ### Pillar 5: Management
+
 - **Jumpbox** deployed without public RDP by default; use VPN/Bastion/private access or explicitly trusted CIDRs if you enable the public IP
 - **Log Analytics** workspace (`log_retention_days = 30`, `log_daily_quota_gb = 2`)
 - **Azure Workbooks** for monitoring dashboards
@@ -54,6 +58,7 @@ For the full list of feature flags, see the **MASTER CONTROL PANEL** section at 
 - **Recovery Services Vault** disabled in current profile
 
 ### Workloads
+
 - **Production workload** zone deployed with Load Balancer (2x IIS VMs)
 - **Development workload** zone deployed (network only; no LB/IIS by default)
 - **PaaS services enabled**: Static Web App, Logic Apps, Event Grid, Service Bus, App Service, Cosmos DB
@@ -85,6 +90,7 @@ For the full list of feature flags, see the **MASTER CONTROL PANEL** section at 
 ## Quick flag snapshot (from `terraform.tfvars`)
 
 ### Pillar 1: Networking
+
 ```hcl
 deploy_firewall             = true
 firewall_sku_tier           = "Standard"
@@ -97,11 +103,13 @@ enable_traffic_analytics    = false
 ```
 
 ### Pillar 2: Identity
+
 ```hcl
 deploy_secondary_dc = false
 ```
 
 ### Pillar 3: Governance
+
 ```hcl
 deploy_management_groups     = true
 deploy_azure_policy          = true
@@ -113,6 +121,7 @@ compliance_enforcement_mode  = "DoNotEnforce"
 ```
 
 ### Pillar 4: Security
+
 ```hcl
 deploy_keyvault                    = true
 deploy_storage                     = true
@@ -123,6 +132,7 @@ deploy_application_security_groups = true
 ```
 
 ### Pillar 5: Management
+
 ```hcl
 enable_jumpbox_public_ip       = false
 allowed_jumpbox_source_ips     = []
@@ -135,6 +145,7 @@ enable_scheduled_startstop     = true
 ```
 
 ### Workloads & PaaS
+
 ```hcl
 deploy_workload_prod      = true
 deploy_workload_dev       = true

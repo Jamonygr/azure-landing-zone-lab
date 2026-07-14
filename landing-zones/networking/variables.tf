@@ -106,11 +106,6 @@ variable "deploy_application_gateway" {
   type        = bool
 }
 
-variable "appgw_waf_mode" {
-  description = "Application Gateway WAF mode"
-  type        = string
-}
-
 # -----------------------------------------------------------------------------
 # Connectivity inputs for firewall rules
 # -----------------------------------------------------------------------------
@@ -148,14 +143,4 @@ variable "dc01_ip_address" {
 variable "dc02_ip_address" {
   description = "DC02 static IP (for firewall rules, optional)"
   type        = string
-}
-
-# -----------------------------------------------------------------------------
-# Optional backend IPs for App Gateway (kept empty initially)
-# -----------------------------------------------------------------------------
-
-variable "lb_backend_ips" {
-  description = "Backend IPs for Application Gateway pool (populated later)"
-  type        = list(string)
-  default     = []
 }

@@ -17,30 +17,6 @@ output "account_endpoint" {
   value       = azurerm_cosmosdb_account.this.endpoint
 }
 
-output "primary_key" {
-  description = "Primary master key for the Cosmos DB account"
-  value       = azurerm_cosmosdb_account.this.primary_key
-  sensitive   = true
-}
-
-output "secondary_key" {
-  description = "Secondary master key for the Cosmos DB account"
-  value       = azurerm_cosmosdb_account.this.secondary_key
-  sensitive   = true
-}
-
-output "primary_readonly_key" {
-  description = "Primary readonly master key for the Cosmos DB account"
-  value       = azurerm_cosmosdb_account.this.primary_readonly_key
-  sensitive   = true
-}
-
-output "primary_sql_connection_string" {
-  description = "Primary SQL connection string for the Cosmos DB account"
-  value       = "AccountEndpoint=${azurerm_cosmosdb_account.this.endpoint};AccountKey=${azurerm_cosmosdb_account.this.primary_key};"
-  sensitive   = true
-}
-
 output "identity_principal_id" {
   description = "Principal ID of the managed identity"
   value       = azurerm_cosmosdb_account.this.identity[0].principal_id

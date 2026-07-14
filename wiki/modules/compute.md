@@ -4,7 +4,6 @@
   <img src="../images/modules-compute.svg" alt="Compute modules banner" width="1000" />
 </p>
 
-
 These modules create Windows VMs used throughout the lab. They are primarily used by **Pillar 2: Identity Management** (Domain Controllers) and **Pillar 5: Management** (Jumpbox, Web Servers). They keep VM setup small and predictable so you can focus on networking and platform behavior.
 
 ## Module summary
@@ -38,6 +37,7 @@ Creates a NIC, an optional public IP, and a Windows Server VM. Supports data dis
 **Outputs:** `vm_id`, `vm_name`, `nic_id`, `private_ip`, `public_ip`
 
 ### Data disk structure
+
 ```hcl
 data_disks = [{
   name         = "data-disk-1"
@@ -70,6 +70,7 @@ Wraps the Windows VM module to stand up IIS web servers. Can join a load balance
 **Outputs:** `vm_id`, `hostname`, `private_ip`
 
 ### Custom IIS content
+
 ```hcl
 custom_iis_content = <<-EOF
   <html>
@@ -83,10 +84,11 @@ EOF
 ## Usage patterns
 
 ### Domain Controller (Identity pillar)
+
 ```hcl
 module "dc01" {
   source = "./modules/compute/windows-vm"
-  
+
   name              = "dc01"
   size              = "Standard_B2s"
   private_ip        = "10.1.1.4"  # Static IP for DNS
@@ -97,10 +99,11 @@ module "dc01" {
 ```
 
 ### Jumpbox (Management pillar)
+
 ```hcl
 module "jumpbox" {
   source = "./modules/compute/windows-vm"
-  
+
   name              = "jumpbox"
   size              = "Standard_B2s"
   create_public_ip  = var.enable_jumpbox_public_ip
@@ -109,11 +112,12 @@ module "jumpbox" {
 ```
 
 ### Web Servers (Workload)
+
 ```hcl
 module "web_servers" {
   source   = "./modules/compute/web-server"
   count    = var.lb_web_server_count
-  
+
   name              = "web-${count.index + 1}"
   size              = var.lb_web_server_size
   associate_with_lb = true
@@ -132,6 +136,7 @@ module "web_servers" {
 | SQL VM | Standard_B2s | ~$30 |
 
 **Tips:**
+
 - Enable `enable_auto_shutdown = true` to reduce costs (default: 7 PM shutdown)
 - Use B-series VMs for lab/dev workloads
 - Consider Reserved Instances for long-running labs

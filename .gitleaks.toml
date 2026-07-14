@@ -39,7 +39,6 @@ paths = [
     '''node_modules/''',
     '''vendor/''',
     '''tests/.*_test\.go$''',
-    '''wiki/.*\.md$''',
 ]
 
 # Regex patterns to ignore
@@ -53,10 +52,16 @@ regexes = [
     '''xxxxxxxx''',  # Masked values
     '''00000000-0000-0000-0000-000000000000''',  # Placeholder GUID
     '''11111111-1111-1111-1111-111111111111''',  # Mock Terraform subscription ID
+    '''11111111-1111-4111-8111-111111111111''',  # RFC 4122-valid mock subscription ID
 ]
 
-# Specific commits to ignore
-commits = []
+# Historical commits containing the same non-secret Azure subscription identifier.
+# The current tree contains placeholders only; the identifier must still be rotated
+# if it was ever paired with reusable credentials.
+commits = [
+    "91f1ed5242c8de3b005a4b85683329453775846f",
+    "17eaf0b5d60dcd2bd9ca76c0f0221e5d5b7062e9",
+]
 
 # Stop words - common false positives
 stopwords = [

@@ -4,7 +4,6 @@
   <img src="../images/certifications-lab-workbook.svg" alt="Certification lab workbook banner" width="1000" />
 </p>
 
-
 This workbook is a long-form, hands-on path through the lab. It is designed to support AZ-104, AZ-305, and AZ-400 by walking through build, operate, and design scenarios. Check off tasks as you go, and capture evidence (screenshots, notes, pipeline artifacts).
 
 ## Before you start
@@ -22,6 +21,7 @@ This workbook is a long-form, hands-on path through the lab. It is designed to s
 - [ ] Confirm the hub/spoke VNets exist and peering is connected.
 
 Evidence to capture:
+
 - Plan summary and apply output.
 - Portal screenshots of hub and spoke VNets.
 
@@ -33,6 +33,7 @@ Evidence to capture:
 - [ ] Toggle `deploy_firewall` on again and document egress path.
 
 Evidence to capture:
+
 - Diagram of hub-spoke routing.
 - Notes on firewall vs. NAT Gateway tradeoffs.
 
@@ -44,6 +45,7 @@ Evidence to capture:
 - [ ] Enable `deploy_secondary_dc` and document DNS changes.
 
 Evidence to capture:
+
 - Management group hierarchy screenshot.
 - Policy compliance report screenshot.
 
@@ -55,6 +57,7 @@ Evidence to capture:
 - [ ] Enable `deploy_backup` and review Recovery Services Vault settings.
 
 Evidence to capture:
+
 - Private endpoint details and DNS zone links.
 - Backup vault configuration notes.
 
@@ -66,6 +69,7 @@ Evidence to capture:
 - [ ] Enable or disable `deploy_workload_dev` to see environment isolation.
 
 Evidence to capture:
+
 - Load balancer backend pool screenshot.
 - Output values for jumpbox IP and workload endpoints.
 
@@ -77,6 +81,7 @@ Evidence to capture:
 - [ ] Review workbooks and alerts for baseline health.
 
 Evidence to capture:
+
 - Log Analytics workspace overview.
 - Traffic analytics screenshot.
 
@@ -86,9 +91,10 @@ Evidence to capture:
 - [ ] Review the plan artifact and job summaries.
 - [ ] Trigger a manual `workflow_dispatch` plan for the lab environment.
 - [ ] Add a simple Conftest policy and confirm it runs in CI.
-- [ ] Review gitleaks, tfsec, and checkov outputs in the Security tab.
+- [ ] Review Gitleaks, Trivy, and Checkov outputs in the Security tab.
 
 Evidence to capture:
+
 - Workflow run summary.
 - SARIF results and policy check output.
 
@@ -100,6 +106,7 @@ Evidence to capture:
 - [ ] Identify gaps you would address for production (identity, DR, monitoring).
 
 Evidence to capture:
+
 - Architecture diagram and tradeoff table.
 - Cost summary with recommended changes.
 
@@ -110,6 +117,7 @@ Evidence to capture:
 - [ ] Run `terraform destroy` when finished.
 
 Evidence to capture:
+
 - Final checklist with notes on remaining risks.
 
 ## Optional extensions

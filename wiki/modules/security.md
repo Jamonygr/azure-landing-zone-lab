@@ -4,7 +4,6 @@
   <img src="../images/modules-security.svg" alt="Security modules banner" width="1000" />
 </p>
 
-
 These modules provide the core security controls for the lab and are part of **Pillar 4: Security**. They include Azure Firewall for central inspection, firewall policies for rules, Key Vault for secrets, and storage/SQL with private endpoints.
 
 ## Module summary
@@ -53,6 +52,7 @@ Attaches rule collection groups to an existing firewall policy.
 **Outputs:** `rule_collection_group_id`
 
 ### Rule collection structure
+
 ```hcl
 network_rules = [{
   name     = "AllowDNS"
@@ -139,6 +139,7 @@ Creates private endpoints for PaaS services.
 ## Usage patterns
 
 ### Full security stack
+
 ```hcl
 deploy_firewall          = true
 firewall_sku_tier        = "Standard"
@@ -150,6 +151,7 @@ deploy_private_dns_zones = true
 ```
 
 ### Cost-optimized security
+
 ```hcl
 deploy_firewall          = false  # Saves ~$300/month
 deploy_keyvault          = true   # Keep for secrets

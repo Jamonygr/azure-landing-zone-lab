@@ -4,13 +4,12 @@
   <img src="../images/landing-zones-hub.svg" alt="Hub landing zone (Pillar 1: Networking) banner" width="1000" />
 </p>
 
-
 The hub is the centre of the network and represents **Pillar 1** of the 5-pillar Azure Landing Zone architecture. It hosts the firewall, optional VPN gateway, NAT Gateway, and optional Application Gateway. Every spoke VNet peers back here, and most traffic passes through it for inspection.
 
 ## What you will learn
 
-- What the hub deploys and why it is the first landing zone pillar.  
-- Which switches control costly components like the firewall and VPN gateway.  
+- What the hub deploys and why it is the first landing zone pillar.
+- Which switches control costly components like the firewall and VPN gateway.
 - What the hub exports to the rest of the platform.
 
 ## What it deploys
@@ -68,9 +67,9 @@ The hub is the centre of the network and represents **Pillar 1** of the 5-pillar
 
 ## How it behaves
 
-- Subnets are created in a safe order (gateway → firewall → management) to avoid Azure control-plane race conditions.  
-- NSG attachment to the management subnet waits until the VPN gateway is ready.  
-- Application Gateway backend IPs are injected after deployment to avoid circular dependencies.  
+- Subnets are created in a safe order (gateway → firewall → management) to avoid Azure control-plane race conditions.
+- NSG attachment to the management subnet waits until the VPN gateway is ready.
+- Application Gateway backend IPs are injected after deployment to avoid circular dependencies.
 - Gateway transit is enabled in peering when the VPN gateway is on so spokes can reach on-premises networks.
 
 ## Cost and lab tips

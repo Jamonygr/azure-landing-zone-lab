@@ -4,7 +4,6 @@
   <img src="../images/reference-terraform-patterns.svg" alt="Terraform patterns banner" width="1000" />
 </p>
 
-
 These are the Terraform idioms used throughout the lab. Skim them before extending the codebase so your changes stay consistent.
 
 ## Conditional resources

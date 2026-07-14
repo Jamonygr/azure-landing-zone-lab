@@ -4,13 +4,12 @@
   <img src="../images/landing-zones-readme.svg" alt="Landing zones overview banner" width="1000" />
 </p>
 
-
 In this lab, the platform follows a **5-pillar architecture** aligned with Microsoft's Cloud Adoption Framework. Each pillar is a self-contained Terraform module that owns one part of the platform. The root module orchestrates them in sequence, passing shared context (tags, location, environment) and cross-pillar references (firewall IP, DNS servers).
 
 ## What you will learn
 
-- The 5-pillar structure and what each pillar is responsible for.  
-- Which components are optional and how they depend on one another.  
+- The 5-pillar structure and what each pillar is responsible for.
+- Which components are optional and how they depend on one another.
 - How outputs from one pillar become inputs to the next.
 
 ## The 5-pillar architecture at a glance
@@ -60,17 +59,20 @@ In this lab, the platform follows a **5-pillar architecture** aligned with Micro
 ## What each pillar contains
 
 ### Pillar 1: Networking (`landing-zones/networking/`)
+
 - **core/**: Hub VNet, Azure Firewall, VPN Gateway, Application Gateway
 - **connectivity/**: VNet peering, VNet flow logs, NAT Gateway, Application Security Groups
 - **onprem-simulated/**: Simulated on-premises for VPN testing
 - **Firewall Rules**: Base rules + PaaS rules attached via modules
 
 ### Pillar 2: Identity Management (`landing-zones/identity-management/`)
+
 - **core/**: Identity VNet, DC subnet, Domain Controller VMs
 - Exports DNS servers used by all other spokes
 - Optional secondary DC for high availability
 
 ### Pillar 3: Governance (`landing-zones/governance/`)
+
 - Management Groups hierarchy (Platform, Landing Zones, Sandbox, Decommissioned)
 - Azure Policy assignments (locations, tags, HTTPS storage, NSG requirements)
 - Cost Management (monthly budget, anomaly alerts)
@@ -78,12 +80,14 @@ In this lab, the platform follows a **5-pillar architecture** aligned with Micro
 - Regulatory Compliance (HIPAA, PCI-DSS in audit mode)
 
 ### Pillar 4: Security (`landing-zones/security/`)
+
 - **shared-services/**: Shared VNet, Key Vault, Storage Account
 - Private DNS Zones for Private Link (blob, keyvault, SQL)
 - Private Endpoints for PaaS services
 - SQL Database with optional private connectivity
 
 ### Pillar 5: Management (`landing-zones/management/`)
+
 - **core/**: Management VNet, Jumpbox VM, Log Analytics workspace
 - **workload/**: Workload zones (prod/dev) with web/app/data subnets
 - Monitoring: Action groups, alerts, diagnostic settings, workbooks
@@ -107,6 +111,7 @@ Use the **Master Control Panel** in `terraform.tfvars` to toggle components:
 ## Next steps
 
 Start with **Networking** to understand the hub-spoke topology, then follow the pillar chain:
+
 1. [Hub/Networking](hub.md) – Central connectivity
 2. [Identity](identity.md) – Domain controllers and DNS
 3. [Management](management.md) – Jumpbox and monitoring

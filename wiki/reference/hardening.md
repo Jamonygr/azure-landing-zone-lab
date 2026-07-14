@@ -4,7 +4,6 @@
   <img src="../images/reference-hardening.svg" alt="Hardening and hygiene checklist (current lab profile) banner" width="1000" />
 </p>
 
-
 Use this to keep the lab private-first after initial deployment. Firewall is on in the richer lab profile; LB and Application Gateway can be public entry points for web traffic, but management access is closed by default.
 
 ## Highest-priority fixes

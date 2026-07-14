@@ -5,7 +5,6 @@
 locals {
   # Environment configuration
   environment = var.environment
-  project     = var.project
 
   # Location short codes
   location_short_map = {
@@ -31,15 +30,18 @@ locals {
   storage_account_name        = "${local.storage_account_name_prefix}${random_string.suffix.result}"
 
   # Common tags applied to all resources
-  common_tags = {
+  required_tags = {
     Environment = var.environment
     Project     = var.project
     ManagedBy   = "Terraform"
     Purpose     = "Azure Landing Zone Lab"
     Owner       = var.owner
     CostCenter  = "Learning"
-    Repository  = var.repository_url
   }
+  common_tags = merge(
+    local.required_tags,
+    var.repository_url == null ? {} : { Repository = var.repository_url }
+  )
 
   # CI-friendly defaults: derive subscription from current credentials and
   # generate secrets when not explicitly provided.

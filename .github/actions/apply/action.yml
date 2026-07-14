@@ -5,7 +5,7 @@ inputs:
   terraform_version:
     description: 'Terraform version'
     required: false
-    default: '1.9.0'
+    default: '1.15.8'
   working_directory:
     description: 'Working directory'
     required: false
@@ -43,13 +43,13 @@ runs:
   using: 'composite'
   steps:
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+      uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
       with:
         terraform_version: ${{ inputs.terraform_version }}
         terraform_wrapper: false
 
     - name: Azure Login
-      uses: azure/login@v2
+      uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2
       with:
         client-id: ${{ inputs.azure_client_id }}
         tenant-id: ${{ inputs.azure_tenant_id }}
@@ -68,7 +68,7 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working_directory }}
       run: |
-        terraform init \
+        terraform init -lockfile=readonly \
           -backend-config="resource_group_name=${{ inputs.backend_resource_group }}" \
           -backend-config="storage_account_name=${{ inputs.backend_storage_account }}" \
           -backend-config="container_name=${{ inputs.backend_container }}" \
@@ -76,7 +76,7 @@ runs:
           -backend-config="use_azuread_auth=true"
 
     - name: Download Plan
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
       with:
         name: ${{ inputs.plan_artifact }}
         path: ${{ inputs.working_directory }}

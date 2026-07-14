@@ -5,7 +5,7 @@ inputs:
   terraform_version:
     description: 'Terraform version'
     required: false
-    default: '1.9.0'
+    default: '1.15.8'
   working_directory:
     description: 'Working directory'
     required: false
@@ -39,7 +39,7 @@ inputs:
     description: 'Environment name'
     required: true
   confirm:
-    description: 'Must be DESTROY to confirm'
+    description: 'Must be DESTROY followed by the environment name'
     required: true
 
 runs:
@@ -48,21 +48,21 @@ runs:
     - name: Validate Confirmation
       shell: bash
       run: |
-        if [ "${{ inputs.confirm }}" != "DESTROY" ]; then
+        if [ "${{ inputs.confirm }}" != "DESTROY ${{ inputs.environment }}" ]; then
           echo "## ❌ Destruction NOT Confirmed" >> $GITHUB_STEP_SUMMARY
-          echo "Type **DESTROY** to confirm." >> $GITHUB_STEP_SUMMARY
+          echo "Type **DESTROY ${{ inputs.environment }}** to confirm." >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
         echo "## ⚠️ Destruction Confirmed" >> $GITHUB_STEP_SUMMARY
 
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+      uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
       with:
         terraform_version: ${{ inputs.terraform_version }}
         terraform_wrapper: false
 
     - name: Azure Login
-      uses: azure/login@v2
+      uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2
       with:
         client-id: ${{ inputs.azure_client_id }}
         tenant-id: ${{ inputs.azure_tenant_id }}
@@ -81,7 +81,7 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working_directory }}
       run: |
-        terraform init \
+        terraform init -lockfile=readonly \
           -backend-config="resource_group_name=${{ inputs.backend_resource_group }}" \
           -backend-config="storage_account_name=${{ inputs.backend_storage_account }}" \
           -backend-config="container_name=${{ inputs.backend_container }}" \

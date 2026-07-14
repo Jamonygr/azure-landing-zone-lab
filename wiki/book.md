@@ -4,10 +4,10 @@
   <img src="images/book.svg" alt="Azure Landing Zone Lab - Book-Style Guide banner" width="1000" />
 </p>
 
-
 This guide stitches the entire repository together so you can understand the Terraform logic, deployment flow, and CI/CD pipeline end to end. It is organized to be read like a small book. Each section links back to the existing reference pages for deeper detail. The emphasis is lab-scale clarity rather than production-scale completeness.
 
 ## How to read this guide
+
 - Part 0 explains the Microsoft foundations (CAF and Entra) that shape the lab.
 - Part 1 orients you to the repo layout, the master control panel, and environment profiles.
 - Part 2 traces how values move from tfvars into locals, modules, and resources.
@@ -19,7 +19,8 @@ This guide stitches the entire repository together so you can understand the Ter
 If you are new, start with Part 0 and Part 1, then jump to the landing zone you are most interested in.
 
 ## What this guide assumes
-- You have a subscription, can run Terraform 1.9+, and can authenticate to Azure.
+
+- You have a subscription, can run Terraform 1.15.8, and can authenticate to Azure.
 - You will drive the lab mostly through `terraform.tfvars` and `environments/*.tfvars`.
 - You want a practical, lab-sized view of CAF-aligned landing zones.
 - You may toggle features on and off to control cost and complexity.
@@ -29,9 +30,11 @@ If you are new, start with Part 0 and Part 1, then jump to the landing zone you 
 ## Part 0 - Foundations (CAF and Entra)
 
 ### Cloud Adoption Framework, as used here
+
 The Cloud Adoption Framework (CAF) is a lifecycle model that helps teams plan, build, and operate in the cloud. This lab focuses on the Ready phase by building a landing zone foundation, then touches the Govern and Manage phases by adding policy, logging, and cost controls.
 
 CAF lifecycle in one line each:
+
 - Strategy: define outcomes, drivers, and success metrics.
 - Plan: inventory, prioritize, and sequence what you will adopt.
 - Ready: build the platform foundation (identity, networking, governance, security, management).
@@ -42,9 +45,11 @@ CAF lifecycle in one line each:
 This lab is intentionally small but maps each pillar to a real CAF concept. It is meant to help you see how a landing zone is assembled, not to replace an enterprise-scale platform.
 
 ### Microsoft Entra fundamentals for this lab
+
 Microsoft Entra ID (formerly Azure AD) is the identity control plane for Azure. Your subscription belongs to an Entra tenant, and every role assignment uses Entra identities.
 
 Key ideas used by this lab:
+
 - Tenants are identity boundaries; subscriptions live inside tenants.
 - Users, groups, and service principals are Entra identities.
 - Authentication proves who you are; authorization (RBAC) grants access.
@@ -53,6 +58,7 @@ Key ideas used by this lab:
 The identity landing zone simulates the on-prem style directory while Entra handles access to Azure resources and Terraform automation.
 
 ### Where to go deeper
+
 - `wiki/architecture/foundations.md` for a longer CAF and Entra primer.
 - `wiki/landing-zones/identity.md` for how AD DS and DNS are implemented here.
 
@@ -61,6 +67,7 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 ## Part 1 - Orientation
 
 ### Repository layout (top level)
+
 - `backend.tf` - azurerm backend definition; the pipeline injects the RG/account/key at init time.
 - `main.tf` - root module orchestrator that stitches together hub, identity, management, shared services, workload, VPN/on-prem, PaaS, and observability blocks.
 - `variables.tf`, `locals.tf`, `terraform.tfvars` - input surface and default shaping. The MASTER CONTROL PANEL at the top of `terraform.tfvars` drives deploy/enable switches.
@@ -72,6 +79,7 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 - `wiki/` - documentation hub (this guide, reference pages, testing, hardening, etc.).
 
 ### Documentation map
+
 - `wiki/README.md` is the index to all pages.
 - Architecture pages explain how values and dependencies flow.
 - Landing zone pages describe what each pillar deploys.
@@ -79,16 +87,19 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 - Reference pages document variables, outputs, and pipeline behavior.
 
 ### Providers and backend
+
 - Providers: AzureRM ~> 4.x and AzAPI ~> 2.x (AzAPI needed for modern features like VNet Flow Logs).
 - Backend: azurerm with container `tfstate`; key is `<environment>.terraform.tfstate`; set via pipeline/backend config.
 - State isolation: each environment (cheap-lab/dev/lab/prod) maps to its own key; locks are blob leases.
 
 ### Feature flags and profiles
+
 - MASTER CONTROL PANEL in `terraform.tfvars` groups all `deploy_*` / `enable_*` flags.
 - Common switches: `deploy_firewall`, `deploy_vpn_gateway`, `deploy_application_gateway`, `deploy_workload_prod`, `deploy_workload_dev`, `deploy_private_endpoints`, `deploy_nat_gateway`, `deploy_aks`, PaaS flags, observability flags.
 - Profiles (see README tables): cheap-lab, lab, dev, and prod.
 
 ### Environment profiles
+
 - `environments/cheap-lab.tfvars`, `lab.tfvars`, `dev.tfvars`, and `prod.tfvars` override the same variables with different sizes, regions, and feature flags.
 - The pipeline chooses the profile and state key based on the environment input.
 - Locals normalize names and tags so each environment stays consistent.
@@ -98,19 +109,22 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 ## Part 2 - Terraform logic flow
 
 ### Input -> locals -> modules -> resources
-1. Inputs: `terraform.tfvars` (or `environments/*.tfvars`) provide subscription, region, credentials, and all feature flags.
+
+1. Inputs: tracked `environments/*.tfvars` provide non-secret profile settings; ephemeral `TF_VAR_*` values provide optional credentials.
 2. Locals: `locals.tf` normalizes names (CAF-inspired), derives region short codes, builds tags, and maps feature flags into per-module settings.
 3. Modules: `main.tf` instantiates modules with locals/variables; optional blocks are wrapped in `count`/`for_each` or conditional module calls.
 4. Resources: Modules emit Azure resources (VNets, subnets, VMs, Key Vault, Storage, SQL, firewall, VPN, private endpoints, AKS, etc.) along with diagnostics and role assignments.
-5. Outputs: `outputs.tf` returns connection info (IPs, FQDNs, credentials), resource IDs, and diagnostics endpoints for post-deploy testing.
+5. Outputs: `outputs.tf` returns non-secret connection information, resource IDs, and diagnostics endpoints for post-deploy testing.
 
 ### Variable precedence and shaping
+
 - Defaults live in `variables.tf`.
 - `terraform.tfvars` is the primary override for local runs.
 - `environments/*.tfvars` override the same variables in pipeline runs.
 - `locals.tf` is the opinionated translator that turns inputs into consistent naming, tags, and module-friendly structures.
 
 ### Dependency approach
+
 - Network-first: hub VNet and subnets created before spokes; peering ensures routing; firewall/VPN/App Gateway depend on subnets.
 - Identity bootstrap: domain controller provisioned early; other VMs can join domain when enabled.
 - Security layering: NSGs, firewall, and diagnostic settings applied as part of module outputs; private DNS and endpoints gated by flags.
@@ -121,6 +135,7 @@ The identity landing zone simulates the on-prem style directory while Entra hand
   - AKS when `deploy_aks=true` (disabled by default to reduce time/cost).
 
 ### Configuration shaping patterns (HCL idioms used here)
+
 - `count`/`for_each` to toggle optional modules and to create per-zone subnets.
 - `local` maps to centralize naming/tagging and avoid duplication.
 - `depends_on` used sparingly; preference for implicit dependencies via inputs (IDs, subnet names, workspace IDs).
@@ -128,7 +143,8 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 - `try()` and `lookup()` used in locals to keep optional inputs safe.
 
 ### Outputs as hand-off contracts
-- Outputs expose IPs/FQDNs (LB frontend, jumpbox, firewall DNAT, VPN), credentials placeholders, resource IDs, and workspace info.
+
+- Outputs expose non-secret IPs/FQDNs, resource IDs, and workspace information; credentials are retrieved through Azure RBAC.
 - Testing flows: web load balancer round-robin, RDP via jumpbox or firewall DNAT, VPN connectivity, log ingestion checks (see `wiki/testing/lab-testing-guide.md`).
 
 ---
@@ -136,6 +152,7 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 ## Part 3 - Modules and landing zones
 
 ### Landing-zone compositions (`landing-zones/`)
+
 - Hub: VNet, subnets for gateway/firewall/management/appgw, optional Azure Firewall, optional VPN Gateway, optional Application Gateway; peering anchor for spokes.
 - Identity: Domain controller VM(s), DNS config, optional secondary DC.
 - Management: Jumpbox VM (optionally with public IP), Log Analytics workspace, diagnostics wiring.
@@ -144,6 +161,7 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 - On-prem simulated: Optional VNet, file server, VPN gateway to test S2S.
 
 ### How zones fit together
+
 - The hub is the routing and security anchor.
 - Spokes peer to the hub and send default routes through the firewall when enabled.
 - Identity provides DNS so resources can resolve names consistently.
@@ -151,6 +169,7 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 - Shared services provide security and data services for workloads.
 
 ### Reusable modules (`modules/`)
+
 - Networking: VNet/subnet creation, peering, route tables, NSGs, VPN gateway, firewall, Application Gateway, load balancer, NAT Gateway, private endpoints, private DNS.
 - Compute: Windows VMs for DC, jumpbox, IIS web tier; VMSS not used to keep complexity low.
 - Security: Firewall policies/rules, Key Vault access policies, role assignments where needed.
@@ -159,11 +178,13 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 - Governance: management groups, policy assignments, cost budgets, and RBAC roles.
 
 ### Naming and tagging
+
 - CAF-aligned names produced by locals; tags include `project`, `environment`, `owner`, and optional cost/role metadata.
 - See `wiki/reference/naming-conventions.md` for the pattern and examples.
 
 ### Outputs and access
-- Outputs expose IPs/FQDNs (LB frontend, jumpbox, firewall DNAT, VPN), credentials placeholders, resource IDs, and workspace info.
+
+- Outputs expose non-secret IPs/FQDNs, resource IDs, and workspace information; credentials are retrieved through Azure RBAC.
 - Testing flows: web load balancer round-robin, RDP via jumpbox or firewall DNAT, VPN connectivity, log ingestion checks (see `wiki/testing/lab-testing-guide.md`).
 
 ---
@@ -171,14 +192,16 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 ## Part 4 - CI/CD pipeline (GitHub Actions)
 
 ### Overview
+
 - File: `.github/workflows/terraform.yml`
 - Jobs: 16 visible stages with concurrency guard `terraform-${ref}-${environment}`.
 - Secrets required: `AZURE_CLIENT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`, `TF_STATE_RG`, `TF_STATE_SA`, optional `INFRACOST_API_KEY`.
 
 ### Job sequence
+
 1. 1️⃣ Format Check - `terraform fmt -check -recursive`
 2. 2️⃣ Validate - `terraform init -backend=false` + `terraform validate`
-3. 3️⃣ Security - tfsec - SARIF upload and enforced scan
+3. Security - Trivy - blocking IaC scan and SARIF upload
 4. 3️⃣ Security - Checkov - SARIF upload and enforced scan with `.checkov.yml`
 5. 3️⃣ Security - Secrets - Gitleaks scan
 6. 4️⃣ Lint - TFLint - Azure rules (soft-fail)
@@ -194,18 +217,21 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 16. 🔟 Metrics - after successful apply; records duration, counts, actor, run id
 
 ### Triggers
+
 - Push to `main` with repo health path filters: runs all checks through plan; apply is never automatic.
 - Pull request to `main`: runs static validation, security, lint, docs, graph, version, and cost analysis without Azure authentication; plan and policy are skipped.
 - Manual (`workflow_dispatch`): choose `action` (`plan|apply|destroy`), `environment` (`cheap-lab|dev|lab|prod`), and `destroy_confirm` for destroys. Apply runs only if plan reported `has_changes=true`.
 
 ### Safety rails built in
+
 - Detailed exit codes prevent no-op plans from running apply.
 - Destroy requires a confirmation string.
 - State backups run before apply and destroy.
 - Authenticated jobs are restricted to `main`; pull requests never exchange Azure credentials.
-- Soft-fail tools such as TFLint and Infracost provide feedback without blocking learning workflows; tfsec, Checkov, secrets, policy, docs, and actionlint stay blocking.
+- TFLint, Trivy, Checkov, Gitleaks, policy fixtures, docs, actionlint, and tests are blocking; only optional Infracost feedback is non-blocking.
 
 ### Composite actions (selected)
+
 - `plan/` - setup Terraform, Azure login, init backend, `terraform plan -detailed-exitcode`, parse counts, upload artifact.
 - `apply/` - download plan artifact, init backend, `terraform apply tfplan`, step summary.
 - `destroy/` - confirmation gate, init backend, `terraform destroy -var-file=...`.
@@ -221,6 +247,7 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 ## Part 5 - Operating the lab
 
 ### Day 0: first deployment
+
 1. Copy `terraform.tfvars.example`, replace the zero-GUID `subscription_id` with the real subscription ID, and select the matching Azure CLI subscription.
 2. Use `terraform init -backend=false` only for `terraform validate`.
 3. Initialize the Azure Storage backend with the state key matching the chosen `environments/*.tfvars` profile; see the [pipeline reference](reference/pipeline.md#local-validation-and-deployment).
@@ -228,35 +255,41 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 5. Use profile-enabled outputs for testing; for example, `keyvault_uri` and `storage_account_name` in `cheap-lab`, or `lb_frontend_ip` and `container_app_fqdn` in `lab`.
 
 ### Day 1: steady operations
+
 - Rotate admin passwords in `terraform.tfvars` and in Azure when needed.
 - Track cost and disable expensive switches when not in use.
 - Keep Log Analytics enabled so diagnostics validate the lab.
 
 ### Day 2: change management
+
 - Make changes in `terraform.tfvars`, re-plan, and apply.
 - Avoid manual portal edits; they surface as drift.
 - Use the graph and inventory artifacts to document changes.
 
 ### Pipeline workflow
+
 1. Pull requests run Azure-free static/security/docs/analysis checks and do not create a plan artifact.
 2. Pushes and manual dispatches from `main` run the authenticated plan and policy checks.
 3. Manual Apply runs if `has_changes=true`; manual Destroy requires confirmation.
 
 ### Cost controls
+
 - Disable `deploy_firewall` and `deploy_vpn_gateway` to cut most hourly cost.
 - Reduce web tier size/count (`lb_web_server_size`, `lb_web_server_count`).
 - Turn off PaaS/data flags when not needed; set `enable_auto_shutdown=true` to stop VMs at night.
 - Use `paas_alternative_location` and `cosmos_location` for quota-friendly regions.
 
 ### Troubleshooting
+
 - Format/validate failures: run `terraform fmt -recursive` and `terraform validate`.
-- Plan/apply auth errors: confirm Azure credentials and role (Owner recommended for policy/role assignments).
+- Plan/apply auth errors: confirm the OIDC subject, target subscription, and least-privilege Azure role assignments.
 - State lock stuck: `terraform force-unlock -force <LOCK_ID>`.
 - Cost job missing: set `INFRACOST_API_KEY` secret.
 - Docs/graph issues: ensure backend file exists; graph action temporarily moves `backend.tf` to run locally.
 - Secret scan: if Gitleaks fails, rotate secrets and clean history as needed.
 
 ### Testing
+
 - Use `wiki/testing/lab-testing-guide.md` for post-deploy validation (web LB, RDP paths, VPN, logs).
 - Use `scripts/invoke-live-validation.ps1` when you need disposable apply, smoke-test, Terratest, and destroy evidence.
 - The Terratest composite action is available for a future dedicated CI job; the live validation runner already invokes the Go tests after apply.
@@ -266,6 +299,7 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 ## Part 6 - Deep dive: Terraform structure, patterns, and gotchas
 
 ### How files cooperate
+
 - Root module (`main.tf`): orchestrates all module calls. Think of it as the chapter index; each landing zone is a section, and each module is a paragraph inside that section.
 - `variables.tf`: the contract. Every tunable knob is declared here with types, descriptions, and defaults where sensible.
 - `locals.tf`: the opinionated translator. It shapes names, tags, CIDRs, SKU choices, and feature flags into module-friendly structures. Many downstream decisions (like whether to attach diagnostics or private endpoints) flow from locals maps and booleans.
@@ -273,37 +307,44 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 - `outputs.tf`: the back-of-book index. It surfaces the important connection points and IDs after a run.
 
 ### Conditional assembly
+
 - Hub-first rule: The hub VNet, firewall subnet, gateway subnet, and management subnet stand up before any spoke peering. This ensures routes and gateway transit are ready for spokes.
 - Feature gates: Modules wrap optional resources in `count` or `for_each`. For example, private endpoints only render when both `deploy_private_endpoints` and the corresponding service flag are true.
 - Diagnostics by default: When `deploy_log_analytics=true`, most modules emit `azurerm_monitor_diagnostic_setting` blocks to push platform logs/metrics into the workspace, avoiding drift between services.
 - Private DNS coupling: Private DNS zones only deploy when both `deploy_private_dns_zones=true` and at least one private endpoint-enabled service is on; the zones link to hub VNets so spokes inherit resolution via peering.
 
 ### Networking decisions
+
 - Addressing: Hub uses /16; spokes use /16 with /24 slices per tier. Adjust cautiously; routing, peering, and firewall DNAT/SNAT rules assume these defaults.
 - Security planes: NSGs per subnet, optional ASGs for workload tiers, and Azure Firewall for central egress/DNAT. Turning off firewall but leaving public jumpbox enabled is allowed for cost-saving lab scenarios.
 - Outbound control: NAT Gateway available for deterministic egress when firewall is off. When firewall is on, SNAT comes from the firewall public IP.
 - Hybrid: VPN Gateway + simulated on-premises VNet give you a full S2S path. Use `vpn_shared_key` and match IP ranges to avoid overlaps.
 
 ### Compute and identity
+
 - Domain controllers: Windows Server VMs with AD DS. Secondary DC optional for cost. DNS services anchor identity and name resolution across spokes.
 - Jumpbox: RDP entry point. Can use public IP (cheaper, simpler) or force DNAT through firewall for a more realistic posture.
 - IIS workload: Two web servers behind a load balancer by default. AKS is optional and off by default to keep runtime short and costs low.
 
 ### Data and PaaS
+
 - SQL: Single DB with optional private endpoint and private DNS. Admin creds come from variables; rotate in secrets manager for production-like use.
 - Storage: Used for files, diagnostics, and (optionally) VNet Flow Logs. Private endpoints and service endpoints can be toggled.
 - PaaS expansion: Functions, Logic Apps, Event Grid, Service Bus, App Service, Static Web Apps, Cosmos DB are opt-in. Use `paas_alternative_location` to route to quota-friendly regions if your primary region is saturated.
 
 ### Observability
+
 - Log Analytics: Central sink; diagnostic settings from firewall, VPN, Application Gateway, AKS (if enabled), and VMs point here. Default retention is 30 days (adjust in `terraform.tfvars`).
 - Traffic Analytics: Enabled when both `enable_vnet_flow_logs` and `enable_traffic_analytics` are true; uses AzAPI for VNet Flow Logs (NSG flow logs are deprecated).
 - Alerts: Minimal baseline; consider extending with action groups and metrics (CPU, disk) for jumpbox/DC/workload VMs if you want production-like behaviors.
 
 ### Naming and tagging rules of thumb
+
 - Names use region short codes from locals (for example, `wus2`), environment codes, and resource roles. Keep them short to satisfy Azure length constraints.
 - Tags: at least `project`, `environment`, `owner`. Add `cost_center`, `criticality`, `data_classification` if you mirror enterprise standards.
 
 ### Common pitfalls
+
 - Role/Policy operations require Owner: The landing zone creates policy assignments and role assignments; Contributor alone is not enough.
 - State drift from manual edits: Avoid ad-hoc portal changes; they will surface as drift in plan/apply.
 - Address overlap: Changing CIDRs after first deploy will force replacement of VNets and peered resources. Plan carefully before changing address spaces.
@@ -315,27 +356,31 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 ## Part 7 - Deep dive: CI/CD pipeline behaviors and extensions
 
 ### Change detection and gating
+
 - Plan uses `-detailed-exitcode` to detect "no changes"; apply only runs when `has_changes=true` and `action=apply`.
 - Destroy is isolated behind `action=destroy` and a `DESTROY` confirmation string to prevent accidental teardown.
 - Concurrency key `terraform-${ref}-${environment}` ensures only one run per branch/environment; newer runs wait rather than cancel.
 
 ### Security and quality stages
-- tfsec + Checkov: Both upload SARIF so findings appear in the Security tab. Soft-fail keeps feedback flowing without blocking iterations.
+
+- Trivy + Checkov: both are blocking and upload SARIF so findings appear in the Security tab.
 - Gitleaks: Fails on suspected secrets. Run locally with `.gitleaks.toml` if you hit failures.
 - TFLint + Conftest: Azure ruleset catches SKU/usage issues; OPA policies can enforce tagging, naming, or allowed regions (extend `policies/` as needed).
 - terraform-docs: Keeps module docs fresh; artifacts are uploaded for review instead of committing autogenerated files.
 
 ### Artifacts produced per run
+
 - `tfplan-<env>-<sha>`: binary plan + `plan_output.txt`.
 - `terraform-docs`: root/module docs.
 - `terraform-graph`: SVG dependency graph.
-- `checkov-results.sarif`, `tfsec-results.sarif`: security scan outputs.
+- `checkov-results.sarif`, `trivy-results.sarif`: security scan outputs.
 - `infracost.json` + summary in step output when API key present.
 - `resource-inventory-<env>`: JSON/CSV of state resources.
 - `changelog-<env>`: top changes from plan.
 - `metrics-<env>-<run>`: deployment metadata (duration, counts, actor).
 
 ### Customizing the workflow
+
 - Add Terratest: Wire `.github/actions/terratest` after plan (or after apply for live tests) with its own job needs.
 - PR feedback: The default workflow reports Azure-free checks through job status and step summaries; add separate static-analysis comments only if desired.
 - Tighten policy: Set `soft_fail: false` on policy-check or security jobs to enforce gates.
@@ -343,6 +388,7 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 - Cache optimization: Terraform cache is intentionally not persisted to avoid stale providers; add caching if you want faster init at the cost of complexity.
 
 ### Runner considerations
+
 - All jobs run on `ubuntu-latest`. If you add self-hosted runners, ensure Azure CLI, Terraform, jq, graphviz, conftest, and gitleaks are available.
 - Graph job temporarily moves `backend.tf` to avoid touching remote state; safe for read-only graph generation.
 
@@ -351,26 +397,31 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 ## Part 8 - Operating guides by persona
 
 ### For learners
+
 - Start with the Minimal profile: disable firewall, VPN, AKS, and PaaS; keep jumpbox public IP on for easy RDP.
 - Focus on network fundamentals: inspect peering, NSGs, and routing tables; use the graph artifact to see dependencies.
 - Experiment with toggles: turn on firewall and private endpoints to see how traffic paths change.
 
 ### For platform engineers
+
 - Treat `locals.tf` as the policy engine; extend tags, naming, and SKU choices here.
 - Add Conftest policies to enforce allowed regions, required tags, and prohibiting public IPs in production.
 - Consider layering in key rotation and secret injection via Key Vault + Managed Identity for VMs and App Services.
 
 ### For cost-conscious users
+
 - Keep `deploy_firewall=false`, `deploy_vpn_gateway=false` when not demonstrating hybrid/security.
 - Use B-series VM sizes and reduce counts (`lb_web_server_count=1`) for small demos.
 - Enable `enable_auto_shutdown` to stop VMs daily; tear down with destroy when idle.
 
 ### For reliability testers
+
 - Turn on secondary DC, multiple workloads, and private endpoints; validate failover paths.
 - Add synthetic probes and alerts in Log Analytics; extend metrics job to export to your observability stack.
 - Use Terratest to assert key resources (VNets, subnets, firewall rules) exist and outputs are non-empty.
 
 ### For instructors
+
 - Use the book guide as the lecture spine, then assign a landing zone page as homework.
 - Have students toggle one flag per session and record the plan diff.
 - Use the lab workbook to track progress and evidence.
@@ -395,18 +446,22 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 The certification guides translate this repo into exam-focused practice. They map the lab's landing zones, modules, and pipeline to the skills measured so you can practice on a single platform.
 
 ### AZ-104 focus map
+
 - Operate the platform: identity, networking, compute, storage, monitoring.
 - Use the current lab profile with a few deltas (backup, VPN, flow logs).
 
 ### AZ-305 focus map
+
 - Design tradeoffs: security vs. cost, private vs. public access, PaaS vs. IaaS.
 - Document architecture decisions and governance posture.
 
 ### AZ-400 focus map
+
 - Use the GitHub Actions pipeline to practice CI/CD, security, and compliance.
 - Treat policy and security checks as code and wire them into the workflow.
 
 ### Where to start
+
 - Certification overview: `certifications/README.md`
 - Skill matrix: `certifications/skill-matrix.md`
 - AZ-104 path: `certifications/az-104.md`
@@ -420,6 +475,7 @@ The certification guides translate this repo into exam-focused practice. They ma
 The workbook is a long-form checklist that ties build, operate, and design tasks together. Use it to track progress and collect evidence for each exam.
 
 Highlights:
+
 - Baseline deployment and networking validation.
 - Governance and security hardening.
 - Compute and PaaS operations.
@@ -431,6 +487,7 @@ Start here: `certifications/lab-workbook.md`.
 ---
 
 ## Appendix - Quick links
+
 - Foundations: `wiki/architecture/foundations.md`
 - Architecture overview: `wiki/architecture/overview.md`
 - Network topology: `wiki/architecture/network-topology.md`

@@ -60,8 +60,7 @@ enable_jumpbox_public_ip     = false
 allowed_jumpbox_source_ips   = []
 
 # Small VM sizes.
-vm_size     = "Standard_B2s"
-sql_vm_size = "Standard_B2s"
+vm_size = "Standard_B2s"
 
 # Addressing
 hub_address_space          = ["10.0.0.0/16"]

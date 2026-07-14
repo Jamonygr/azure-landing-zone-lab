@@ -1,74 +1,55 @@
-# GitHub Actions Pipeline Setup Guide
+# GitHub Actions and Azure state setup
 
-This guide configures the Terraform pipeline with GitHub Actions OIDC. The repo no longer requires a long-lived Azure client secret JSON.
+The pipeline authenticates with GitHub OIDC and Microsoft Entra ID. Do not add
+an Azure client secret, storage account key, or JSON credential secret.
 
-## Prerequisites
+## 1. Create the protected state backend
 
-- Azure subscription
-- GitHub repository admin access
-- Azure CLI installed locally
-- Permission to create app registrations, federated credentials, role assignments, and the Terraform state storage account
-
-## 1. Create Azure State Storage
+Run this only in the subscription intended to own Terraform state:
 
 ```powershell
 az login
+az account show --output table
 
-$RESOURCE_GROUP = "rg-terraform-state"
-$LOCATION = "westus2"
-$STORAGE_ACCOUNT = "stterraformstate$(Get-Random -Maximum 9999)"
+$ResourceGroup = "rg-terraform-state"
+$Location = "westus2"
+$StorageAccount = "stterraformstate$(Get-Random -Maximum 9999)"
 
-az group create --name $RESOURCE_GROUP --location $LOCATION
+az group create --name $ResourceGroup --location $Location
+az storage account create --name $StorageAccount --resource-group $ResourceGroup --location $Location --sku Standard_LRS --kind StorageV2 --https-only true --min-tls-version TLS1_2 --allow-blob-public-access false --allow-shared-key-access false --encryption-services blob
 
-az storage account create `
-  --name $STORAGE_ACCOUNT `
-  --resource-group $RESOURCE_GROUP `
-  --sku Standard_LRS `
-  --encryption-services blob `
-  --min-tls-version TLS1_2 `
-  --allow-blob-public-access false
+$StateScope = az storage account show --name $StorageAccount --resource-group $ResourceGroup --query id --output tsv
+$CurrentUserObjectId = az ad signed-in-user show --query id --output tsv
+az role assignment create --assignee-object-id $CurrentUserObjectId --assignee-principal-type User --role "Storage Blob Data Contributor" --scope $StateScope
 
-az storage container create `
-  --name tfstate `
-  --account-name $STORAGE_ACCOUNT `
-  --auth-mode login
+az storage container create --name tfstate --account-name $StorageAccount --auth-mode login
+az storage account blob-service-properties update --account-name $StorageAccount --resource-group $ResourceGroup --enable-versioning true --enable-delete-retention true --delete-retention-days 30 --enable-container-delete-retention true --container-delete-retention-days 30
+az lock create --name terraform-state-protection --lock-type CanNotDelete --resource-group $ResourceGroup --resource-name $StorageAccount --resource-type Microsoft.Storage/storageAccounts
 
-Write-Host "TF_STATE_RG=$RESOURCE_GROUP"
-Write-Host "TF_STATE_SA=$STORAGE_ACCOUNT"
+Write-Host "TF_STATE_RG=$ResourceGroup"
+Write-Host "TF_STATE_SA=$StorageAccount"
 ```
 
-## 2. Create the OIDC App Registration
+The public service endpoint remains reachable because GitHub-hosted runners
+have changing outbound addresses. Blob anonymous access and shared-key
+authentication are disabled; authorization is through Entra RBAC.
+
+## 2. Create the OIDC application
 
 ```bash
 SUBSCRIPTION_ID=$(az account show --query id -o tsv)
 TENANT_ID=$(az account show --query tenantId -o tsv)
-REPO="OWNER/REPO"
+REPO="OWNER/REPOSITORY"
 
 APP_ID=$(az ad app create \
   --display-name "terraform-alz-pipeline" \
   --query appId \
   --output tsv)
-
 az ad sp create --id "$APP_ID"
 
-az ad app federated-credential create \
-  --id "$APP_ID" \
-  --parameters "{
-    \"name\": \"github-main\",
-    \"issuer\": \"https://token.actions.githubusercontent.com\",
-    \"subject\": \"repo:${REPO}:ref:refs/heads/main\",
-    \"audiences\": [\"api://AzureADTokenExchange\"]
-  }"
-
 ENVIRONMENTS=(
-  cheap-lab
-  lab
-  dev
-  prod
-  cheap-lab-destroy
-  lab-destroy
-  dev-destroy
-  prod-destroy
+  cheap-lab lab dev prod
+  cheap-lab-destroy lab-destroy dev-destroy prod-destroy
 )
 
 for ENVIRONMENT in "${ENVIRONMENTS[@]}"; do
@@ -82,66 +63,98 @@ for ENVIRONMENT in "${ENVIRONMENTS[@]}"; do
     }"
 done
 
-echo "AZURE_CLIENT_ID=$APP_ID"
-echo "AZURE_TENANT_ID=$TENANT_ID"
-echo "AZURE_SUBSCRIPTION_ID=$SUBSCRIPTION_ID"
+STATE_SCOPE=$(az storage account show \
+  --name "<TF_STATE_SA>" \
+  --resource-group "<TF_STATE_RG>" \
+  --query id -o tsv)
+
+az role assignment create \
+  --assignee "$APP_ID" \
+  --role "Storage Blob Data Contributor" \
+  --scope "$STATE_SCOPE"
 ```
 
-The `github-main` credential authorizes authenticated jobs that do not declare a GitHub environment. GitHub changes the OIDC subject for jobs that declare an environment, so the loop creates the eight additional credentials required by the four apply and four destroy environments. The default workflow does not exchange Azure credentials on pull requests, and all authenticated jobs are restricted to `main`. Grant the app registration the least-privilege roles your selected profile needs for push and manual runs. A production-aligned profile usually needs resource deployment permissions plus role assignment and policy assignment permissions.
+Every authenticated workflow job declares an environment, so the federated
+subject is always:
 
-## 3. Add GitHub Secrets
+```text
+repo:OWNER/REPOSITORY:environment:ENVIRONMENT_NAME
+```
 
-Add these repository secrets under **Settings -> Secrets and variables -> Actions**:
+Grant the service principal only the deployment roles required by the selected
+lab profile. Management-group, policy-assignment, and role-assignment features
+need additional Azure permissions and should remain disabled unless those
+permissions are intentionally granted.
+
+## 3. Configure GitHub
+
+Repository Actions secrets:
 
 | Secret | Purpose |
 |---|---|
-| `AZURE_CLIENT_ID` | App/client ID from the OIDC app registration |
-| `AZURE_TENANT_ID` | Azure tenant ID |
-| `AZURE_SUBSCRIPTION_ID` | Target Azure subscription |
-| `TF_STATE_RG` | Terraform state resource group |
-| `TF_STATE_SA` | Terraform state storage account |
-| `INFRACOST_API_KEY` | Optional cost-estimation token |
+| AZURE_CLIENT_ID | OIDC application/client ID |
+| AZURE_TENANT_ID | Azure tenant ID |
+| AZURE_SUBSCRIPTION_ID | Confirmed target subscription |
+| TF_STATE_RG | State resource group |
+| TF_STATE_SA | State storage account |
+| INFRACOST_API_KEY | Optional cost estimate |
 
-Do not add a client secret or JSON credential secret. The workflow exchanges a GitHub OIDC token for Azure access at run time.
-
-## 4. Create GitHub Environments
-
-Create these environments in **Settings -> Environments**:
+Create these environments:
 
 | Environment | Protection |
 |---|---|
-| `cheap-lab` | Optional reviewer |
-| `lab` | Optional reviewer |
-| `dev` | Optional reviewer |
-| `prod` | Required reviewer |
-| `cheap-lab-destroy` | Required reviewer |
-| `lab-destroy` | Required reviewer |
-| `dev-destroy` | Required reviewer |
-| `prod-destroy` | Required reviewer |
+| cheap-lab, lab, dev | Protected main deployments only |
+| prod | Protected main plus one reviewer |
+| cheap-lab-destroy, lab-destroy, dev-destroy, prod-destroy | Protected main plus one reviewer |
 
-## 5. Test the Pipeline
+Self-review is allowed so a single maintainer is not permanently blocked.
+Pull requests never receive an Azure token.
+
+## 4. Run safely
 
 ```bash
-gh workflow run "Terraform Pipeline" --ref main -f action=plan -f environment=lab
-gh run watch
-```
-
-Apply and destroy are manual only:
-
-```bash
-gh workflow run "Terraform Pipeline" --ref main -f action=apply -f environment=lab
+gh workflow run "Terraform Pipeline" --ref main \
+  -f action=plan -f environment=lab
 
 gh workflow run "Terraform Pipeline" --ref main \
-  -f action=destroy \
-  -f environment=lab \
-  -f destroy_confirm=DESTROY
+  -f action=apply -f environment=lab
+
+gh workflow run "Terraform Pipeline" --ref main \
+  -f action=destroy -f environment=lab \
+  -f destroy_confirm="DESTROY lab"
 ```
+
+Apply consumes the saved plan created in the same workflow run. State is
+downloaded, uploaded to a backup container, and verified before apply or
+destroy. Azure blob versioning and soft delete provide a second recovery layer.
+
+## Recovery
+
+1. Stop all apply/destroy runs.
+2. Inspect current and deleted versions:
+
+   ```bash
+   az storage blob list \
+     --account-name "<TF_STATE_SA>" \
+     --container-name tfstate \
+     --include v,d \
+     --auth-mode login \
+     --output table
+   ```
+
+3. Restore the required blob version or copy the verified backup into a new
+   state key.
+4. Run terraform init and terraform plan only. Confirm the plan is empty or
+   understood before allowing another apply.
+
+Never use terraform state push without an offline copy and peer review.
 
 ## Troubleshooting
 
 | Symptom | Check |
 |---|---|
-| Azure login fails | Federated credential subject matches the repo and the `main` branch or selected job environment |
-| Backend init fails | `TF_STATE_RG`, `TF_STATE_SA`, and `tfstate` container exist |
-| Role or policy assignment fails | The OIDC principal has the required Azure RBAC permissions |
-| Plan cannot read state | The OIDC principal has Storage Blob Data Contributor on the state storage account |
+| Azure login fails | Federated subject exactly matches the selected GitHub environment |
+| Backend initialization fails | Entra role assignment has propagated and shared-key auth is not being requested |
+| State cannot be read | Principal has Storage Blob Data Contributor at the state-account scope |
+| Apply cannot assign roles/policies | Optional governance features require explicitly granted Azure roles |
+| Destroy is skipped | Confirmation must be exactly DESTROY followed by the environment |

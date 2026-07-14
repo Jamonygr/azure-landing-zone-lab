@@ -76,18 +76,3 @@ output "appgw_subnet_id" {
   description = "Application Gateway subnet ID"
   value       = module.hub.appgw_subnet_id
 }
-
-output "application_gateway_id" {
-  description = "Application Gateway ID"
-  value       = module.hub.application_gateway_id
-}
-
-output "application_gateway_name" {
-  description = "Application Gateway name"
-  value       = module.hub.application_gateway_name
-}
-
-output "application_gateway_public_ip" {
-  description = "Application Gateway public IP"
-  value       = module.hub.application_gateway_public_ip
-}
