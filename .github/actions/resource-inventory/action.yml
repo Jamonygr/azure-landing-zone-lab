@@ -28,13 +28,13 @@ runs:
       working-directory: ${{ inputs.working_directory }}
       run: |
         echo "## 📦 Resource Inventory - ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
-        
+
         # Get state list
         terraform state list > /tmp/resources.txt 2>/dev/null || echo "" > /tmp/resources.txt
-        
+
         COUNT=$(wc -l < /tmp/resources.txt | tr -d ' ')
         echo "count=$COUNT" >> $GITHUB_OUTPUT
-        
+
         if [ "${{ inputs.format }}" == "json" ]; then
           # Create JSON inventory
           echo '{"environment": "${{ inputs.environment }}", "timestamp": "'$(date -Iseconds)'", "resources": [' > inventory.json
@@ -59,7 +59,7 @@ runs:
             fi
           done < /tmp/resources.txt
         fi
-        
+
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "Total resources: **$COUNT**" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
@@ -70,7 +70,7 @@ runs:
         done
 
     - name: Upload Inventory
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: resource-inventory-${{ inputs.environment }}
         path: ${{ inputs.working_directory }}/inventory.${{ inputs.format }}

@@ -3,7 +3,7 @@
 # =============================================================================
 # Minimal deployment for CI/CD testing and learning
 # Estimated cost: ~$100-150/month with auto-shutdown enabled
-# 
+#
 # INSTRUCTIONS FOR USERS:
 # 1. Copy this file or use as-is
 # 2. Set your subscription_id via GitHub Secrets (AZURE_SUBSCRIPTION_ID)
@@ -105,8 +105,7 @@ workload_prod_data_subnet_prefix = "10.10.3.0/24"
 # =============================================================================
 # VM SIZES (cost-optimized)
 # =============================================================================
-vm_size     = "Standard_B2s"
-sql_vm_size = "Standard_B2s"
+vm_size = "Standard_B2s"
 
 # =============================================================================
 # PAAS SETTINGS

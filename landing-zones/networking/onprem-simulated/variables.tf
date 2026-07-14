@@ -64,12 +64,6 @@ variable "onprem_bgp_asn" {
   default     = 65050
 }
 
-variable "hub_vpn_gateway_id" {
-  description = "Hub VPN Gateway ID (not used for IPsec, kept for compatibility)"
-  type        = string
-  default     = null
-}
-
 variable "hub_vpn_gateway_public_ip" {
   description = "Hub VPN Gateway Public IP address"
   type        = string

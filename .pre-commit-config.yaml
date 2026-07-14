@@ -2,43 +2,48 @@
 # Install: pip install pre-commit && pre-commit install
 
 repos:
-  # Terraform formatting
-  - repo: https://github.com/antonbabenko/pre-commit-terraform
-    rev: v1.83.6
+  # Cross-platform Terraform checks. These use the repository-pinned local tools
+  # and avoid a hidden WSL/bash dependency on Windows.
+  - repo: local
     hooks:
       - id: terraform_fmt
         name: Terraform Format
-        description: Rewrites Terraform files to canonical format
+        language: system
+        entry: pwsh -NoProfile -File scripts/invoke-pre-commit-check.ps1 -Check fmt
+        pass_filenames: false
+        files: '\.tf$'
 
       - id: terraform_validate
         name: Terraform Validate
-        description: Validates Terraform configuration
-
-      - id: terraform_docs
-        name: Terraform Docs
-        description: Auto-generate documentation
-        args:
-          - --hook-config=--path-to-file=TERRAFORM.md
-          - --hook-config=--add-to-existing-file=true
-          - --hook-config=--create-file-if-not-exist=true
+        language: system
+        entry: pwsh -NoProfile -File scripts/invoke-pre-commit-check.ps1 -Check validate
+        pass_filenames: false
+        files: '\.tf$'
 
       - id: terraform_tflint
         name: TFLint
-        description: Terraform linter
-        args:
-          - --args=--config=__GIT_WORKING_DIR__/.tflint.hcl
+        language: system
+        entry: pwsh -NoProfile -File scripts/invoke-pre-commit-check.ps1 -Check tflint
+        pass_filenames: false
+        files: '\.tf$'
 
-      - id: terraform_tfsec
-        name: tfsec
-        description: Security scanner
+      - id: terraform_trivy
+        name: Trivy IaC
+        language: system
+        entry: pwsh -NoProfile -File scripts/invoke-pre-commit-check.ps1 -Check trivy
+        pass_filenames: false
+        files: '\.tf$'
 
       - id: terraform_checkov
         name: Checkov
-        description: Policy as code
+        language: system
+        entry: pwsh -NoProfile -File scripts/invoke-pre-commit-check.ps1 -Check checkov
+        pass_filenames: false
+        files: '\.tf$'
 
   # General pre-commit hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v6.0.0
     hooks:
       - id: check-merge-conflict
         name: Check for merge conflicts
@@ -65,15 +70,30 @@ repos:
 
   # Secret scanning
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.18.1
+    rev: v8.30.1
     hooks:
       - id: gitleaks
         name: Detect secrets
 
   # Markdown linting
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.38.0
+    rev: v0.49.0
     hooks:
       - id: markdownlint
         name: Markdown lint
         args: ['--fix']
+
+  - repo: local
+    hooks:
+      - id: generated-terraform-docs
+        name: Generated Terraform documentation
+        language: system
+        entry: pwsh -NoProfile -File scripts/generate-terraform-docs.ps1 -Check
+        pass_filenames: false
+        files: '(^|/)([^/]+\.tf|\.terraform-docs\.yml)$'
+      - id: markdown-links
+        name: Markdown links
+        language: system
+        entry: pwsh -NoProfile -File scripts/test-markdown-links.ps1
+        pass_filenames: false
+        files: '\.md$'

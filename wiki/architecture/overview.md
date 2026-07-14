@@ -4,7 +4,6 @@
   <img src="../images/architecture-overview.svg" alt="Architecture overview banner" width="1000" />
 </p>
 
-
 This article shows how the root Terraform module stitches the platform together. By the end you will know which files matter, how they call each other, and what order Terraform follows during a deployment.
 
 ## What you will learn

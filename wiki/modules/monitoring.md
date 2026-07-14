@@ -4,7 +4,6 @@
   <img src="../images/modules-monitoring.svg" alt="Monitoring modules banner" width="1000" />
 </p>
 
-
 Monitoring in the lab is built from small modules that create a workspace, action groups, metric alerts, diagnostic settings, workbooks, and connection monitors. These are part of **Pillar 5: Management** and provide observability across the entire landing zone.
 
 ## Module summary
@@ -131,6 +130,7 @@ Tests network connectivity between endpoints.
 ## Usage patterns
 
 ### Enable full observability
+
 ```hcl
 deploy_log_analytics     = true
 deploy_workbooks         = true
@@ -140,6 +140,7 @@ enable_traffic_analytics = true
 ```
 
 ### Cost-optimized monitoring
+
 ```hcl
 deploy_log_analytics     = true
 log_retention_days       = 7

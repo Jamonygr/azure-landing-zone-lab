@@ -1,0 +1,16 @@
+misconfigurations:
+  - id: AZU-0068
+    paths:
+      - "modules/compute/windows-vm/main.tf"
+    statement: "False positive: the NIC is attached through azurerm_network_interface.vm and network_interface_ids."
+    expired_at: 2027-01-31
+  - id: AZU-0068
+    paths:
+      - "landing-zones/networking/secondary-region/main.tf"
+    statement: "False positive: the composed identity module attaches its VM NIC internally."
+    expired_at: 2027-01-31
+  - id: AZU-0016
+    paths:
+      - "modules/keyvault/main.tf"
+    statement: "Disposable lab vaults omit irreversible purge protection; soft delete and verified state backups remain enabled."
+    expired_at: 2027-01-31

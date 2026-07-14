@@ -1,6 +1,8 @@
 # Checkov remains a blocking CI gate. These skips are intentional lab exceptions:
 # the repo prioritizes low-cost, toggleable Azure learning environments over
 # production-only CMK, private-only, premium HA, and certificate requirements.
+# Rationale, compensating controls, owner, and review date are maintained in
+# SECURITY_EXCEPTIONS.md. Skips must not be added without updating that register.
 framework:
   - terraform
 
@@ -57,6 +59,7 @@ skip-check:
   # VM findings cover optional public entry points, lab extensions, and premium
   # host/disk settings. Public access is controlled by flags and NSG inputs.
   - CKV_AZURE_50
+  - CKV_AZURE_151
 
   # AKS defaults are tuned for a small hands-on cluster. Enterprise settings are
   # documented but not enabled by default due cost and access tradeoffs.

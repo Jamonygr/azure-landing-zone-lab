@@ -246,7 +246,7 @@ resource "azurerm_windows_virtual_machine" "onprem_mgmt" {
   name                       = "vmonpremmgmt01"
   resource_group_name        = var.resource_group_name
   location                   = var.location
-  size                       = "Standard_B2s" # 4GB RAM for RDP sessions
+  size                       = var.vm_size
   admin_username             = var.admin_username
   admin_password             = var.admin_password
   encryption_at_host_enabled = var.encryption_at_host_enabled

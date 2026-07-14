@@ -67,15 +67,25 @@ variable "enable_stop_schedule" {
 }
 
 variable "start_time" {
-  description = "Time to start VMs (RFC3339 format, e.g., 2024-01-01T08:00:00Z)"
+  description = "Time to start VMs in 24-hour HH:MM format"
   type        = string
-  default     = "2025-01-01T08:00:00Z"
+  default     = "08:00"
+
+  validation {
+    condition     = can(regex("^(?:[01][0-9]|2[0-3]):[0-5][0-9]$", var.start_time))
+    error_message = "start_time must use 24-hour HH:MM format."
+  }
 }
 
 variable "stop_time" {
-  description = "Time to stop VMs (RFC3339 format, e.g., 2024-01-01T19:00:00Z)"
+  description = "Time to stop VMs in 24-hour HH:MM format"
   type        = string
-  default     = "2025-01-01T19:00:00Z"
+  default     = "19:00"
+
+  validation {
+    condition     = can(regex("^(?:[01][0-9]|2[0-3]):[0-5][0-9]$", var.stop_time))
+    error_message = "stop_time must use 24-hour HH:MM format."
+  }
 }
 
 variable "start_days" {

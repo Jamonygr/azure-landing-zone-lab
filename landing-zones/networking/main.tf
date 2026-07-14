@@ -32,12 +32,6 @@ module "hub" {
 
   deploy_application_gateway = var.deploy_application_gateway
   appgw_subnet_prefix        = var.hub_appgw_subnet_prefix
-  appgw_waf_mode             = var.appgw_waf_mode
-
-  # Avoid circular dependencies; diagnostics and backend IPs are set later
-  log_analytics_workspace_id = null
-  enable_diagnostics         = false
-  lb_backend_ips             = var.lb_backend_ips
 }
 
 # -----------------------------------------------------------------------------

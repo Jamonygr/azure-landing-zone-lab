@@ -3,7 +3,7 @@
 package terraform.security
 
 # Deny Key Vaults without soft delete
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "azurerm_key_vault"
     resource.change.actions[_] == "create"
@@ -12,7 +12,7 @@ deny[msg] {
 }
 
 # Deny Key Vaults without purge protection in prod
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "azurerm_key_vault"
     resource.change.actions[_] == "create"
@@ -22,7 +22,7 @@ deny[msg] {
 }
 
 # Warn on NSG rules allowing all inbound
-warn[msg] {
+warn contains msg if {
     resource := input.resource_changes[_]
     resource.type == "azurerm_network_security_rule"
     resource.change.actions[_] == "create"
@@ -33,7 +33,7 @@ warn[msg] {
 }
 
 # Deny SQL servers with public network access
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "azurerm_mssql_server"
     resource.change.actions[_] == "create"
@@ -42,7 +42,7 @@ deny[msg] {
 }
 
 # Warn on VMs without encryption at host
-warn[msg] {
+warn contains msg if {
     resource := input.resource_changes[_]
     resource.type == "azurerm_windows_virtual_machine"
     resource.change.actions[_] == "create"

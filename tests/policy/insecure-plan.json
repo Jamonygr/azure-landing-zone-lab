@@ -1,0 +1,19 @@
+{
+  "resource_changes": [
+    {
+      "address": "azurerm_storage_account.insecure",
+      "type": "azurerm_storage_account",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "name": "stinsecure",
+          "location": "westeurope",
+          "allow_nested_items_to_be_public": true,
+          "tags": {
+            "Environment": "test"
+          }
+        }
+      }
+    }
+  ]
+}

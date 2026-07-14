@@ -2,17 +2,6 @@
 # AZURE CONTAINER APPS MODULE
 # =============================================================================
 
-terraform {
-  required_version = ">= 1.9.0"
-
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 4.0"
-    }
-  }
-}
-
 resource "azurerm_container_app_environment" "this" {
   name                               = "cae-${var.name_suffix}"
   resource_group_name                = var.resource_group_name

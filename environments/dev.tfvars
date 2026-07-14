@@ -21,8 +21,7 @@ deploy_workload_dev  = true
 deploy_aks           = true
 
 # Smaller VMs for dev
-vm_size     = "Standard_B2s"
-sql_vm_size = "Standard_B2s"
+vm_size = "Standard_B2s"
 
 # AKS - Minimal for dev
 aks_node_count = 1

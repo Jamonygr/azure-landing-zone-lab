@@ -4,7 +4,6 @@
   <img src="../images/modules-readme.svg" alt="Module design patterns banner" width="1000" />
 </p>
 
-
 The lab is built from small, reusable Terraform modules organized by the **5-pillar Azure Landing Zone architecture**. Each module creates a focused set of resources and expects the caller to decide names, tags, and feature flags. This page explains how the modules are structured so you can reuse or extend them in your own projects.
 
 ## Module organization by pillar
@@ -28,8 +27,8 @@ modules/
 │   └── outputs.tf    # Output values for chaining
 ```
 
-- Inputs are validated with types and descriptions; required values are marked clearly.  
-- Outputs return IDs, names, and IPs so callers can chain modules together.  
+- Inputs are validated with types and descriptions; required values are marked clearly.
+- Outputs return IDs, names, and IPs so callers can chain modules together.
 - Modules avoid inventing names; the caller passes fully composed names and tags.
 
 ## Conventions that keep things simple
@@ -109,7 +108,6 @@ terraform destroy
 | `alerts/` | Metric alerts |
 | `diagnostic-settings/` | Diagnostic settings |
 | `workbooks/` | Azure Workbooks |
-| `nsg-flow-logs/` | NSG flow logs (legacy) |
 | `vnet-flow-logs/` | VNet flow logs (modern) |
 | `connection-monitor/` | Network connection testing |
 

@@ -529,7 +529,7 @@ module "cosmos_db" {
 
   name_suffix         = "${var.workload_name}-${var.environment}-${var.location_short}"
   resource_group_name = var.resource_group_name
-  location            = length(var.cosmos_location) > 0 ? var.cosmos_location : var.paas_alternative_location
+  location            = var.cosmos_location != null && var.cosmos_location != "" ? var.cosmos_location : var.paas_alternative_location
   kind                = "GlobalDocumentDB"
   enable_serverless   = true
   consistency_level   = "Session"

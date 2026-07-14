@@ -1,7 +1,8 @@
 # =============================================================================
-# PROD ENVIRONMENT CONFIGURATION
+# PRODUCTION-LIKE LAB ENVIRONMENT CONFIGURATION
 # =============================================================================
-# Full enterprise deployment for production
+# Demonstrates stronger controls and a fuller topology. This remains a
+# disposable learning profile and is not a production-ready landing zone.
 # =============================================================================
 
 # General
@@ -20,16 +21,24 @@ deploy_workload_prod = true
 deploy_workload_dev  = false # No dev in prod
 deploy_aks           = true
 
-# Production VMs
-vm_size     = "Standard_B2s"
-sql_vm_size = "Standard_B2ms"
+# Lab-sized VMs
+vm_size = "Standard_B2s"
 
-# AKS - Production ready
+# AKS - production-like topology with lab-sized nodes
 aks_node_count = 2
 aks_vm_size    = "Standard_B2s"
 
 # Auto-shutdown disabled in prod
 enable_auto_shutdown = false
+
+# Safer ingress and PaaS defaults for the production-like profile.
+appgw_waf_mode               = "Prevention"
+enable_jumpbox_public_ip     = false
+allowed_jumpbox_source_ips   = []
+allowed_rdp_source_ips       = []
+deploy_private_dns_zones     = true
+deploy_private_endpoints     = true
+enable_vm_encryption_at_host = true
 
 # HA for identity
 deploy_secondary_dc = true

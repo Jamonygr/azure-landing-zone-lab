@@ -12,8 +12,11 @@ variable "subscription_id" {
   default     = null
 
   validation {
-    condition     = var.subscription_id == null ? true : trimspace(var.subscription_id) != "00000000-0000-0000-0000-000000000000"
-    error_message = "subscription_id must be a real Azure subscription ID; the all-zero GUID is only a placeholder."
+    condition = var.subscription_id == null ? true : (
+      can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$", trimspace(var.subscription_id))) &&
+      trimspace(var.subscription_id) != "00000000-0000-0000-0000-000000000000"
+    )
+    error_message = "subscription_id must be a non-zero GUID."
   }
 }
 
@@ -27,6 +30,11 @@ variable "environment" {
   description = "Environment name"
   type        = string
   default     = "lab"
+
+  validation {
+    condition     = contains(["cheap-lab", "lab", "dev", "prod"], var.environment)
+    error_message = "environment must be one of cheap-lab, lab, dev, or prod."
+  }
 }
 
 variable "location" {
@@ -42,9 +50,9 @@ variable "owner" {
 }
 
 variable "repository_url" {
-  description = "Git repository URL"
+  description = "Optional Git repository URL added to resource tags"
   type        = string
-  default     = "https://github.com/your-username/azure-landing-zone-lab"
+  default     = null
 }
 
 # -----------------------------------------------------------------------------
@@ -407,12 +415,6 @@ variable "vm_size" {
   default     = "Standard_B2s"
 }
 
-variable "sql_vm_size" {
-  description = "SQL VM size"
-  type        = string
-  default     = "Standard_B2s"
-}
-
 variable "enable_auto_shutdown" {
   description = "Enable auto-shutdown for VMs"
   type        = bool
@@ -594,6 +596,11 @@ variable "appgw_waf_mode" {
   description = "WAF mode for Application Gateway (Detection or Prevention)"
   type        = string
   default     = "Detection"
+
+  validation {
+    condition     = contains(["Detection", "Prevention"], var.appgw_waf_mode)
+    error_message = "appgw_waf_mode must be Detection or Prevention."
+  }
 }
 
 # -----------------------------------------------------------------------------
@@ -620,6 +627,11 @@ variable "deploy_private_endpoints" {
   description = "Deploy Private Endpoints for Key Vault, Storage, and SQL (requires deploy_private_dns_zones = true)"
   type        = bool
   default     = true
+
+  validation {
+    condition     = !var.deploy_private_endpoints || var.deploy_private_dns_zones
+    error_message = "deploy_private_endpoints requires deploy_private_dns_zones = true."
+  }
 }
 
 # -----------------------------------------------------------------------------
@@ -663,12 +675,6 @@ variable "enable_vnet_flow_logs" {
   }
 }
 
-variable "enable_nsg_flow_logs" {
-  description = "DEPRECATED: Use enable_vnet_flow_logs instead. NSG Flow Logs retired June 2025."
-  type        = bool
-  default     = false
-}
-
 variable "enable_traffic_analytics" {
   description = "Enable Traffic Analytics (requires Log Analytics workspace)"
   type        = bool
@@ -684,6 +690,11 @@ variable "nsg_flow_logs_retention_days" {
   description = "Number of days to retain flow logs (used by both NSG and VNet flow logs)"
   type        = number
   default     = 7
+
+  validation {
+    condition     = var.nsg_flow_logs_retention_days >= 1
+    error_message = "nsg_flow_logs_retention_days must be at least 1."
+  }
 }
 
 # -----------------------------------------------------------------------------
@@ -758,12 +769,22 @@ variable "startstop_start_time" {
   description = "Time to start VMs (HH:MM format)"
   type        = string
   default     = "08:00"
+
+  validation {
+    condition     = can(regex("^(?:[01][0-9]|2[0-3]):[0-5][0-9]$", var.startstop_start_time))
+    error_message = "startstop_start_time must use 24-hour HH:MM format."
+  }
 }
 
 variable "startstop_stop_time" {
   description = "Time to stop VMs (HH:MM format)"
   type        = string
   default     = "19:00"
+
+  validation {
+    condition     = can(regex("^(?:[01][0-9]|2[0-3]):[0-5][0-9]$", var.startstop_stop_time))
+    error_message = "startstop_stop_time must use 24-hour HH:MM format."
+  }
 }
 
 # -----------------------------------------------------------------------------
@@ -895,4 +916,10 @@ variable "compliance_enforcement_mode" {
     condition     = contains(["Default", "DoNotEnforce"], var.compliance_enforcement_mode)
     error_message = "Enforcement mode must be Default or DoNotEnforce."
   }
+}
+
+variable "compliance_remediation_role_definition_ids" {
+  description = "Full role definition resource IDs explicitly granted to regulatory policy identities for remediation"
+  type        = set(string)
+  default     = []
 }

@@ -4,7 +4,6 @@
   <img src="../images/reference-state-and-secrets.svg" alt="Remote State & Secrets Management banner" width="1000" />
 </p>
 
-
 This document covers Terraform remote state storage and GitHub secrets configuration for the Azure Landing Zone lab pipeline.
 
 Use `terraform init -backend=false` only for static validation. Normal plans and applies use the Azure backend described below. The dedicated [live provisioning validation](../testing/live-provisioning-validation.md) runner instead stages a temporary copy without `backend.tf` and owns its disposable local state through teardown.
@@ -166,6 +165,7 @@ Each environment has its own state file:
 | Prod | `prod.terraform.tfstate` | Production workloads |
 
 Benefits:
+
 - Changes to lab don't affect prod state
 - Deploy to multiple environments simultaneously
 - Destroy lab without affecting dev
@@ -218,7 +218,7 @@ terraform plan -var-file="environments/lab.tfvars" -out=tfplan
 The pipeline needs a non-interactive Azure identity. GitHub OIDC provides that identity without storing a long-lived client secret in GitHub.
 
 - **Short-lived credentials** - Tokens are minted per workflow run.
-- **Scoped trust** - Federated credentials target the `main` branch or one named GitHub environment.
+- **Scoped trust** - Federated credentials target one named, protected GitHub environment.
 - **Auditable** - Azure activity is attributed to the app registration/service principal.
 - **No secret rotation burden** - There is no Azure client secret to rotate.
 
@@ -235,15 +235,6 @@ APP_ID=$(az ad app create \
   --output tsv)
 
 az ad sp create --id "$APP_ID"
-
-az ad app federated-credential create \
-  --id "$APP_ID" \
-  --parameters "{
-    \"name\": \"github-main\",
-    \"issuer\": \"https://token.actions.githubusercontent.com\",
-    \"subject\": \"repo:${REPO}:ref:refs/heads/main\",
-    \"audiences\": [\"api://AzureADTokenExchange\"]
-  }"
 
 ENVIRONMENTS=(
   cheap-lab
@@ -268,7 +259,7 @@ for ENVIRONMENT in "${ENVIRONMENTS[@]}"; do
 done
 ```
 
-The `github-main` credential covers authenticated jobs without a GitHub environment. The loop creates the eight additional credentials required by the four apply environments and four `-destroy` environments. Pull requests never exchange Azure credentials, and every authenticated workflow job is restricted to `main`.
+The loop creates the eight credentials required by the four base environments and four `-destroy` environments. Pull requests never exchange Azure credentials, and every authenticated job uses a protected environment on `main`.
 
 ### Required Azure Roles
 
@@ -299,7 +290,7 @@ Configure these in **GitHub → Settings → Secrets and variables → Actions**
 
 | Secret | Description | Example |
 |--------|-------------|---------|
-| `AZURE_CLIENT_ID` | App/client ID for GitHub OIDC | `801a5cf9-3e14-4283-a07a-087e0f0351d4` |
+| `AZURE_CLIENT_ID` | App/client ID for GitHub OIDC | `<CLIENT_ID>` |
 | `AZURE_SUBSCRIPTION_ID` | Target Azure subscription | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
 | `AZURE_TENANT_ID` | Azure AD tenant ID | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
 | `TF_STATE_RG` | State storage resource group | `rg-terraform-state` |

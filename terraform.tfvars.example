@@ -11,7 +11,7 @@ project        = "azlab"
 environment    = "lab"
 location       = "West Europe"
 owner          = "Your-Name"
-repository_url = "https://github.com/your-username/azure-landing-zone-lab"
+# repository_url = "https://github.com/OWNER/azure-landing-zone-lab"
 
 # -----------------------------------------------------------------------------
 # Authentication (MUST CHANGE THESE!)
@@ -121,7 +121,6 @@ create_network_watcher   = false   # Set true only if your subscription lacks it
 # VM Configuration
 # -----------------------------------------------------------------------------
 vm_size              = "Standard_B2s"  # 2 vCPU, 4 GB RAM
-sql_vm_size          = "Standard_B2s"  # Same for SQL VMs
 enable_auto_shutdown = true            # Auto-shutdown at 7 PM
 enable_vm_encryption_at_host = false   # Requires Microsoft.Compute/EncryptionAtHost feature registration
 
@@ -132,7 +131,7 @@ deploy_private_endpoints = false  # Private Endpoints for Key Vault, Storage, SQ
                                   # Requires deploy_private_dns_zones = true
 
 # -----------------------------------------------------------------------------
-# Azure Policy Configuration  
+# Azure Policy Configuration
 # -----------------------------------------------------------------------------
 deploy_azure_policy = false  # Enable Azure Policy governance assignments
 

@@ -4,7 +4,6 @@
   <img src="../images/modules-networking.svg" alt="Networking modules banner" width="1000" />
 </p>
 
-
 These modules build the network fabric for the landing zones and are the foundation of **Pillar 1: Networking**. Each module focuses on one Azure networking concept so you can mix and match them.
 
 ## Module summary
@@ -70,6 +69,7 @@ Creates an NSG and optionally associates it to a subnet.
 **Outputs:** `nsg_id`, `nsg_name`
 
 ### Security rule structure
+
 ```hcl
 security_rules = [{
   name                       = "AllowHTTPS"
@@ -100,6 +100,7 @@ Creates a user-defined route table and attaches it to subnets.
 **Outputs:** `route_table_id`
 
 ### Route structure
+
 ```hcl
 routes = [{
   name                   = "ToFirewall"
@@ -140,7 +141,7 @@ Creates a route-based VPN gateway with optional BGP.
 | `enable_bgp` | Enable BGP | `false` |
 | `asn` | BGP ASN | `65515` |
 
-**Outputs:** `vpn_gateway_id`, `public_ip`, `bgp_peering_address`  
+**Outputs:** `vpn_gateway_id`, `public_ip`, `bgp_peering_address`
 **Cost:** ~$140/month
 
 ## VPN connection (`modules/networking/vpn-connection/`)
@@ -197,7 +198,7 @@ Creates a Standard load balancer (public or internal) with probes, rules, and op
 | `nat_rules` | List of NAT rules | `[]` |
 | `enable_outbound_rule` | Enable outbound rule | `false` |
 
-**Outputs:** `lb_id`, `backend_pool_id`, `frontend_ip`, `nat_rule_ids`  
+**Outputs:** `lb_id`, `backend_pool_id`, `frontend_ip`, `nat_rule_ids`
 **Cost:** ~$25/month
 
 ## NAT Gateway (`modules/networking/nat-gateway/`)
@@ -211,7 +212,7 @@ Creates a NAT Gateway for fixed outbound IP.
 | `location` | Azure region | Required |
 | `subnet_ids` | Subnets to associate | `[]` |
 
-**Outputs:** `nat_gateway_id`, `public_ip`  
+**Outputs:** `nat_gateway_id`, `public_ip`
 **Cost:** ~$45/month
 
 ## Application Security Group (`modules/networking/asg/`)
@@ -224,7 +225,7 @@ Creates Application Security Groups for micro-segmentation.
 | `resource_group` | Resource group | Required |
 | `location` | Azure region | Required |
 
-**Outputs:** `asg_id`  
+**Outputs:** `asg_id`
 **Cost:** Free
 
 ## Private DNS Zone (`modules/networking/private-dns-zone/`)
@@ -238,7 +239,7 @@ Creates a Private DNS zone and optionally links it to VNets.
 | `vnet_ids` | VNets to link | `[]` |
 | `registration_enabled` | Enable auto-registration | `false` |
 
-**Outputs:** `dns_zone_id`, `dns_zone_name`  
+**Outputs:** `dns_zone_id`, `dns_zone_name`
 **Cost:** Minimal (~$0.50/zone/month)
 
 ## Related pages

@@ -4,13 +4,12 @@
   <img src="../images/landing-zones-shared-services.svg" alt="Security landing zone (Pillar 4: Security / Shared Services) banner" width="1000" />
 </p>
 
-
 The security landing zone provides common PaaS components and security services that multiple applications can use. It represents **Pillar 4** of the 5-pillar Azure Landing Zone architecture and keeps secrets, data, private endpoints, and security configurations in one place so workloads do not duplicate them.
 
 ## What you will learn
 
-- Which shared services are available out of the box and how to toggle them.  
-- How DNS and firewall settings from other zones are reused here.  
+- Which shared services are available out of the box and how to toggle them.
+- How DNS and firewall settings from other zones are reused here.
 - What outputs you can hand to application teams.
 
 ## What it deploys
@@ -67,8 +66,8 @@ When `deploy_private_dns_zones = true`:
 
 ## How it behaves
 
-- Uses the tenant ID from `azurerm_client_config` to create Key Vault access policies.  
-- Applies the shared tag set so ownership and cost are easy to trace.  
+- Uses the tenant ID from `azurerm_client_config` to create Key Vault access policies.
+- Applies the shared tag set so ownership and cost are easy to trace.
 - Keeps routing consistent with the firewall flag.
 - Private Endpoints are linked to the centralized Private DNS zones.
 

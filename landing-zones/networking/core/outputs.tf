@@ -80,18 +80,3 @@ output "appgw_subnet_id" {
   description = "Application Gateway subnet ID"
   value       = var.deploy_application_gateway ? module.appgw_subnet[0].id : null
 }
-
-output "application_gateway_id" {
-  description = "Application Gateway ID. The gateway resource is managed by the root module after backend IPs are known."
-  value       = null
-}
-
-output "application_gateway_name" {
-  description = "Application Gateway name. The gateway resource is managed by the root module after backend IPs are known."
-  value       = null
-}
-
-output "application_gateway_public_ip" {
-  description = "Application Gateway public IP address. The gateway resource is managed by the root module after backend IPs are known."
-  value       = null
-}

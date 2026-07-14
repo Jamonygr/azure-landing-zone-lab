@@ -86,7 +86,7 @@ variable "network_acls" {
   })
   default = {
     bypass         = "AzureServices"
-    default_action = "Allow" # Allow for lab
+    default_action = "Deny"
   }
 }
 

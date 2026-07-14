@@ -222,20 +222,8 @@ variable "enable_appgw_diagnostics" {
   default     = false
 }
 
-variable "application_gateway_name" {
-  description = "Application gateway name"
-  type        = string
-  default     = null
-}
-
 variable "application_gateway_id" {
   description = "Application gateway ID"
   type        = string
   default     = null
-}
-
-variable "appgw_backend_ips" {
-  description = "Backend IPs for app gateway pool"
-  type        = list(string)
-  default     = []
 }

@@ -64,12 +64,6 @@ output "aks_fqdn" {
   value       = var.deploy_aks ? module.aks[0].fqdn : null
 }
 
-output "aks_kube_config" {
-  description = "AKS kubeconfig"
-  value       = var.deploy_aks ? module.aks[0].kube_config : null
-  sensitive   = true
-}
-
 # =============================================================================
 # LOAD BALANCER OUTPUTS
 # =============================================================================

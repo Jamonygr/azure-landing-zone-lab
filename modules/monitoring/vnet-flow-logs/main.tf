@@ -4,17 +4,6 @@
 # Uses AzAPI provider for Azure Virtual Network Flow Logs
 # =============================================================================
 
-terraform {
-  required_providers {
-    azapi = {
-      source = "Azure/azapi"
-    }
-    azurerm = {
-      source = "hashicorp/azurerm"
-    }
-  }
-}
-
 # Network Watcher - either look up existing or create new
 # When create_network_watcher = false, we look up the existing one
 data "azurerm_network_watcher" "this" {

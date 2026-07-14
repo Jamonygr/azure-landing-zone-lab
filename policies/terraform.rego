@@ -4,7 +4,7 @@
 package terraform
 
 # Deny resources without required tags
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.change.actions[_] == "create"
     not resource.change.after.tags
@@ -12,7 +12,7 @@ deny[msg] {
 }
 
 # Warn on public IP creation
-warn[msg] {
+warn contains msg if {
     resource := input.resource_changes[_]
     resource.type == "azurerm_public_ip"
     resource.change.actions[_] == "create"
@@ -20,7 +20,7 @@ warn[msg] {
 }
 
 # Deny storage accounts with public access
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.type == "azurerm_storage_account"
     resource.change.actions[_] == "create"
@@ -29,7 +29,7 @@ deny[msg] {
 }
 
 # Warn on large VM sizes (cost control)
-warn[msg] {
+warn contains msg if {
     resource := input.resource_changes[_]
     resource.type == "azurerm_virtual_machine"
     resource.change.actions[_] == "create"
@@ -41,7 +41,7 @@ warn[msg] {
 # Deny resources in non-approved regions
 approved_regions := ["westus2", "eastus", "eastus2", "centralus", "westeurope", "northeurope", "canadacentral"]
 
-deny[msg] {
+deny contains msg if {
     resource := input.resource_changes[_]
     resource.change.actions[_] == "create"
     location := resource.change.after.location
@@ -51,6 +51,6 @@ deny[msg] {
 }
 
 # Helper function
-array_contains(arr, elem) {
+array_contains(arr, elem) if {
     arr[_] == elem
 }

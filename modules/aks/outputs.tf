@@ -22,12 +22,6 @@ output "private_fqdn" {
   value       = azurerm_kubernetes_cluster.this.private_fqdn
 }
 
-output "kube_config" {
-  description = "The Kubernetes config for the cluster"
-  value       = azurerm_kubernetes_cluster.this.kube_config_raw
-  sensitive   = true
-}
-
 output "kubelet_identity" {
   description = "The kubelet identity of the AKS cluster"
   value       = azurerm_kubernetes_cluster.this.kubelet_identity

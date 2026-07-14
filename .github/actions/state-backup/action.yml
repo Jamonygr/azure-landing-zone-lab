@@ -29,7 +29,7 @@ runs:
   using: 'composite'
   steps:
     - name: Azure Login
-      uses: azure/login@v2
+      uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2
       with:
         client-id: ${{ inputs.azure_client_id }}
         tenant-id: ${{ inputs.azure_tenant_id }}
@@ -66,15 +66,37 @@ runs:
           exit 0
         fi
 
-        az storage blob copy start \
+        LOCAL_BACKUP="$RUNNER_TEMP/terraform-state-backup"
+        az storage blob download \
           --account-name "${{ inputs.storage_account }}" \
-          --destination-container "${{ inputs.container }}-backups" \
-          --destination-blob "$BACKUP_NAME" \
-          --source-account-name "${{ inputs.storage_account }}" \
-          --source-container "${{ inputs.container }}" \
-          --source-blob "${{ inputs.state_key }}" \
+          --container-name "${{ inputs.container }}" \
+          --name "${{ inputs.state_key }}" \
+          --file "$LOCAL_BACKUP" \
           --auth-mode login \
+          --overwrite \
           --only-show-errors
+
+        az storage blob upload \
+          --account-name "${{ inputs.storage_account }}" \
+          --container-name "${{ inputs.container }}-backups" \
+          --name "$BACKUP_NAME" \
+          --file "$LOCAL_BACKUP" \
+          --auth-mode login \
+          --overwrite false \
+          --only-show-errors
+
+        BACKUP_EXISTS=$(az storage blob exists \
+          --account-name "${{ inputs.storage_account }}" \
+          --container-name "${{ inputs.container }}-backups" \
+          --name "$BACKUP_NAME" \
+          --auth-mode login \
+          --query exists \
+          --output tsv)
+
+        if [ "$BACKUP_EXISTS" != "true" ]; then
+          echo "State backup verification failed." >&2
+          exit 1
+        fi
 
         echo "## 💾 State Backup" >> "$GITHUB_STEP_SUMMARY"
         echo "Backed up state to: $BACKUP_NAME" >> "$GITHUB_STEP_SUMMARY"

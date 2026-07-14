@@ -4,7 +4,6 @@
   <img src="../images/modules-paas.svg" alt="PaaS modules banner" width="1000" />
 </p>
 
-
 These modules provision popular Azure platform services used by the workload landing zone. They are sized for labs and can be toggled individually. Most use the lowest-cost SKUs to minimize spend.
 
 ## Module summary by tier
@@ -35,7 +34,7 @@ Creates an Azure Kubernetes Service cluster with minimal node count.
 | `private_cluster_enabled` | Private API server | `false` |
 | `workspace_id` | Log Analytics workspace | `null` |
 
-**Outputs:** `aks_id`, `aks_name`, `aks_fqdn`  
+**Outputs:** `aks_id`, `aks_name`, `aks_fqdn`
 **Cost:** ~$30/month (1 node)
 
 ### Functions (`modules/functions/`)
@@ -52,7 +51,7 @@ Creates a consumption-based Azure Functions app with Application Insights.
 | `runtime_version` | Runtime version | `v4.0` |
 | `enable_app_insights` | Enable App Insights | `true` |
 
-**Outputs:** `function_app_name`, `function_app_id`  
+**Outputs:** `function_app_name`, `function_app_id`
 **Cost:** Free (Consumption tier, 1M executions/month)
 
 ### Static Web App (`modules/static-web-app/`)
@@ -67,7 +66,7 @@ Creates a free-tier Static Web App.
 | `sku_tier` | SKU tier | `Free` |
 | `sku_size` | SKU size | `Free` |
 
-**Outputs:** `static_web_app_name`, `static_web_app_id`  
+**Outputs:** `static_web_app_name`, `static_web_app_id`
 **Cost:** Free
 
 ### App Service (`modules/app-service/`)
@@ -83,7 +82,7 @@ Creates an App Service plan and web app.
 | `sku_size` | Plan SKU size | `F1` |
 | `os_type` | Operating system | `Windows` |
 
-**Outputs:** `app_service_plan_id`, `web_app_name`  
+**Outputs:** `app_service_plan_id`, `web_app_name`
 **Cost:** Free (F1 tier, 60 min CPU/day)
 
 ### Logic Apps (`modules/logic-apps/`)
@@ -97,7 +96,7 @@ Creates a logic app workflow in consumption mode.
 | `location` | Azure region | Required |
 | `workflow_type` | Workflow type | `Stateless` |
 
-**Outputs:** `logic_app_id`  
+**Outputs:** `logic_app_id`
 **Cost:** ~$0 (pay per execution)
 
 ### Container Apps (`modules/container-apps/`)
@@ -130,7 +129,7 @@ Creates an Event Grid topic.
 | `location` | Azure region | Required |
 | `input_schema` | Event schema | `EventGridSchema` |
 
-**Outputs:** `topic_id`, `topic_endpoint`  
+**Outputs:** `topic_id`, `topic_endpoint`
 **Cost:** Free (first 100,000 operations/month)
 
 ### Service Bus (`modules/service-bus/`)
@@ -144,7 +143,7 @@ Creates a Basic tier Service Bus namespace.
 | `location` | Azure region | Required |
 | `sku` | Service Bus SKU | `Basic` |
 
-**Outputs:** `namespace_id`, `namespace_name`  
+**Outputs:** `namespace_id`, `namespace_name`
 **Cost:** ~$0.05/month
 
 ## Tier 3 – Data
@@ -162,7 +161,7 @@ Creates a serverless Cosmos DB account.
 | `capabilities` | Account capabilities | `EnableServerless` |
 | `consistency_level` | Consistency level | `Session` |
 
-**Outputs:** `cosmos_account_id`, `cosmos_endpoint`  
+**Outputs:** `cosmos_account_id`, `cosmos_endpoint`
 **Cost:** ~$0-5/month (pay per RU)
 
 ### Storage (`modules/storage/`)
@@ -177,7 +176,7 @@ Creates a storage account.
 | `account_tier` | Storage tier | `Standard` |
 | `replication_type` | Redundancy | `LRS` |
 
-**Outputs:** `storage_account_id`, `storage_account_name`  
+**Outputs:** `storage_account_id`, `storage_account_name`
 **Cost:** ~$5/month
 
 ### SQL (`modules/sql/`)
@@ -193,12 +192,13 @@ Creates a SQL Server and database.
 | `admin_password` | Admin password | Required |
 | `sku_name` | Database SKU | `Basic` |
 
-**Outputs:** `sql_server_id`, `sql_server_fqdn`, `database_id`  
+**Outputs:** `sql_server_id`, `sql_server_fqdn`, `database_id`
 **Cost:** ~$5/month (Basic tier)
 
 ## Usage patterns
 
 ### Full PaaS stack
+
 ```hcl
 deploy_functions      = true
 deploy_static_web_app = true
@@ -212,6 +212,7 @@ deploy_aks            = true
 ```
 
 ### Free tier only
+
 ```hcl
 deploy_functions      = true   # Free consumption
 deploy_static_web_app = true   # Free tier

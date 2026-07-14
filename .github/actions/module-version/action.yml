@@ -25,20 +25,20 @@ runs:
       run: |
         echo "## 📦 Module & Provider Versions" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        
+
         # Get Terraform version
         TF_VERSION=$(terraform version -json | jq -r '.terraform_version')
         echo "terraform=$TF_VERSION" >> $GITHUB_OUTPUT
-        
+
         echo "### Terraform" >> $GITHUB_STEP_SUMMARY
         echo "Version: \`$TF_VERSION\`" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        
+
         # Get provider versions from lock file
         echo "### Providers" >> $GITHUB_STEP_SUMMARY
         echo "| Provider | Version |" >> $GITHUB_STEP_SUMMARY
         echo "|----------|---------|" >> $GITHUB_STEP_SUMMARY
-        
+
         if [ -f ".terraform.lock.hcl" ]; then
           grep -A1 'provider "' .terraform.lock.hcl | grep -E 'version|provider' | paste - - | while read line; do
             PROVIDER=$(echo "$line" | grep -oP 'provider "\K[^"]+')
@@ -48,14 +48,14 @@ runs:
         else
           echo "| (lock file not found) | - |" >> $GITHUB_STEP_SUMMARY
         fi
-        
+
         echo "" >> $GITHUB_STEP_SUMMARY
-        
+
         # Check for module sources
         echo "### Modules" >> $GITHUB_STEP_SUMMARY
         echo "| Module | Source |" >> $GITHUB_STEP_SUMMARY
         echo "|--------|--------|" >> $GITHUB_STEP_SUMMARY
-        
+
         grep -rh 'source\s*=' modules/*/main.tf 2>/dev/null | head -20 | while read line; do
           SOURCE=$(echo "$line" | grep -oP 'source\s*=\s*"\K[^"]+' || echo "-")
           echo "| local | $SOURCE |" >> $GITHUB_STEP_SUMMARY

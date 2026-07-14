@@ -195,10 +195,10 @@ variable "compliance_enforcement_mode" {
   type        = string
 }
 
-variable "log_analytics_workspace_id" {
-  description = "Log Analytics workspace ID (for compliance logging)"
-  type        = string
-  default     = null
+variable "remediation_role_definition_ids" {
+  description = "Full role definition resource IDs explicitly granted to regulatory policy identities for remediation"
+  type        = set(string)
+  default     = []
 }
 
 variable "compliance_scope" {
