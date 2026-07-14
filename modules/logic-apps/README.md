@@ -39,7 +39,7 @@ No modules.
 | <a name="input_http_action_headers"></a> [http\_action\_headers](#input\_http\_action\_headers) | Headers for the HTTP action | `map(string)` | `{}` | no |
 | <a name="input_http_action_method"></a> [http\_action\_method](#input\_http\_action\_method) | HTTP method for the action | `string` | `"POST"` | no |
 | <a name="input_http_action_uri"></a> [http\_action\_uri](#input\_http\_action\_uri) | URI for the HTTP action | `string` | `""` | no |
-| <a name="input_http_trigger_schema"></a> [http\_trigger\_schema](#input\_http\_trigger\_schema) | JSON schema for the HTTP trigger request body | `string` | `"{\r\n    \"type\": \"object\",\r\n    \"properties\": {\r\n        \"message\": {\r\n            \"type\": \"string\"\r\n        }\r\n    }\r\n}\r\n"` | no |
+| <a name="input_http_trigger_schema"></a> [http\_trigger\_schema](#input\_http\_trigger\_schema) | JSON schema for the HTTP trigger request body | `string` | `"{\n    \"type\": \"object\",\n    \"properties\": {\n        \"message\": {\n            \"type\": \"string\"\n        }\n    }\n}\n"` | no |
 | <a name="input_location"></a> [location](#input\_location) | Azure region for resources | `string` | n/a | yes |
 | <a name="input_log_analytics_workspace_id"></a> [log\_analytics\_workspace\_id](#input\_log\_analytics\_workspace\_id) | Log Analytics Workspace ID for diagnostic settings | `string` | `null` | no |
 | <a name="input_name_suffix"></a> [name\_suffix](#input\_name\_suffix) | Suffix for naming resources (typically includes environment and region) | `string` | n/a | yes |
