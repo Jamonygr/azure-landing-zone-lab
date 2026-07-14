@@ -143,9 +143,6 @@ jobs:
   checkov:
     name: Checkov
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Scan Terraform
@@ -155,14 +152,7 @@ jobs:
           framework: terraform
           config_file: .checkov.yml
           soft_fail: false
-          output_format: cli,sarif
-          output_file_path: console,checkov-results.sarif
-      - name: Upload Checkov SARIF
-        if: always() && hashFiles('checkov-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
-        with:
-          sarif_file: checkov-results.sarif
-        continue-on-error: true
+          output_format: cli
 
   gitleaks:
     name: Gitleaks
