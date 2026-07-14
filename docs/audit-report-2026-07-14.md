@@ -21,10 +21,48 @@ resource was applied, changed, or destroyed during the work.
 - Added checksum-verified Conftest and terraform-docs installation, generated
   module references, dependency automation, scanner exception governance, and
   OIDC/backend recovery documentation.
+- Activated the `main` ruleset with pull requests, conversation resolution,
+  strict required checks, and force-push/deletion protection. All eight
+  deployment environments are restricted to protected branches; `prod` and
+  every destroy environment require a reviewer while allowing self-review for
+  the single-maintainer workflow.
+- Set Actions to read-only permissions by default, required immutable action
+  SHAs, removed obsolete client-secret credentials, and retained only OIDC and
+  state-backend identifiers.
+- Reconciled code scanning against the exception register. Only the Key Vault
+  network-default and SQL vulnerability-assessment findings remain open; both
+  are fixed by this pull request and must close through a successful scan of
+  `main`, not by dismissal.
 - Updated the test module to Go 1.25 and `golang.org/x/crypto` 0.52.0, removing
   all 18 dependency alerts reported for the previous transitive version once
   this branch becomes the default-branch baseline.
 - Sanitized the ignored local override file so it no longer stores credentials.
+
+## Verification
+
+Draft pull request
+[#22](https://github.com/Jamonygr/azure-landing-zone-lab/pull/22) has a clean
+merge state and passed the required Format, Validate, Terraform Tests, TFLint,
+Trivy, Checkov, Gitleaks, Policy Checks, Docs, Actionlint, and Go Tests checks.
+The pull-request workflow correctly skipped authenticated plan, apply, and
+destroy jobs.
+
+The local acceptance suite also passed:
+
+- Terraform 1.15.8 formatting, validation, and 11 focused Terraform tests.
+- TFLint with zero findings and Checkov with 152 passed checks and no failures.
+- Trivy with no undocumented configured-severity findings and Gitleaks with no
+  secrets found.
+- Go tests, actionlint, PowerShell AST parsing, Conftest fixtures, Markdown
+  lint/link checks, documentation regeneration, and pre-commit across all
+  tracked files.
+
+A manual authenticated plan-only run is intentionally deferred until this
+workflow is merged to protected `main`: the environments reject deployments
+from the pull-request branch, and the current `main` workflow does not yet
+contain these changes. Before that run, confirm the intended Azure subscription
+and create or recover the hardened backend. No apply or destroy is authorized
+by this audit.
 
 ## Accepted lab exceptions
 
