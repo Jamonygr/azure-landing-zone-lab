@@ -21,6 +21,9 @@ resource was applied, changed, or destroyed during the work.
 - Added checksum-verified Conftest and terraform-docs installation, generated
   module references, dependency automation, scanner exception governance, and
   OIDC/backend recovery documentation.
+- Updated the test module to Go 1.25 and `golang.org/x/crypto` 0.52.0, removing
+  all 18 dependency alerts reported for the previous transitive version once
+  this branch becomes the default-branch baseline.
 - Sanitized the ignored local override file so it no longer stores credentials.
 
 ## Accepted lab exceptions
