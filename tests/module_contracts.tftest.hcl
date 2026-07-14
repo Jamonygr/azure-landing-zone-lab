@@ -107,6 +107,11 @@ run "keyvault_role_is_created_only_for_managed_secrets" {
     condition     = length(azurerm_role_assignment.keyvault_admin) == 1
     error_message = "A Secrets Officer role is required when Terraform manages Key Vault secrets."
   }
+
+  assert {
+    condition     = azurerm_key_vault.this.network_acls[0].default_action == "Deny"
+    error_message = "The standalone Key Vault module must deny unmatched network traffic by default."
+  }
 }
 
 run "regulatory_remediation_roles_default_to_none" {

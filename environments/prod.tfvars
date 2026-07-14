@@ -32,12 +32,13 @@ aks_vm_size    = "Standard_B2s"
 enable_auto_shutdown = false
 
 # Safer ingress and PaaS defaults for the production-like profile.
-appgw_waf_mode             = "Prevention"
-enable_jumpbox_public_ip   = false
-allowed_jumpbox_source_ips = []
-allowed_rdp_source_ips     = []
-deploy_private_dns_zones   = true
-deploy_private_endpoints   = true
+appgw_waf_mode               = "Prevention"
+enable_jumpbox_public_ip     = false
+allowed_jumpbox_source_ips   = []
+allowed_rdp_source_ips       = []
+deploy_private_dns_zones     = true
+deploy_private_endpoints     = true
+enable_vm_encryption_at_host = true
 
 # HA for identity
 deploy_secondary_dc = true

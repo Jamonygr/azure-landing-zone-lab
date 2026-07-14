@@ -28,7 +28,8 @@ resource was applied, changed, or destroyed during the work.
 The current exceptions and expiry dates are maintained in
 [`SECURITY_EXCEPTIONS.md`](../SECURITY_EXCEPTIONS.md). They cover two
 module-boundary NIC false positives and documented low-cost controls such as
-short flow-log retention.
+short flow-log retention, optional encryption-at-host outside the
+production-like profile, and disposable-vault purge behavior.
 
 ## Environment inventory
 
