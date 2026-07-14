@@ -8,6 +8,7 @@ not imply that a profile is production-ready.
 - Terraform 1.15.8
 - TFLint 0.63.1 with the AzureRM ruleset from `.tflint.hcl`
 - Trivy 0.72.0
+- Checkov 3.2.477
 - actionlint 1.7.12
 - terraform-docs 0.24.0
 - Go version declared in `tests/go.mod`

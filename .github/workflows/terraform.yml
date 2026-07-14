@@ -146,13 +146,14 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Scan Terraform
-        uses: bridgecrewio/checkov-action@99bb2caf247dfd9f03cf984373bc6043d4e32ebf # v12.1347.0
-        with:
-          directory: .
-          framework: terraform
-          config_file: .checkov.yml
-          soft_fail: false
-          output_format: cli
+        run: >-
+          docker run --rm
+          --volume "$PWD:/workspace"
+          --workdir /workspace
+          bridgecrew/checkov@sha256:51bebaca76536e985118a6af41ff4811a1b909a5e370492a955b4b6c82da6a88
+          --directory .
+          --config-file .checkov.yml
+          --compact
 
   gitleaks:
     name: Gitleaks
