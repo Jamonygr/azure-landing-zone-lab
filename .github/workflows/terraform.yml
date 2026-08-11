@@ -15,7 +15,6 @@ on:
       - 'scripts/**'
       - '*.md'
       - 'wiki/**'
-      - 'docs/**'
   pull_request:
     branches: [main]
     paths:
@@ -30,7 +29,6 @@ on:
       - 'scripts/**'
       - '*.md'
       - 'wiki/**'
-      - 'docs/**'
   workflow_dispatch:
     inputs:
       environment:

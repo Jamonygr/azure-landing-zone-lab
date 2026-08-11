@@ -12,6 +12,17 @@ CAF is Microsoft's lifecycle for cloud adoption. It is less about specific servi
 
 ### CAF lifecycle at a glance
 
+```mermaid
+flowchart LR
+    S[Strategy] --> P[Plan] --> R[Ready] --> A[Adopt]
+    A --> G[Govern] --> M[Manage]
+    M -. continuous improvement .-> S
+    style R fill:#0078D4,color:#fff
+    style A fill:#50A0DC,color:#fff
+```
+
+This lab lives mostly in the highlighted **Ready** phase (building the landing zone) with a slice of **Adopt** (sample workloads), **Govern** (policy, budgets), and **Manage** (monitoring, backup).
+
 - Strategy: define outcomes, drivers, and success metrics.
 - Plan: inventory, prioritize, and sequence what you will adopt.
 - Ready: build the landing zone foundation (identity, networking, governance, security, management).

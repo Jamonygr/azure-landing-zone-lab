@@ -110,6 +110,14 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 
 ### Input -> locals -> modules -> resources
 
+```mermaid
+flowchart LR
+    IN["environments/*.tfvars<br/>+ TF_VAR_* secrets"] --> LOC["locals.tf<br/>names, tags, short codes"]
+    LOC --> MOD["main.tf module calls<br/>count/for_each gating"]
+    MOD --> RES["Azure resources<br/>VNets, VMs, PaaS, policy"]
+    RES --> OUT["outputs.tf<br/>IDs, IPs, URIs"]
+```
+
 1. Inputs: tracked `environments/*.tfvars` provide non-secret profile settings; ephemeral `TF_VAR_*` values provide optional credentials.
 2. Locals: `locals.tf` normalizes names (CAF-inspired), derives region short codes, builds tags, and maps feature flags into per-module settings.
 3. Modules: `main.tf` instantiates modules with locals/variables; optional blocks are wrapped in `count`/`for_each` or conditional module calls.
@@ -198,6 +206,24 @@ The identity landing zone simulates the on-prem style directory while Entra hand
 - Secrets required: `AZURE_CLIENT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_TENANT_ID`, `TF_STATE_RG`, `TF_STATE_SA`, optional `INFRACOST_API_KEY`.
 
 ### Job sequence
+
+```mermaid
+flowchart LR
+    subgraph V["Validation (PR + push)"]
+        FMT[Format] --> VAL[Validate]
+        VAL --> SECJ["Trivy / Checkov / Gitleaks"]
+        SECJ --> LINTJ["TFLint / Conftest / Docs / Actionlint"]
+    end
+    subgraph A["Analysis"]
+        GRAPH[Graph] ~~~ VERS[Versions] ~~~ COST[Infracost]
+    end
+    subgraph D["Authenticated (OIDC)"]
+        PLAN[Plan] --> APPLY["Apply (manual)"]
+        PLAN --> DESTROY["Destroy (manual + confirm)"]
+        APPLY --> METRICS[Metrics]
+    end
+    V --> A --> PLAN
+```
 
 1. 1️⃣ Format Check - `terraform fmt -check -recursive`
 2. 2️⃣ Validate - `terraform init -backend=false` + `terraform validate`
@@ -492,6 +518,7 @@ Start here: `certifications/lab-workbook.md`.
 - Architecture overview: `wiki/architecture/overview.md`
 - Network topology: `wiki/architecture/network-topology.md`
 - Configuration flow: `wiki/architecture/configuration-flow.md`
+- Environment profiles: `wiki/reference/environments.md`
 - Variables: `wiki/reference/variables.md`
 - Outputs: `wiki/reference/outputs.md`
 - Pipeline reference: `wiki/reference/pipeline.md`

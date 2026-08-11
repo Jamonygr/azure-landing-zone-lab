@@ -48,6 +48,10 @@ The fastest way to change the footprint is the MASTER CONTROL PANEL at the top o
 
 ## How to use these docs
 
+<p align="center">
+  <img src="images/diagrams/documentation-map.svg" alt="Documentation map" width="1000" />
+</p>
+
 1) Start with Architecture to see how the Terraform files fit together.
 2) Move to Landing zones to understand each slice of the platform.
 3) Check Modules if you want to reuse a building block in your own code.
@@ -89,6 +93,7 @@ The fastest way to change the footprint is the MASTER CONTROL PANEL at the top o
 | [Governance modules](modules/governance.md) | Management groups, policies, cost management, RBAC. |
 | **Reference** ||
 | [Variables reference](reference/variables.md) | The inputs you set in `terraform.tfvars`. |
+| [Environment profiles](reference/environments.md) | cheap-lab vs lab vs dev vs prod: feature matrix, costs, and a decision tree. |
 | [Outputs reference](reference/outputs.md) | What the deployment returns for downstream use. |
 | [Naming conventions](reference/naming-conventions.md) | CAF-aligned names and tags used throughout. |
 | [Terraform patterns](reference/terraform-patterns.md) | Reusable HCL idioms in this repo. |

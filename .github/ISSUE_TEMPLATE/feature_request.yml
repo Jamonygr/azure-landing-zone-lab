@@ -1,0 +1,39 @@
+name: Feature request
+description: Suggest a new module, landing-zone capability, or improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This lab is cost-conscious by design. Proposals that add expensive
+        always-on resources should be optional and off by default.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      placeholder: I want to practice ... but the lab currently ...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Which landing zone or module would this touch? Would it need a new deploy_* flag?
+    validations:
+      required: true
+  - type: input
+    id: cost
+    attributes:
+      label: Estimated monthly cost impact
+      placeholder: "~$5/month when enabled, off by default"
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Fit with the lab
+      options:
+        - label: The feature can be toggled with a deploy_*/enable_* flag
+        - label: It works with the cheapest possible SKU for learning
+        - label: I checked existing modules and wiki pages for overlap

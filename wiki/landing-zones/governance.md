@@ -28,18 +28,30 @@ The Governance pillar provides policy enforcement, cost control, compliance fram
 
 When `deploy_management_groups = true`, the following hierarchy is created:
 
-```
-Tenant Root Group
-└── org-root (your root)
-    ├── org-root-platform
-    │   ├── org-root-platform-identity
-    │   ├── org-root-platform-management
-    │   └── org-root-platform-connectivity
-    ├── org-root-landing-zones
-    │   ├── org-root-landing-zones-corp
-    │   └── org-root-landing-zones-online
-    ├── org-root-sandbox
-    └── org-root-decommissioned
+```mermaid
+graph TB
+    ROOT["Tenant Root Group"]
+    ORG["org-root"]
+    PLAT["platform"]
+    LZ["landing-zones"]
+    SBX["sandbox"]
+    DEC["decommissioned"]
+    PID["identity"]
+    PMG["management"]
+    PCN["connectivity"]
+    CORP["corp"]
+    ONLINE["online"]
+
+    ROOT --> ORG
+    ORG --> PLAT
+    ORG --> LZ
+    ORG --> SBX
+    ORG --> DEC
+    PLAT --> PID
+    PLAT --> PMG
+    PLAT --> PCN
+    LZ --> CORP
+    LZ --> ONLINE
 ```
 
 Subscriptions can be assigned to any management group for policy inheritance.

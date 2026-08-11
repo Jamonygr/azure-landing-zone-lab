@@ -16,6 +16,10 @@ For the repeatable disposable validation path used before pushing changes, see [
 
 ## 5-Pillar testing overview
 
+<p align="center">
+  <img src="../images/diagrams/lab-scenarios.svg" alt="Lab test scenarios" width="1000" />
+</p>
+
 | Pillar | What to Test | Key Outputs |
 |--------|--------------|-------------|
 | **1. Networking** | Hub VNet, Firewall routing, VPN connectivity | `hub_firewall_public_ip`, `hub_vpn_gateway_public_ip` |

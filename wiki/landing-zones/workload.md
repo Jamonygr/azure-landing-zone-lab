@@ -14,6 +14,21 @@ The workload landing zone is where you try application scenarios. It is managed 
 
 ## What it deploys
 
+```mermaid
+graph TB
+    INET([Internet])
+    LB["Load balancer<br/>public or internal"]
+    subgraph WVNET["Workload VNet 10.10.0.0/16 (prod)"]
+        WEB["Web subnet 10.10.1.0/24<br/>IIS VMs"]
+        APPT["App subnet 10.10.2.0/24<br/>port 8080"]
+        DATA["Data subnet 10.10.3.0/24<br/>port 1433"]
+        ACA["Container Apps 10.10.8.0/23"]
+        AKS["AKS nodes 10.10.16.0/20"]
+    end
+    INET --> LB --> WEB --> APPT --> DATA
+    FW([Hub firewall]) -. outbound UDR .-> WVNET
+```
+
 | Component | Default | Purpose |
 |-----------|---------|---------|
 | Workload VNet | Prod: `10.10.0.0/16`, Dev: `10.11.0.0/16` | Application network |

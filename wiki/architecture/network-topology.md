@@ -17,6 +17,10 @@ This article explains the IP layout, subnets, peering, and routing strategy used
 
 Each landing zone receives its own /16 block so you have room to experiment without overlap.
 
+<p align="center">
+  <img src="../images/diagrams/network-topology.svg" alt="Detailed network topology" width="1000" />
+</p>
+
 | Zone | VNet | CIDR | Purpose |
 |------|------|------|---------|
 | Hub | `vnet-hub-{env}-{loc}` | `10.0.0.0/16` | Central connectivity and security. |
@@ -40,6 +44,24 @@ Each landing zone receives its own /16 block so you have room to experiment with
 
 The hub peers with every spoke. When the VPN gateway exists, gateway transit is enabled so spokes can reach on-premises networks without running their own gateways.
 
+```mermaid
+graph LR
+    ONPREM(["On-prem sim<br/>10.100.0.0/16"])
+    HUB["Hub<br/>10.0.0.0/16"]
+    IDN["Identity<br/>10.1.0.0/16"]
+    MGMT["Management<br/>10.2.0.0/16"]
+    SHARED["Shared<br/>10.3.0.0/16"]
+    PROD["Workload prod<br/>10.10.0.0/16"]
+    DEV["Workload dev<br/>10.11.0.0/16"]
+
+    ONPREM <-. S2S VPN .-> HUB
+    HUB <--> IDN
+    HUB <--> MGMT
+    HUB <--> SHARED
+    HUB <-. conditional .-> PROD
+    HUB <-. conditional .-> DEV
+```
+
 - Hub ↔ Identity
 - Hub ↔ Management
 - Hub ↔ Shared services
@@ -56,6 +78,10 @@ If you disable the VPN gateway, peering still connects the VNets but without tra
 - **On-premises routes** – The on-premises gateway learns Azure prefixes via BGP when enabled, or from a static list you set on the local network gateway.
 
 ## Traffic flows to picture
+
+<p align="center">
+  <img src="../images/diagrams/traffic-flow.svg" alt="Traffic flow paths" width="1000" />
+</p>
 
 - Outbound internet: spoke VM → firewall → internet.
 - East-west: spoke A → hub firewall → spoke B.

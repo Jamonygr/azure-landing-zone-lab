@@ -14,6 +14,10 @@ This landing zone gives you a small, Azure-hosted “on-premises” site so you 
 
 ## What it deploys
 
+<p align="center">
+  <img src="../images/diagrams/hero-network-lab.svg" alt="Hybrid network lab" width="1000" />
+</p>
+
 - An on-premises VNet (`10.100.0.0/16`) with a `GatewaySubnet` and a servers subnet.
 - A route-based VPN gateway with optional BGP support.
 - A local network gateway that points back to the hub VPN public IP.
@@ -36,6 +40,24 @@ This landing zone gives you a small, Azure-hosted “on-premises” site so you 
 - Management VM public and private IPs so you can RDP in and test name resolution and routing.
 
 ## How the connection is built
+
+```mermaid
+sequenceDiagram
+    participant OP as On-prem VPN gateway<br/>(10.100.0.0/16)
+    participant LNG as Local network gateways
+    participant HUB as Hub VPN gateway<br/>(10.0.0.0/16)
+
+    OP->>LNG: gateway public IP + address space
+    HUB->>LNG: gateway public IP + address space
+    LNG->>OP: connection with shared key
+    LNG->>HUB: connection with shared key
+    OP-->>HUB: IPsec tunnel established
+    alt BGP enabled
+        HUB->>OP: advertise Azure prefixes dynamically
+    else static routing
+        HUB->>OP: static hub_address_spaces list
+    end
+```
 
 1. The on-premises VPN gateway is created with the address space you provide.
 2. The root module creates a local network gateway in the hub that points to the on-premises gateway public IP.

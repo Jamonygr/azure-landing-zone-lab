@@ -1,0 +1,61 @@
+name: Bug report
+description: Report a defect in the Terraform code, pipeline, or documentation
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem. Never include secrets,
+        subscription IDs, tenant IDs, or state file contents in an issue.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Terraform (root module)
+        - Landing zone (networking / identity / governance / security / management)
+        - Reusable module (modules/*)
+        - GitHub Actions pipeline
+        - Scripts (PowerShell)
+        - Documentation / wiki
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: profile
+    attributes:
+      label: Environment profile
+      options:
+        - cheap-lab
+        - lab
+        - dev
+        - prod
+        - custom tfvars
+        - not applicable
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead? Include sanitized plan/apply output if relevant.
+      placeholder: terraform plan failed with...
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Copy environments/lab.tfvars to terraform.tfvars
+        2. Run terraform plan...
+    validations:
+      required: true
+  - type: input
+    id: terraform-version
+    attributes:
+      label: Terraform version
+      placeholder: "1.15.8"
+    validations:
+      required: true

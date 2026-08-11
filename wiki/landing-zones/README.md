@@ -14,6 +14,10 @@ In this lab, the platform follows a **5-pillar architecture** aligned with Micro
 
 ## The 5-pillar architecture at a glance
 
+<p align="center">
+  <img src="../images/diagrams/hero-landing-zone.svg" alt="Landing zone pillars" width="1000" />
+</p>
+
 | Pillar | Folder | Purpose | Key Components |
 |--------|--------|---------|----------------|
 | **1. Networking** | `landing-zones/networking/` | Central connectivity and inspection | Hub VNet, Azure Firewall, VPN Gateway, App Gateway, Peering, NAT Gateway |
@@ -24,30 +28,20 @@ In this lab, the platform follows a **5-pillar architecture** aligned with Micro
 
 ## How the pillars connect
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           PILLAR DEPENDENCY FLOW                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  ┌──────────────┐    firewall_ip    ┌──────────────┐                        │
-│  │  NETWORKING  │ ─────────────────►│   IDENTITY   │                        │
-│  │  (Pillar 1)  │                   │  (Pillar 2)  │                        │
-│  └──────┬───────┘                   └──────┬───────┘                        │
-│         │                                  │ dns_servers                    │
-│         │ vnet_id, firewall_ip             │                                │
-│         ▼                                  ▼                                │
-│  ┌──────────────┐    dns_servers    ┌──────────────┐                        │
-│  │  MANAGEMENT  │ ◄─────────────────│   SECURITY   │                        │
-│  │  (Pillar 5)  │                   │  (Pillar 4)  │                        │
-│  └──────┬───────┘                   └──────────────┘                        │
-│         │ log_analytics_id                                                  │
-│         ▼                                                                   │
-│  ┌──────────────┐                                                           │
-│  │  GOVERNANCE  │  ◄── runs last (needs subscription context)               │
-│  │  (Pillar 3)  │                                                           │
-│  └──────────────┘                                                           │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    NET["NETWORKING<br/>(Pillar 1)"]
+    IDN["IDENTITY<br/>(Pillar 2)"]
+    MGMT["MANAGEMENT<br/>(Pillar 5)"]
+    SEC["SECURITY<br/>(Pillar 4)"]
+    GOV["GOVERNANCE<br/>(Pillar 3)"]
+
+    NET -- firewall_ip --> IDN
+    NET -- "vnet_id, firewall_ip" --> MGMT
+    IDN -- dns_servers --> SEC
+    SEC -- dns_servers --> MGMT
+    MGMT -- log_analytics_id --> GOV
+    GOV -.-> LAST(["runs last - needs subscription context"])
 ```
 
 - **Networking** exports the hub VNet ID, firewall private IP, VPN gateway ID, and Application Gateway details.

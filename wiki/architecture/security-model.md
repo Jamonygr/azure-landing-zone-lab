@@ -6,6 +6,30 @@
 
 Security in this lab is layered. The outer ring is Azure Firewall, the middle ring is network security groups (NSGs), and the inner ring is diagnostics that record what happened. This article walks through how those rings are configured and how traffic is routed through them.
 
+```mermaid
+flowchart TB
+    INET([Internet / on-premises])
+    subgraph L1["Layer 1 - Edge inspection"]
+        FW["Azure Firewall<br/>forced tunneling via UDR"]
+        WAF["App Gateway WAF<br/>(optional L7 ingress)"]
+    end
+    subgraph L2["Layer 2 - Subnet segmentation"]
+        NSG["NSGs per subnet<br/>least-privilege + deny-all"]
+    end
+    subgraph L3["Layer 3 - Data plane"]
+        PE["Private endpoints + private DNS"]
+        KV["Key Vault / Storage / SQL"]
+    end
+    subgraph L4["Layer 4 - Visibility"]
+        LA["Log Analytics<br/>diagnostics + alerts + flow logs"]
+    end
+
+    INET --> L1 --> L2 --> L3
+    L1 -. logs .-> LA
+    L2 -. logs .-> LA
+    L3 -. logs .-> LA
+```
+
 ## What you will learn
 
 - When Azure Firewall is deployed, what it inspects, and how rules are organized.

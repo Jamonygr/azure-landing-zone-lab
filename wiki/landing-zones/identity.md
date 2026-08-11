@@ -23,6 +23,19 @@ This pillar complements Microsoft Entra. Entra handles Azure access and RBAC, wh
 
 ## What it deploys
 
+```mermaid
+graph LR
+    subgraph IDVNET["Identity VNet 10.1.0.0/16"]
+        DC1["DC01<br/>10.1.1.4<br/>AD DS + DNS"]
+        DC2["DC02 (optional)<br/>10.1.1.5<br/>HA replica"]
+    end
+    DC1 <-. replication .-> DC2
+    MGMT["Management VNet"] -- "DNS queries" --> DC1
+    SHARED["Shared VNet"] -- "DNS queries" --> DC1
+    WORK["Workload VNets"] -- "DNS queries" --> DC1
+    DC1 -- "unresolved → Azure DNS" --> AZDNS(["168.63.129.16"])
+```
+
 | Component | Default | Purpose |
 |-----------|---------|---------|
 | Identity VNet | `10.1.0.0/16` | Isolated network for identity services |

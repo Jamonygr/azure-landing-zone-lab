@@ -17,6 +17,27 @@ This article follows a single value from `terraform.tfvars` all the way into the
 
 `terraform.tfvars` → `variables.tf` → `locals.tf` → `main.tf` → landing zones → reusable modules → outputs
 
+```mermaid
+flowchart LR
+    TFVARS["terraform.tfvars<br/>or environments/*.tfvars"]
+    ENV["TF_VAR_* env vars<br/>(secrets)"]
+    VARS["variables.tf<br/>types + validation"]
+    LOCALS["locals.tf<br/>location_short, common_tags"]
+    MAIN["main.tf<br/>orchestration"]
+    LZ["landing-zones/*<br/>5 pillars"]
+    MODS["modules/*<br/>reusable blocks"]
+    OUT["outputs.tf<br/>IDs, IPs, URIs"]
+
+    TFVARS --> VARS
+    ENV --> VARS
+    VARS --> LOCALS
+    LOCALS --> MAIN
+    VARS --> MAIN
+    MAIN --> LZ
+    LZ --> MODS
+    LZ --> OUT
+```
+
 ## Where inputs come from
 
 - **`environments/*.tfvars`** – tracked, non-secret presets for cheap-lab, lab, dev, and production-like lab profiles.

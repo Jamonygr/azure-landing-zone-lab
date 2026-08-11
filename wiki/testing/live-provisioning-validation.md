@@ -1,7 +1,7 @@
 # Live provisioning validation
 
 <p align="center">
-  <img src="../../docs/images/live-validation-flow.svg" alt="Live validation workflow" width="1000" />
+  <img src="../images/diagrams/live-validation-flow.svg" alt="Live validation workflow" width="1000" />
 </p>
 
 Use this workflow when you need proof that the Azure Landing Zone lab can provision, pass smoke tests, and tear down cleanly. It is intentionally disposable and uses local Terraform state only.

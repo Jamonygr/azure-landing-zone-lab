@@ -14,6 +14,27 @@ The security landing zone provides common PaaS components and security services 
 
 ## What it deploys
 
+```mermaid
+graph LR
+    subgraph SHARED["Shared VNet 10.3.0.0/16"]
+        APP["App subnet<br/>10.3.1.0/24"]
+        PES["Private endpoint subnet<br/>10.3.2.0/24"]
+    end
+    subgraph PAAS["PaaS services"]
+        KV["Key Vault"]
+        ST["Storage"]
+        SQL["Azure SQL"]
+    end
+    DNS["Private DNS zones<br/>privatelink.*"]
+
+    APP --> PES
+    PES -- private link --> KV
+    PES -- private link --> ST
+    PES -- private link --> SQL
+    DNS -. resolves to PE IPs .-> PES
+    SPOKES([Other spokes]) -- via hub peering --> PES
+```
+
 | Component | Default | Purpose |
 |-----------|---------|---------|
 | Shared Services VNet | `10.3.0.0/16` | Isolated network for shared services |

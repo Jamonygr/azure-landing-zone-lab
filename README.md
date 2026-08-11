@@ -1,5 +1,11 @@
 # Azure Landing Zone Lab
 
+[![Terraform Pipeline](https://github.com/Jamonygr/azure-landing-zone-lab/actions/workflows/terraform.yml/badge.svg)](https://github.com/Jamonygr/azure-landing-zone-lab/actions/workflows/terraform.yml)
+[![Terraform](https://img.shields.io/badge/terraform-1.15.8-844FBA?logo=terraform&logoColor=white)](https://developer.hashicorp.com/terraform)
+[![AzureRM](https://img.shields.io/badge/azurerm-~%3E%204.0-0078D4?logo=microsoftazure&logoColor=white)](https://registry.terraform.io/providers/hashicorp/azurerm/latest)
+[![License: MIT](https://img.shields.io/github/license/Jamonygr/azure-landing-zone-lab)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/Jamonygr/azure-landing-zone-lab?style=flat)](https://github.com/Jamonygr/azure-landing-zone-lab/stargazers)
+
 A cost-conscious Terraform lab for learning Azure landing-zone architecture:
 hub-and-spoke networking, identity, management, governance, security, private
 connectivity, monitoring, policy, and workload services.
@@ -8,7 +14,48 @@ connectivity, monitoring, policy, and workload services.
 > zone. The `prod` profile demonstrates production-like controls while keeping
 > lab-sized SKUs and disposable-resource behavior.
 
-![Architecture overview](docs/images/architecture-overview.svg)
+![Architecture overview](wiki/images/diagrams/architecture-overview.svg)
+
+## Topology at a glance
+
+```mermaid
+graph TB
+    INET([Internet])
+    ONPREM([Simulated on-premises<br/>10.100.0.0/16])
+
+    subgraph HUB["Hub VNet 10.0.0.0/16 - Pillar 1: Networking"]
+        FW["Azure Firewall"]
+        VPN["VPN Gateway (optional)"]
+        AGW["App Gateway WAF (optional)"]
+        NAT["NAT Gateway (optional)"]
+    end
+
+    subgraph SPOKES["Spoke VNets"]
+        IDN["Identity 10.1.0.0/16<br/>DC01 / DC02 + DNS"]
+        MGMT["Management 10.2.0.0/16<br/>Jumpbox + Log Analytics"]
+        SHARED["Shared services 10.3.0.0/16<br/>Key Vault / Storage / SQL"]
+        PROD["Workload prod 10.10.0.0/16<br/>web / app / data / AKS"]
+        DEV["Workload dev 10.11.0.0/16<br/>web / app / data"]
+    end
+
+    GOV["Governance - Pillar 3<br/>Management groups / Policy / Budgets / RBAC"]
+
+    INET --> AGW
+    INET <--> FW
+    ONPREM <-. site-to-site VPN .-> VPN
+    FW <--> IDN
+    FW <--> MGMT
+    FW <--> SHARED
+    FW <--> PROD
+    FW <--> DEV
+    GOV -. applies to all .-> HUB
+    GOV -. applies to all .-> SPOKES
+```
+
+Every spoke peers to the hub; when the firewall is enabled, user-defined
+routes force spoke traffic through it. See the
+[network topology](wiki/architecture/network-topology.md) page for routing
+details and guardrails.
 
 ## What is included
 
@@ -25,6 +72,32 @@ connectivity, monitoring, policy, and workload services.
 The generated [Terraform reference](TERRAFORM.md) is the canonical list of root
 inputs and outputs. Each directory under `modules/` and `landing-zones/` also
 contains a generated module reference.
+
+## Environment profiles
+
+Four tracked profiles in `environments/` scale the same topology up or down.
+Costs are rough lab estimates, not guarantees.
+
+| Feature | `cheap-lab` | `lab` | `dev` | `prod` |
+|---|---|---|---|---|
+| Azure Firewall (~$300/mo) | – | ✔ | – | ✔ |
+| VPN Gateway + on-prem sim (~$140/mo) | – | – | – | ✔ |
+| Application Gateway WAF | – | ✔ Detection | ✔ Detection | ✔ Prevention |
+| NAT Gateway / Load Balancer | – | ✔ | – | ✔ |
+| Workload spokes | prod only | prod + dev | dev only | prod only |
+| AKS | – | – | – | ✔ 2 nodes |
+| PaaS bundle (Functions, Cosmos, Service Bus…) | – | ✔ | – | ✔ defaults |
+| Secondary domain controller | – | – | – | ✔ |
+| Auto-shutdown | ✔ | ✔ | ✔ | – |
+| Log quota / retention | 0.5 GB/day, 30d | 2 GB/day, 30d | 0.5 GB/day, 30d | 5 GB/day, 30d |
+| Est. monthly cost | ~$50 | ~$100–150 | ~$60–80 | ~$300+ |
+
+Profiles only pin the flags they change; anything unset falls back to the
+defaults in `variables.tf`. AKS, the load balancer, and the PaaS bundle live
+in the prod workload spoke, so they require `deploy_workload_prod = true`.
+
+See the [environment profiles guide](wiki/reference/environments.md) for the
+full feature matrix and a decision tree.
 
 ## Prerequisites
 
@@ -104,10 +177,13 @@ into production without a separate risk review.
 
 ## Documentation
 
+![Documentation map](wiki/images/diagrams/documentation-map.svg)
+
 - [Documentation home](wiki/README.md)
 - [Architecture](wiki/architecture/overview.md)
 - [Landing zones](wiki/landing-zones/README.md)
 - [Module guide](wiki/modules/README.md)
+- [Environment profiles](wiki/reference/environments.md)
 - [Testing guide](wiki/testing/lab-testing-guide.md)
 - [Live provisioning validation](wiki/testing/live-provisioning-validation.md)
 - [State and secrets](wiki/reference/state-and-secrets.md)

@@ -14,6 +14,23 @@ The management landing zone gives administrators a safe entry point and a place 
 
 ## What it deploys
 
+```mermaid
+graph LR
+    ADMIN([Administrator])
+    subgraph MGMT["Management VNet 10.2.0.0/16"]
+        JB["Jumpbox VM<br/>10.2.1.0/24"]
+        LA["Log Analytics workspace"]
+        RSV["Recovery Services Vault"]
+        AUTO["Automation account<br/>start/stop schedules"]
+    end
+    ADMIN -- "VPN / allow-listed RDP" --> JB
+    JB -- RDP via hub --> SPOKES([Spoke VMs])
+    FW["Firewall / VPN / AKS / AGW"] -- diagnostics --> LA
+    SPOKES -- backups --> RSV
+    AUTO -. shuts down .-> SPOKES
+    LA --> ALERTS["Action group<br/>email alerts + workbooks"]
+```
+
 | Component | Default | Purpose |
 |-----------|---------|---------|
 | Management VNet | `10.2.0.0/16` | Isolated management network |

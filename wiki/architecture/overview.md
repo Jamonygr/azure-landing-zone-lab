@@ -22,6 +22,10 @@ This lab uses the Cloud Adoption Framework landing zone model as a guide. If you
 
 This lab follows a 5-pillar structure aligned with Microsoft's Cloud Adoption Framework:
 
+<p align="center">
+  <img src="../images/diagrams/overview-components.svg" alt="Component overview" width="1000" />
+</p>
+
 | Pillar | Landing Zone | Key Components |
 |--------|--------------|----------------|
 | **1. Networking** | `landing-zones/hub.md` | Hub VNet, Azure Firewall, VPN Gateway, Application Gateway, VNet Peering, NAT Gateway |
@@ -44,6 +48,10 @@ Tip: Treat the first four files as the platform contract. Keep changes in `terra
 
 ## How the orchestration works
 
+<p align="center">
+  <img src="../images/diagrams/azure_architecture_with_icons_v2.png" alt="Azure architecture with service icons" width="1000" />
+</p>
+
 1. Create the homes first. `main.tf` creates the resource groups up front so every pillar has a place to live.
 2. Call each pillar. Networking -> Identity -> Management -> Security -> Governance, each as a module call. Workloads and on-premises simulation are optional.
 3. Wire the shared pieces. After VNets exist, the networking connectivity module adds peering, flow logs, NAT gateway, and ASGs.
@@ -52,6 +60,17 @@ Tip: Treat the first four files as the platform contract. Keep changes in `terra
 Conditional components such as `workload_dev` or the on-premises simulation use `count` so you can toggle them with a flag.
 
 ## Execution order at a glance
+
+```mermaid
+flowchart LR
+    P1["Phase 1<br/>Foundations<br/>suffix + resource groups"]
+    P2["Phase 2<br/>Core pillars<br/>networking, identity,<br/>management, security"]
+    P3["Phase 3<br/>Workloads<br/>prod / dev + PaaS"]
+    P4["Phase 4<br/>Connectivity<br/>peering, flow logs,<br/>NAT, ASGs"]
+    P5["Phase 5<br/>Governance<br/>MGs, policy,<br/>budgets, RBAC"]
+
+    P1 --> P2 --> P3 --> P4 --> P5
+```
 
 - Phase 1: Foundations - generate a random suffix for globally unique names, then create the resource groups in parallel.
 - Phase 2: Core Pillars - deploy networking (hub, firewall, VPN, App Gateway), then identity (domain controllers), management (jumpbox, log analytics), and security (shared services).

@@ -1,7 +1,27 @@
 # Pipeline reference
 
+<p align="center">
+  <img src="../images/diagrams/cicd-pipeline.svg" alt="CI/CD pipeline overview" width="1000" />
+</p>
+
 The `Terraform Pipeline` workflow separates untrusted pull-request validation
 from authenticated Azure planning and manual deployment.
+
+```mermaid
+flowchart LR
+    PR(["Pull request"]) --> GATES
+    subgraph GATES["Validation gates - no Azure token"]
+        direction TB
+        FMT["Format + Validate + Tests"]
+        LINT["TFLint + Trivy + Checkov"]
+        SEC["Gitleaks + Conftest"]
+        DOCS["Docs drift + Actionlint + Go"]
+    end
+    PUSH(["Push to main"]) --> PLAN["Saved plan (lab)<br/>OIDC read-only"]
+    DISPATCH(["Manual dispatch"]) --> PLAN2["Plan"] --> APPLY["Apply<br/>protected environment"]
+    DISPATCH --> CONFIRM{{"typed 'DESTROY env'?"}} -- yes --> DESTROY["Destroy<br/>protected destroy environment"]
+    GATES -. all blocking .-> MERGE([Merge])
+```
 
 ## Pull-request gates
 

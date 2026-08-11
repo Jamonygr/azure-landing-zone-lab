@@ -14,6 +14,25 @@ The hub is the centre of the network and represents **Pillar 1** of the 5-pillar
 
 ## What it deploys
 
+```mermaid
+graph TB
+    INET([Internet])
+    subgraph HUB["Hub VNet 10.0.0.0/16"]
+        GW["GatewaySubnet 10.0.0.0/24<br/>VPN Gateway (optional)"]
+        FWS["AzureFirewallSubnet 10.0.1.0/24<br/>Azure Firewall + policy"]
+        MGMTS["HubManagementSubnet 10.0.2.0/24"]
+        AGWS["AppGatewaySubnet 10.0.3.0/24<br/>App Gateway WAF_v2 (optional)"]
+    end
+    RT["Route tables<br/>0.0.0.0/0 → firewall"]
+    SPOKES([Spoke VNets])
+
+    INET --> AGWS
+    INET <--> FWS
+    ONPREM([On-premises]) <-. IPsec .-> GW
+    RT -. attached to spoke subnets .-> SPOKES
+    SPOKES <--> FWS
+```
+
 | Component | Default | Purpose |
 |-----------|---------|---------|
 | Hub VNet | `10.0.0.0/16` | Central network connectivity |
